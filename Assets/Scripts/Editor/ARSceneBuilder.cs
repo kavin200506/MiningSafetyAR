@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -60,21 +61,32 @@ namespace MiningSafetyAR.Editor
                 originGO = xrOrigin.gameObject;
             }
 
-            // 3. Add AR Managers to XR Origin (Stage 8 & 9 & 10)
+            // 3. Add AR Managers to XR Origin
             if (originGO.GetComponent<ARRaycastManager>() == null)
             {
                 originGO.AddComponent<ARRaycastManager>();
             }
-            if (originGO.GetComponent<ARPlaneManager>() == null)
+
+            ARPlaneManager planeManager = originGO.GetComponent<ARPlaneManager>();
+            if (planeManager == null)
             {
-                originGO.AddComponent<ARPlaneManager>();
+                planeManager = originGO.AddComponent<ARPlaneManager>();
             }
+
             if (originGO.GetComponent<ARPlacementManager>() == null)
             {
                 originGO.AddComponent<ARPlacementManager>();
             }
 
-            // 4. Setup Managers GameObject (LocalScoreManager, LanguageManager, CloudSyncManager)
+            // 4. Ensure AR Default Plane Prefab exists and is assigned
+            GameObject planePrefab = EnsureARDefaultPlanePrefab();
+            if (planePrefab != null && planeManager.planePrefab == null)
+            {
+                planeManager.planePrefab = planePrefab;
+                Debug.Log("[ARSceneBuilder] Assigned AR Default Plane prefab to ARPlaneManager.");
+            }
+
+            // 5. Setup Managers GameObject (LocalScoreManager, LanguageManager, CloudSyncManager)
             GameObject managersGO = GameObject.Find("AppManagers");
             if (managersGO == null)
             {
@@ -84,13 +96,49 @@ namespace MiningSafetyAR.Editor
                 managersGO.AddComponent<CloudSyncManager>();
                 managersGO.AddComponent<AssessmentEngine>();
                 Undo.RegisterCreatedObjectUndo(managersGO, "Create App Managers");
-                Debug.Log("[ARSceneBuilder] Created AppManagers container with local score, language, sync, and assessment components.");
+                Debug.Log("[ARSceneBuilder] Created AppManagers container.");
             }
 
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorUtility.DisplayDialog("AR Scene Setup Complete", 
-                "Successfully set up AR Session, XR Origin, AR Raycast Manager, AR Plane Manager, AR Placement Manager, and App Managers in the scene!", 
+                "Successfully set up AR Session, XR Origin, AR Raycast Manager, AR Plane Manager (with visualizer plane prefab), AR Placement Manager, and App Managers in the scene!", 
                 "OK");
+        }
+
+        private static GameObject EnsureARDefaultPlanePrefab()
+        {
+            string folderPath = "Assets/Prefabs";
+            string prefabPath = "Assets/Prefabs/ARDefaultPlane.prefab";
+
+            GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (existingPrefab != null) return existingPrefab;
+
+            if (!Directory.Exists(folderPath))
+            {
+                Directory.CreateDirectory(folderPath);
+                AssetDatabase.Refresh();
+            }
+
+            // Create temporary plane visualizer GameObject
+            GameObject tempPlane = new GameObject("AR Default Plane");
+            tempPlane.AddComponent<ARPlane>();
+            tempPlane.AddComponent<ARPlaneMeshVisualizer>();
+            tempPlane.AddComponent<MeshFilter>();
+            
+            MeshRenderer mr = tempPlane.AddComponent<MeshRenderer>();
+            Shader defaultShader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
+            if (defaultShader != null)
+            {
+                Material planeMat = new Material(defaultShader);
+                planeMat.color = new Color(0.2f, 0.8f, 1.0f, 0.35f);
+                mr.sharedMaterial = planeMat;
+            }
+
+            GameObject savedPrefab = PrefabUtility.SaveAsPrefabAsset(tempPlane, prefabPath);
+            Object.DestroyImmediate(tempPlane);
+
+            Debug.Log($"[ARSceneBuilder] Auto-created AR Default Plane prefab at {prefabPath}");
+            return savedPrefab;
         }
     }
 }
