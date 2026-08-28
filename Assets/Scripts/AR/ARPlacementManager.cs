@@ -52,6 +52,8 @@ namespace MiningSafetyAR.AR
 
             raycastManager = GetComponent<ARRaycastManager>();
             planeManager = GetComponent<ARPlaneManager>();
+
+            Debug.Log($"[DIAG] Startup check: placementIndicator assigned={placementIndicator != null}, defaultPlacementPrefab assigned={defaultPlacementPrefab != null}");
         }
 
         private void OnEnable()
@@ -102,6 +104,8 @@ namespace MiningSafetyAR.AR
 
             if (tapDetected)
             {
+                Debug.Log($"[DIAG] tapDetected={tapDetected}, HasDetectedPlane={HasDetectedPlane}, placementIndicator_isNull={placementIndicator == null}, placementIndicator_activeSelf={(placementIndicator != null ? placementIndicator.activeSelf.ToString() : "N/A")}");
+
                 bool reticleValid = placementIndicator == null || placementIndicator.activeSelf;
                 if (!HasDetectedPlane || !reticleValid)
                 {
@@ -145,6 +149,8 @@ namespace MiningSafetyAR.AR
             TrackableType planeTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds;
             bool hitSuccess = raycastManager.Raycast(touchPosition, hits, planeTypes);
 
+            Debug.Log($"[DIAG] Raycast at {touchPosition}: hitSuccess={hitSuccess}, hits.Count={hits.Count}");
+
             if (!hitSuccess || hits.Count == 0)
             {
                 Debug.LogWarning($"[ARPlacementManager] No plane detected at touch position {touchPosition} — keep scanning the environment.");
@@ -152,7 +158,9 @@ namespace MiningSafetyAR.AR
             }
 
             Pose hitPose = hits[0].pose;
-            Debug.Log($"[ARPlacementManager] Raycast hit AR Surface plane at {hitPose.position}");
+            Camera mainCamera = Camera.main ?? FindFirstObjectByType<Camera>();
+            float camDist = mainCamera != null ? Vector3.Distance(mainCamera.transform.position, hitPose.position) : -1f;
+            Debug.Log($"[DIAG] HitPose position={hitPose.position}, distance from camera={(mainCamera != null ? camDist.ToString("F2") : "N/A")}");
 
             GameObject targetPrefab = prefabToSpawn != null ? prefabToSpawn : defaultPlacementPrefab;
 
@@ -194,6 +202,9 @@ namespace MiningSafetyAR.AR
                 spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
                 Debug.Log($"[ARPlacementManager] Repositioned 3D object anchored to {hitPose.position}");
             }
+
+            Renderer spawnedRenderer = spawnedObject != null ? spawnedObject.GetComponent<Renderer>() : null;
+            Debug.Log($"[DIAG] spawnedObject={(spawnedObject != null ? spawnedObject.name : "NULL")}, position={spawnedObject?.transform.position}, activeInHierarchy={spawnedObject?.activeInHierarchy}, hasRenderer={(spawnedRenderer != null)}, rendererEnabled={(spawnedRenderer != null ? spawnedRenderer.enabled.ToString() : "N/A")}, usingPrefab={targetPrefab != null}");
 
             OnObjectPlaced?.Invoke(hitPose.position, hitPose.rotation);
             return true;
