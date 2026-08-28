@@ -456,6 +456,13 @@ namespace MiningSafetyAR.Editor
 
         private static GameObject EnsureARDefaultPlanePrefab()
         {
+            GameObject refPlanePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/AR Default Plane.prefab");
+            if (refPlanePrefab != null)
+            {
+                Debug.Log("[ARSceneBuilder] Loaded and assigned exact AR Default Plane prefab from reference project.");
+                return refPlanePrefab;
+            }
+
             string folderPath = "Assets/Prefabs";
             string prefabPath = "Assets/Prefabs/ARDefaultPlane.prefab";
             string materialPath = "Assets/Prefabs/ARDefaultPlaneMaterial.mat";
