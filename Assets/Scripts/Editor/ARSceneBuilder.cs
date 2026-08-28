@@ -375,6 +375,35 @@ namespace MiningSafetyAR.Editor
             }
         }
 
+        private static void SetSerializableGuid(SerializedProperty guidProp, string hexGuid)
+        {
+            if (guidProp == null || string.IsNullOrEmpty(hexGuid)) return;
+
+            if (guidProp.propertyType == SerializedPropertyType.String)
+            {
+                guidProp.stringValue = hexGuid;
+                return;
+            }
+
+            try
+            {
+                System.Guid guid = new System.Guid(hexGuid);
+                byte[] bytes = guid.ToByteArray();
+                ulong low = System.BitConverter.ToUInt64(bytes, 0);
+                ulong high = System.BitConverter.ToUInt64(bytes, 8);
+
+                SerializedProperty lowProp = guidProp.FindPropertyRelative("m_GuidLow");
+                SerializedProperty highProp = guidProp.FindPropertyRelative("m_GuidHigh");
+
+                if (lowProp != null) lowProp.longValue = (long)low;
+                if (highProp != null) highProp.longValue = (long)high;
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[ARSceneBuilder] Failed to set GUID '{hexGuid}': {ex.Message}");
+            }
+        }
+
         private static void EnsureReferenceImageLibrary(ARTrackedImageManager imageManager)
         {
             FixMarkerTextureImporters();
@@ -415,42 +444,29 @@ namespace MiningSafetyAR.Editor
                 SerializedProperty elem0 = imagesProp.GetArrayElementAtIndex(0);
                 elem0.FindPropertyRelative("m_Name").stringValue = "FireExtinguisherMarker";
                 elem0.FindPropertyRelative("m_Texture").objectReferenceValue = extTex;
-                SerializedProperty guidProp0 = elem0.FindPropertyRelative("m_TextureGUID");
-                if (guidProp0 != null)
-                {
-                    if (guidProp0.propertyType == SerializedPropertyType.String)
-                    {
-                        guidProp0.stringValue = extGuid;
-                    }
-                    else
-                    {
-                        // SerializableGUID property in AR Foundation 6.x
-                        SerializedProperty g0 = guidProp0.FindPropertyRelative("m_Guid") ?? guidProp0.FindPropertyRelative("m_Value");
-                        if (g0 != null) g0.stringValue = extGuid;
-                    }
-                }
                 elem0.FindPropertyRelative("m_SpecifySize").boolValue = true;
                 elem0.FindPropertyRelative("m_Size").vector2Value = new Vector2(0.2f, 0.2f);
+
+                SetSerializableGuid(elem0.FindPropertyRelative("m_SerializedGuid"), System.Guid.NewGuid().ToString("N"));
+                SetSerializableGuid(elem0.FindPropertyRelative("m_SerializedTextureGuid"), extGuid);
+                SetSerializableGuid(elem0.FindPropertyRelative("m_TextureGUID"), extGuid);
 
                 // Entry 1: ExitSignMarker
                 SerializedProperty elem1 = imagesProp.GetArrayElementAtIndex(1);
                 elem1.FindPropertyRelative("m_Name").stringValue = "ExitSignMarker";
                 elem1.FindPropertyRelative("m_Texture").objectReferenceValue = exitTex;
-                SerializedProperty guidProp1 = elem1.FindPropertyRelative("m_TextureGUID");
-                if (guidProp1 != null)
-                {
-                    if (guidProp1.propertyType == SerializedPropertyType.String)
-                    {
-                        guidProp1.stringValue = exitGuid;
-                    }
-                    else
-                    {
-                        SerializedProperty g1 = guidProp1.FindPropertyRelative("m_Guid") ?? guidProp1.FindPropertyRelative("m_Value");
-                        if (g1 != null) g1.stringValue = exitGuid;
-                    }
-                }
                 elem1.FindPropertyRelative("m_SpecifySize").boolValue = true;
                 elem1.FindPropertyRelative("m_Size").vector2Value = new Vector2(0.2f, 0.2f);
+
+                SetSerializableGuid(elem1.FindPropertyRelative("m_SerializedGuid"), System.Guid.NewGuid().ToString("N"));
+                SetSerializableGuid(elem1.FindPropertyRelative("m_SerializedTextureGuid"), exitGuid);
+                SetSerializableGuid(elem1.FindPropertyRelative("m_TextureGUID"), exitGuid);
+
+                libSO.ApplyModifiedProperties();
+                EditorUtility.SetDirty(library);
+                AssetDatabase.SaveAssets();
+                Debug.Log("[ARSceneBuilder] Programmatically populated MiningSafetyImageLibrary with valid Texture references, m_SerializedTextureGuid, and 0.2m size.");
+            }
 
                 libSO.ApplyModifiedProperties();
                 EditorUtility.SetDirty(library);
