@@ -26,6 +26,7 @@ namespace MiningSafetyAR.Editor
                 GameObject sessionGO = new GameObject("AR Session");
                 arSession = sessionGO.AddComponent<ARSession>();
                 sessionGO.AddComponent<ARInputManager>();
+                sessionGO.AddComponent<AndroidCameraPermissionHelper>();
                 Undo.RegisterCreatedObjectUndo(sessionGO, "Create AR Session");
                 Debug.Log("[ARSceneBuilder] Created AR Session GameObject.");
             }
