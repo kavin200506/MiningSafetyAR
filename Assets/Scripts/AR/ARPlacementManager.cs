@@ -89,11 +89,11 @@ namespace MiningSafetyAR.AR
             // 3. Fallback Legacy Input
             if (Input.touchCount > 0)
             {
-                Touch touch = Input.GetTouch(0);
-                if (touch.phase == TouchPhase.Began)
+                UnityEngine.Touch legacyTouch = Input.GetTouch(0);
+                if (legacyTouch.phase == UnityEngine.TouchPhase.Began)
                 {
-                    Debug.Log($"[ARPlacementManager] Legacy Touch detected at {touch.position}");
-                    PerformPlacementRaycast(touch.position);
+                    Debug.Log($"[ARPlacementManager] Legacy Touch detected at {legacyTouch.position}");
+                    PerformPlacementRaycast(legacyTouch.position);
                 }
             }
         }
