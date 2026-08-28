@@ -181,10 +181,10 @@ namespace MiningSafetyAR.Editor
 
             // 7. Ensure Placement Equipment Prefab exists and is assigned
             GameObject placementPrefab = EnsureSamplePlacementPrefab();
-            if (placementPrefab != null && placementManager.DefaultPlacementPrefab == null)
+            if (placementPrefab != null)
             {
                 placementManager.DefaultPlacementPrefab = placementPrefab;
-                Debug.Log("[ARSceneBuilder] Assigned Sample AR Equipment prefab to ARPlacementManager.");
+                Debug.Log($"[ARSceneBuilder] Assigned '{placementPrefab.name}' as placement prefab to ARPlacementManager.");
             }
 
             // 8. Setup Managers GameObject
@@ -602,6 +602,13 @@ namespace MiningSafetyAR.Editor
 
         private static GameObject EnsureSamplePlacementPrefab()
         {
+            GameObject dogPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Dog/DogPrefab_Parent.prefab");
+            if (dogPrefab != null)
+            {
+                Debug.Log("[ARSceneBuilder] Loaded and assigned DogPrefab_Parent.prefab as the default placement object.");
+                return dogPrefab;
+            }
+
             string folderPath = "Assets/Prefabs";
             string prefabPath = "Assets/Prefabs/SampleAREquipment.prefab";
             string materialPath = "Assets/Prefabs/SampleAREquipmentMaterial.mat";
