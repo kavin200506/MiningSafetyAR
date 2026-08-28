@@ -1,9 +1,11 @@
 #if UNITY_EDITOR
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
+using UnityEngine.Rendering.Universal;
 using Unity.XR.CoreUtils;
 using MiningSafetyAR.AR;
 using MiningSafetyAR.Modules;
@@ -42,7 +44,7 @@ namespace MiningSafetyAR.Editor
                 Debug.Log("[ARSceneBuilder] Created AR Session GameObject.");
             }
 
-            // 2. Ensure XR Origin exists
+            // 3. Ensure XR Origin exists
             XROrigin xrOrigin = Object.FindFirstObjectByType<XROrigin>();
             GameObject originGO;
             if (xrOrigin == null)
@@ -83,7 +85,7 @@ namespace MiningSafetyAR.Editor
                 }
             }
 
-            // 3. Add AR Managers to XR Origin
+            // 4. Add AR Managers to XR Origin
             if (originGO.GetComponent<ARRaycastManager>() == null)
             {
                 originGO.AddComponent<ARRaycastManager>();
@@ -101,7 +103,7 @@ namespace MiningSafetyAR.Editor
                 placementManager = originGO.AddComponent<ARPlacementManager>();
             }
 
-            // 4. Ensure AR Default Plane Prefab exists and is assigned
+            // 5. Ensure AR Default Plane Prefab exists and is assigned
             GameObject planePrefab = EnsureARDefaultPlanePrefab();
             if (planePrefab != null && planeManager.planePrefab == null)
             {
@@ -109,7 +111,7 @@ namespace MiningSafetyAR.Editor
                 Debug.Log("[ARSceneBuilder] Assigned AR Default Plane prefab to ARPlaneManager.");
             }
 
-            // 5. Ensure Placement Object Prefab exists and is assigned (Stage 10)
+            // 6. Ensure Placement Object Prefab exists and is assigned (Stage 10)
             GameObject placementPrefab = EnsureSamplePlacementPrefab();
             if (placementPrefab != null && placementManager.DefaultPlacementPrefab == null)
             {
@@ -117,7 +119,7 @@ namespace MiningSafetyAR.Editor
                 Debug.Log("[ARSceneBuilder] Assigned Sample AR Equipment prefab to ARPlacementManager.");
             }
 
-            // 6. Setup Managers GameObject (LocalScoreManager, LanguageManager, CloudSyncManager)
+            // 7. Setup Managers GameObject (LocalScoreManager, LanguageManager, CloudSyncManager)
             GameObject managersGO = GameObject.Find("AppManagers");
             if (managersGO == null)
             {
@@ -130,12 +132,38 @@ namespace MiningSafetyAR.Editor
                 Debug.Log("[ARSceneBuilder] Created AppManagers container.");
             }
 
+            // 8. Ensure URP Renderer has AR Background Renderer Feature
+            EnsureARBackgroundRendererFeature();
+
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorUtility.DisplayDialog("AR Scene Setup Complete", 
-                "Successfully set up AR Session, XR Origin, AR Raycast Manager, AR Plane Manager (with plane prefab), AR Placement Manager (with 3D object prefab), and App Managers!", 
+                "Successfully set up AR Session, XR Origin, AR Raycast Manager, AR Plane Manager (with plane prefab), AR Placement Manager (with 3D object prefab), App Managers, and URP AR Background Renderer Feature!", 
                 "OK");
+        }
+
+        private static void EnsureARBackgroundRendererFeature()
+        {
+            string[] guids = AssetDatabase.FindAssets("t:ScriptableRendererData");
+            foreach (string guid in guids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                ScriptableRendererData rendererData = AssetDatabase.LoadAssetAtPath<ScriptableRendererData>(path);
+                if (rendererData != null)
+                {
+                    bool hasFeature = rendererData.rendererFeatures.Any(f => f is ARBackgroundRendererFeature);
+                    if (!hasFeature)
+                    {
+                        ARBackgroundRendererFeature feature = ScriptableObject.CreateInstance<ARBackgroundRendererFeature>();
+                        feature.name = "AR Background Renderer Feature";
+                        AssetDatabase.AddObjectToAsset(feature, rendererData);
+                        rendererData.rendererFeatures.Add(feature);
+                        EditorUtility.SetDirty(rendererData);
+                        Debug.Log($"[ARSceneBuilder] Added ARBackgroundRendererFeature to URP Renderer at {path}");
+                    }
+                }
+            }
         }
 
         private static GameObject EnsureARDefaultPlanePrefab()
