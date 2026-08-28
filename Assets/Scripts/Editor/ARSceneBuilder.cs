@@ -135,8 +135,12 @@ namespace MiningSafetyAR.Editor
             // 8. Ensure URP Renderer has AR Background Renderer Feature & AR Command Buffer Support Feature
             EnsureARRendererFeatures();
 
-            // 9. Enforce Android Min SDK Level 29 for ARCore Vulkan requirements
+            // 9. Enforce Android Min SDK Level 29 & prioritize OpenGLES3 for fast builds
             PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel29;
+            PlayerSettings.SetGraphicsAPIs(BuildTarget.Android, new UnityEngine.Rendering.GraphicsDeviceType[] {
+                UnityEngine.Rendering.GraphicsDeviceType.OpenGLES3,
+                UnityEngine.Rendering.GraphicsDeviceType.Vulkan
+            });
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
