@@ -11,7 +11,7 @@ namespace MiningSafetyAR.AR
 {
     /// <summary>
     /// Implements Unity's official AR Foundation 6.x architecture (arfoundation-samples pattern)
-    /// utilizing InputAction("<Pointer>/press"), ARRaycastManager surface raycasting,
+    /// utilizing InputAction("<Pointer>/press"), EnhancedTouch, ARRaycastManager surface raycasting,
     /// and ARAnchor spatial locking.
     /// </summary>
     [RequireComponent(typeof(ARRaycastManager))]
@@ -128,6 +128,62 @@ namespace MiningSafetyAR.AR
             }
         }
 
+        /// <summary>
+        /// Uses only the new Input System (EnhancedTouch + Pointer) intentionally — mixing with legacy Input class caused Android build/runtime issues in reference implementations.
+        /// </summary>
+        private void CheckTouchInput()
+        {
+            try
+            {
+                Vector2 tapPosition = Vector2.zero;
+                bool tapDetected = false;
+
+                // 1. New Input System Enhanced Touch (Mobile Touchscreen Taps)
+                if (UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches.Count > 0)
+                {
+                    var touch = UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches[0];
+                    if (touch.phase == UnityEngine.InputSystem.TouchPhase.Began)
+                    {
+                        tapPosition = touch.screenPosition;
+                        tapDetected = true;
+                    }
+                }
+
+                // 2. New Input System Pointer / Mouse / Tap Press
+                if (!tapDetected && Pointer.current != null && Pointer.current.press.wasPressedThisFrame)
+                {
+                    tapPosition = Pointer.current.position.ReadValue();
+                    tapDetected = true;
+                }
+
+                if (tapDetected)
+                {
+                    Debug.Log($"[DIAG] [ARPlacementManager] New Input System Tap Detected at {tapPosition}! HasDetectedPlane={HasDetectedPlane}, TotalTrackedPlanes={(planeManager != null ? planeManager.trackables.count : 0)}");
+
+                    // 1. Try direct tap position raycast
+                    bool placed = PerformPlacementRaycast(tapPosition);
+                    
+                    // 2. Fallback to screen-center reticle position if direct tap raycast missed plane polygon
+                    if (!placed)
+                    {
+                        Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
+                        Debug.Log($"[DIAG] [ARPlacementManager] Direct tap at {tapPosition} missed plane polygon — trying screen-center reticle fallback at {screenCenter}");
+                        placed = PerformPlacementRaycast(screenCenter);
+                    }
+
+                    if (!placed)
+                    {
+                        Debug.LogWarning("[WARN] [ARPlacementManager] Placement raycast was unhandled or failed — firing OnNoPlaneDetected event.");
+                        OnNoPlaneDetected?.Invoke();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[ERROR] [ARPlacementManager] Exception during CheckTouchInput: {ex.Message}\n{ex.StackTrace}");
+            }
+        }
+
         private void OnPointerPressBegan(InputAction.CallbackContext context)
         {
             try
@@ -137,10 +193,7 @@ namespace MiningSafetyAR.AR
                     Vector2 tapPosition = pointerDevice.position.ReadValue();
                     Debug.Log($"[DIAG] [ARPlacementManager] Pointer Press Began at {tapPosition}! HasDetectedPlane={HasDetectedPlane}, TotalTrackedPlanes={(planeManager != null ? planeManager.trackables.count : 0)}");
 
-                    // 1. Try direct tap position raycast
                     bool placed = PerformPlacementRaycast(tapPosition);
-                    
-                    // 2. Fallback to screen-center reticle position if direct tap raycast missed plane polygon
                     if (!placed)
                     {
                         Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
@@ -164,6 +217,7 @@ namespace MiningSafetyAR.AR
         private void Update()
         {
             UpdatePlacementIndicator();
+            CheckTouchInput();
         }
 
         private void UpdatePlacementIndicator()
