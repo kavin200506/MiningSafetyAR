@@ -491,7 +491,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 011b557cc081841658c2a90218bfeaa4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.AR.ARPlacementManager
-  defaultPlacementPrefab: {fileID: 4170695088145421491, guid: 768459addb2d446e9a5464dac9f6000a, type: 3}
+  defaultPlacementPrefab: {fileID: 8248031018425287066, guid: 7efcb4817852e487b9d403e51925e5a9, type: 3}
   placementIndicator: {fileID: 871263447}
 --- !u!114 &773190231
 MonoBehaviour:
