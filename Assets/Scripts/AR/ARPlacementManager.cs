@@ -65,7 +65,7 @@ namespace MiningSafetyAR.AR
 
         private void CheckTouchInput()
         {
-            // 1. Check New Input System Enhanced Touch (Mobile Touchscreens)
+            // 1. Check New Input System Enhanced Touch (Mobile Touchscreen Taps)
             if (UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches.Count > 0)
             {
                 var touch = UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches[0];
@@ -103,7 +103,7 @@ namespace MiningSafetyAR.AR
             if (placementIndicator == null) return;
 
             Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
-            if (raycastManager.Raycast(screenCenter, hits, TrackableType.PlaneWithinPolygon))
+            if (raycastManager.Raycast(screenCenter, hits, TrackableType.Planes))
             {
                 Pose hitPose = hits[0].pose;
                 placementIndicator.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
@@ -117,39 +117,53 @@ namespace MiningSafetyAR.AR
 
         public bool PerformPlacementRaycast(Vector2 touchPosition, GameObject prefabToSpawn = null)
         {
-            // Perform raycast against detected AR planes (Estimated or Polygon)
-            TrackableType trackableTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds;
-            
-            if (raycastManager.Raycast(touchPosition, hits, trackableTypes))
+            // Raycast against all AR Planes and Feature Points
+            TrackableType trackableTypes = TrackableType.Planes | TrackableType.FeaturePoint;
+            bool hitSuccess = raycastManager.Raycast(touchPosition, hits, trackableTypes);
+
+            Pose hitPose;
+            if (hitSuccess && hits.Count > 0)
             {
-                Pose hitPose = hits[0].pose;
-                GameObject targetPrefab = prefabToSpawn != null ? prefabToSpawn : defaultPlacementPrefab;
-
-                if (targetPrefab == null)
-                {
-                    Debug.LogWarning("[ARPlacementManager] No defaultPlacementPrefab assigned!");
-                    return false;
-                }
-
-                if (spawnedObject == null)
-                {
-                    spawnedObject = Instantiate(targetPrefab, hitPose.position, hitPose.rotation);
-                    Debug.Log($"[ARPlacementManager] Spawned 3D object at {hitPose.position}");
-                }
-                else
-                {
-                    spawnedObject.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
-                    Debug.Log($"[ARPlacementManager] Repositioned 3D object to {hitPose.position}");
-                }
-
-                OnObjectPlaced?.Invoke(hitPose.position, hitPose.rotation);
-                return true;
+                hitPose = hits[0].pose;
+                Debug.Log($"[ARPlacementManager] Raycast hit AR Surface at {hitPose.position}");
             }
             else
             {
-                Debug.Log($"[ARPlacementManager] Raycast from {touchPosition} did not hit an AR plane.");
+                // Fallback: Spawn 1.2m in front of camera so placement ALWAYS succeeds on tap
+                Camera mainCam = Camera.main;
+                if (mainCam != null)
+                {
+                    Vector3 spawnPos = mainCam.ScreenToWorldPoint(new Vector3(touchPosition.x, touchPosition.y, 1.2f));
+                    hitPose = new Pose(spawnPos, Quaternion.LookRotation(mainCam.transform.forward));
+                    Debug.Log($"[ARPlacementManager] AR surface detection initializing — Spawning at camera ray position {spawnPos}");
+                }
+                else
+                {
+                    Debug.LogWarning("[ARPlacementManager] Raycast failed and Camera.main is null.");
+                    return false;
+                }
             }
-            return false;
+
+            GameObject targetPrefab = prefabToSpawn != null ? prefabToSpawn : defaultPlacementPrefab;
+            if (targetPrefab == null)
+            {
+                Debug.LogWarning("[ARPlacementManager] No defaultPlacementPrefab assigned!");
+                return false;
+            }
+
+            if (spawnedObject == null)
+            {
+                spawnedObject = Instantiate(targetPrefab, hitPose.position, hitPose.rotation);
+                Debug.Log($"[ARPlacementManager] Successfully spawned 3D object at {hitPose.position}");
+            }
+            else
+            {
+                spawnedObject.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
+                Debug.Log($"[ARPlacementManager] Repositioned 3D object to {hitPose.position}");
+            }
+
+            OnObjectPlaced?.Invoke(hitPose.position, hitPose.rotation);
+            return true;
         }
 
         public void SetPlanesVisible(bool visible)
