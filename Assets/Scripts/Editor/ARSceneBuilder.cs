@@ -232,13 +232,26 @@ namespace MiningSafetyAR.Editor
             {
                 Material planeMat = new Material(defaultShader);
                 planeMat.color = new Color(0.2f, 0.8f, 1.0f, 0.35f);
+
+                // Enable URP Transparency
+                planeMat.SetFloat("_Surface", 1f); // 1 = Transparent
+                planeMat.SetFloat("_Blend", 0f);   // 0 = Alpha blend mode
+                planeMat.SetOverrideTag("RenderType", "Transparent");
+                planeMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                planeMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                planeMat.SetInt("_ZWrite", 0);
+                planeMat.DisableKeyword("_ALPHATEST_ON");
+                planeMat.EnableKeyword("_ALPHABLEND_ON");
+                planeMat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+                planeMat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+
                 mr.sharedMaterial = planeMat;
             }
 
             GameObject savedPrefab = PrefabUtility.SaveAsPrefabAsset(tempPlane, prefabPath);
             Object.DestroyImmediate(tempPlane);
 
-            Debug.Log($"[ARSceneBuilder] Auto-created AR Default Plane prefab at {prefabPath}");
+            Debug.Log($"[ARSceneBuilder] Auto-created transparent AR Default Plane prefab at {prefabPath}");
             return savedPrefab;
         }
 
