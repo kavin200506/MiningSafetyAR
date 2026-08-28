@@ -14,6 +14,11 @@ namespace MiningSafetyAR.AR
 
         [Header("Placement Prefab")]
         [SerializeField] private GameObject defaultPlacementPrefab;
+        public GameObject DefaultPlacementPrefab
+        {
+            get => defaultPlacementPrefab;
+            set => defaultPlacementPrefab = value;
+        }
 
         [Header("Placement Visual Indicator")]
         [SerializeField] private GameObject placementIndicator;
