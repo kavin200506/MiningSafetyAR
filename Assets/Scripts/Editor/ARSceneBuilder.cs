@@ -1,11 +1,14 @@
 #if UNITY_EDITOR
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEditor.XR.Management;
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
+using UnityEngine.XR.Management;
 using UnityEngine.Rendering.Universal;
 using Unity.XR.CoreUtils;
 using MiningSafetyAR.AR;
@@ -22,6 +25,9 @@ namespace MiningSafetyAR.Editor
         [MenuItem("Mining Safety AR/Setup Core AR Scene")]
         public static void SetupARScene()
         {
+            // 0. Verify & Fix Active Input Handling to "Both"
+            EnsureActiveInputHandlingBoth();
+
             // 1. Remove duplicate Main Cameras outside XR Origin
             Camera[] rootCameras = Object.FindObjectsByType<Camera>(FindObjectsSortMode.None);
             foreach (Camera cam in rootCameras)
@@ -164,7 +170,7 @@ namespace MiningSafetyAR.Editor
                 Debug.Log("[ARSceneBuilder] Created AppManagers container.");
             }
 
-            // 9. URP AR Renderer Feature setup
+            // 9. Ensure AR Renderer Features exist on ALL mobile and PC renderer assets
             EnsureARRendererFeatures();
 
             // 10. Configure Build Player Settings for fast compilation & compatibility
@@ -178,8 +184,77 @@ namespace MiningSafetyAR.Editor
             AssetDatabase.Refresh();
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorUtility.DisplayDialog("AR Scene Setup Complete", 
-                "Successfully configured AR Session, XR Origin, AROcclusionManager, AR Plane Manager (with horizontal/vertical surface detection & crisp cyan boundary outlines), Placement Indicator reticle, AR Placement Manager, App Managers, and URP Renderer Features!", 
+                "Successfully configured AR Session, XR Origin, AROcclusionManager, AR Plane Manager (with horizontal/vertical surface detection & crisp cyan boundary outlines), Placement Indicator reticle, AR Placement Manager, App Managers, Active Input Handling (Both), and URP Renderer Features!", 
                 "OK");
+        }
+
+        [MenuItem("Mining Safety AR/Validate Editor Settings")]
+        public static void ValidateEditorSettings()
+        {
+            EnsureActiveInputHandlingBoth();
+            EnsureARRendererFeatures();
+
+            System.Text.StringBuilder report = new System.Text.StringBuilder();
+            report.AppendLine("=== Mining Safety AR - Editor Settings Validation Report ===");
+
+            // 1. Active Input Handling Mode
+            int inputMode = (int)PlayerSettings.activeInputHandler;
+            string inputModeName = inputMode switch
+            {
+                0 => "Legacy Input Manager",
+                1 => "Input System Package (New)",
+                2 => "Both (Legacy + New Input System) [CORRECT]",
+                _ => $"Unknown ({inputMode})"
+            };
+            report.AppendLine($"1. Active Input Handling: {inputModeName}");
+
+            // 2. XR Simulation Plugin Status on Standalone / PC Target
+            bool xrSimEnabled = false;
+            string xrLoaderName = "None";
+            var standaloneSettings = XRGeneralSettingsPerBuildTarget.XRGeneralSettingsForBuildTarget(BuildTargetGroup.Standalone);
+            if (standaloneSettings != null && standaloneSettings.Manager != null)
+            {
+                foreach (var loader in standaloneSettings.Manager.activeLoaders)
+                {
+                    if (loader != null)
+                    {
+                        xrLoaderName = loader.GetType().Name;
+                        if (xrLoaderName.Contains("Simulation") || xrLoaderName.Contains("Mock"))
+                        {
+                            xrSimEnabled = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            report.AppendLine($"2. Standalone/PC XR Plug-in Manager: Loader='{xrLoaderName}', XR Simulation Enabled={xrSimEnabled}");
+
+            // 3. Renderer Features on Mobile & PC Renderer Assets
+            report.AppendLine("3. URP Renderer Assets AR Background Feature Check:");
+            string[] guids = AssetDatabase.FindAssets("t:ScriptableRendererData");
+            foreach (string guid in guids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                ScriptableRendererData rendererData = AssetDatabase.LoadAssetAtPath<ScriptableRendererData>(path);
+                if (rendererData != null)
+                {
+                    bool hasBgFeature = rendererData.rendererFeatures.Any(f => f is ARBackgroundRendererFeature);
+                    report.AppendLine($"   - Asset [{rendererData.name}] ({path}): ARBackgroundRendererFeature Present={hasBgFeature}");
+                }
+            }
+
+            report.AppendLine("=============================================================");
+            Debug.Log(report.ToString());
+            EditorUtility.DisplayDialog("Editor Settings Validation", report.ToString(), "OK");
+        }
+
+        private static void EnsureActiveInputHandlingBoth()
+        {
+            if (PlayerSettings.activeInputHandler != (ActiveInputHandler)2) // 2 = Both
+            {
+                PlayerSettings.activeInputHandler = (ActiveInputHandler)2;
+                Debug.Log("[ARSceneBuilder] Updated PlayerSettings.activeInputHandler to 'Both' (Legacy + New Input System).");
+            }
         }
 
         private static void EnsureARRendererFeatures()
@@ -198,7 +273,7 @@ namespace MiningSafetyAR.Editor
                 ScriptableRendererData rendererData = AssetDatabase.LoadAssetAtPath<ScriptableRendererData>(path);
                 if (rendererData != null)
                 {
-                    // 1. ARBackgroundRendererFeature
+                    // 1. ARBackgroundRendererFeature for both Mobile & PC/Simulation Renderers
                     bool hasBgFeature = rendererData.rendererFeatures.Any(f => f is ARBackgroundRendererFeature);
                     if (!hasBgFeature)
                     {
@@ -207,7 +282,7 @@ namespace MiningSafetyAR.Editor
                         AssetDatabase.AddObjectToAsset(bgFeature, rendererData);
                         rendererData.rendererFeatures.Add(bgFeature);
                         EditorUtility.SetDirty(rendererData);
-                        Debug.Log($"[ARSceneBuilder] Added ARBackgroundRendererFeature to URP Renderer at {path}");
+                        Debug.Log($"[ARSceneBuilder] Added ARBackgroundRendererFeature to URP Renderer Asset at {path}");
                     }
 
                     // 2. ARCommandBufferSupportRendererFeature for Vulkan
@@ -221,7 +296,7 @@ namespace MiningSafetyAR.Editor
                             AssetDatabase.AddObjectToAsset(cmdFeature, rendererData);
                             rendererData.rendererFeatures.Add(cmdFeature);
                             EditorUtility.SetDirty(rendererData);
-                            Debug.Log($"[ARSceneBuilder] Added ARCommandBufferSupportRendererFeature to URP Renderer at {path}");
+                            Debug.Log($"[ARSceneBuilder] Added ARCommandBufferSupportRendererFeature to URP Renderer Asset at {path}");
                         }
                     }
                 }
