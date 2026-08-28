@@ -51,15 +51,25 @@ namespace MiningSafetyAR.Editor
                 cam.tag = "MainCamera";
                 cameraGO.AddComponent<ARCameraManager>();
                 cameraGO.AddComponent<ARCameraBackground>();
+                if (cameraGO.GetComponent<UnityEngine.InputSystem.XR.TrackedPoseDriver>() == null)
+                {
+                    cameraGO.AddComponent<UnityEngine.InputSystem.XR.TrackedPoseDriver>();
+                }
 
                 xrOrigin.CameraFloorOffsetObject = cameraOffset;
                 xrOrigin.Camera = cam;
 
-                Debug.Log("[ARSceneBuilder] Created XR Origin with AR Camera.");
+                Debug.Log("[ARSceneBuilder] Created XR Origin with AR Camera & TrackedPoseDriver.");
             }
             else
             {
                 originGO = xrOrigin.gameObject;
+                if (xrOrigin.Camera != null)
+                {
+                    if (xrOrigin.Camera.GetComponent<ARCameraManager>() == null) xrOrigin.Camera.gameObject.AddComponent<ARCameraManager>();
+                    if (xrOrigin.Camera.GetComponent<ARCameraBackground>() == null) xrOrigin.Camera.gameObject.AddComponent<ARCameraBackground>();
+                    if (xrOrigin.Camera.GetComponent<UnityEngine.InputSystem.XR.TrackedPoseDriver>() == null) xrOrigin.Camera.gameObject.AddComponent<UnityEngine.InputSystem.XR.TrackedPoseDriver>();
+                }
             }
 
             // 3. Add AR Managers to XR Origin
