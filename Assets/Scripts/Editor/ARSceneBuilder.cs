@@ -341,8 +341,44 @@ namespace MiningSafetyAR.Editor
             }
         }
 
+        private static void FixMarkerTextureImporters()
+        {
+            string[] markerPaths = new string[] {
+                "Assets/ImageTracking/FireExtinguisherMarker.jpg",
+                "Assets/ImageTracking/ExitSignMarker.jpg",
+                "Assets/ImageTracking/FireExtinguisherMarker.png",
+                "Assets/ImageTracking/ExitSignMarker.png"
+            };
+
+            foreach (string path in markerPaths)
+            {
+                TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+                if (importer != null)
+                {
+                    bool modified = false;
+                    if (!importer.isReadable)
+                    {
+                        importer.isReadable = true;
+                        modified = true;
+                    }
+                    if (importer.textureShape != TextureImporterShape.Texture2D)
+                    {
+                        importer.textureShape = TextureImporterShape.Texture2D;
+                        modified = true;
+                    }
+                    if (modified)
+                    {
+                        importer.SaveAndReimport();
+                        Debug.Log($"[ARSceneBuilder] Configured TextureImporter isReadable=true on {path}");
+                    }
+                }
+            }
+        }
+
         private static void EnsureReferenceImageLibrary(ARTrackedImageManager imageManager)
         {
+            FixMarkerTextureImporters();
+
             string folderPath = "Assets/ImageTracking";
             string libraryPath = "Assets/ImageTracking/MiningSafetyImageLibrary.asset";
 
@@ -360,13 +396,18 @@ namespace MiningSafetyAR.Editor
                 Debug.Log($"[ARSceneBuilder] Auto-created XRReferenceImageLibrary asset at {libraryPath}");
             }
 
-            // Programmatically populate texture entries & real-world size if missing
             Texture2D extTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/ImageTracking/FireExtinguisherMarker.jpg") ?? AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/ImageTracking/FireExtinguisherMarker.png");
             Texture2D exitTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/ImageTracking/ExitSignMarker.jpg") ?? AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/ImageTracking/ExitSignMarker.png");
 
+            string extPath = extTex != null ? AssetDatabase.GetAssetPath(extTex) : "";
+            string extGuid = !string.IsNullOrEmpty(extPath) ? AssetDatabase.AssetPathToGUID(extPath) : "";
+
+            string exitPath = exitTex != null ? AssetDatabase.GetAssetPath(exitTex) : "";
+            string exitGuid = !string.IsNullOrEmpty(exitPath) ? AssetDatabase.AssetPathToGUID(exitPath) : "";
+
             SerializedObject libSO = new SerializedObject(library);
             SerializedProperty imagesProp = libSO.FindProperty("m_Images");
-            if (imagesProp != null && imagesProp.arraySize == 0)
+            if (imagesProp != null)
             {
                 imagesProp.arraySize = 2;
 
@@ -374,6 +415,20 @@ namespace MiningSafetyAR.Editor
                 SerializedProperty elem0 = imagesProp.GetArrayElementAtIndex(0);
                 elem0.FindPropertyRelative("m_Name").stringValue = "FireExtinguisherMarker";
                 elem0.FindPropertyRelative("m_Texture").objectReferenceValue = extTex;
+                SerializedProperty guidProp0 = elem0.FindPropertyRelative("m_TextureGUID");
+                if (guidProp0 != null)
+                {
+                    if (guidProp0.propertyType == SerializedPropertyType.String)
+                    {
+                        guidProp0.stringValue = extGuid;
+                    }
+                    else
+                    {
+                        // SerializableGUID property in AR Foundation 6.x
+                        SerializedProperty g0 = guidProp0.FindPropertyRelative("m_Guid") ?? guidProp0.FindPropertyRelative("m_Value");
+                        if (g0 != null) g0.stringValue = extGuid;
+                    }
+                }
                 elem0.FindPropertyRelative("m_SpecifySize").boolValue = true;
                 elem0.FindPropertyRelative("m_Size").vector2Value = new Vector2(0.2f, 0.2f);
 
@@ -381,12 +436,26 @@ namespace MiningSafetyAR.Editor
                 SerializedProperty elem1 = imagesProp.GetArrayElementAtIndex(1);
                 elem1.FindPropertyRelative("m_Name").stringValue = "ExitSignMarker";
                 elem1.FindPropertyRelative("m_Texture").objectReferenceValue = exitTex;
+                SerializedProperty guidProp1 = elem1.FindPropertyRelative("m_TextureGUID");
+                if (guidProp1 != null)
+                {
+                    if (guidProp1.propertyType == SerializedPropertyType.String)
+                    {
+                        guidProp1.stringValue = exitGuid;
+                    }
+                    else
+                    {
+                        SerializedProperty g1 = guidProp1.FindPropertyRelative("m_Guid") ?? guidProp1.FindPropertyRelative("m_Value");
+                        if (g1 != null) g1.stringValue = exitGuid;
+                    }
+                }
                 elem1.FindPropertyRelative("m_SpecifySize").boolValue = true;
                 elem1.FindPropertyRelative("m_Size").vector2Value = new Vector2(0.2f, 0.2f);
 
                 libSO.ApplyModifiedProperties();
+                EditorUtility.SetDirty(library);
                 AssetDatabase.SaveAssets();
-                Debug.Log("[ARSceneBuilder] Programmatically populated MiningSafetyImageLibrary with FireExtinguisherMarker and ExitSignMarker (0.2m size).");
+                Debug.Log("[ARSceneBuilder] Programmatically populated MiningSafetyImageLibrary with valid Texture references, GUIDs, and 0.2m size.");
             }
 
             if (imageManager != null && imageManager.referenceLibrary == null)
