@@ -128,6 +128,8 @@ namespace MiningSafetyAR.Editor
                 imageManager = originGO.AddComponent<ARTrackedImageManager>();
             }
 
+            EnsureReferenceImageLibrary(imageManager);
+
             ARImageTrackingManager imageTrackingManager = originGO.GetComponent<ARImageTrackingManager>();
             if (imageTrackingManager == null)
             {
@@ -336,6 +338,33 @@ namespace MiningSafetyAR.Editor
                         }
                     }
                 }
+            }
+        }
+
+        private static void EnsureReferenceImageLibrary(ARTrackedImageManager imageManager)
+        {
+            string folderPath = "Assets/ImageTracking";
+            string libraryPath = "Assets/ImageTracking/MiningSafetyImageLibrary.asset";
+
+            if (!Directory.Exists(folderPath))
+            {
+                Directory.CreateDirectory(folderPath);
+                AssetDatabase.Refresh();
+            }
+
+            XRReferenceImageLibrary library = AssetDatabase.LoadAssetAtPath<XRReferenceImageLibrary>(libraryPath);
+            if (library == null)
+            {
+                library = ScriptableObject.CreateInstance<XRReferenceImageLibrary>();
+                AssetDatabase.CreateAsset(library, libraryPath);
+                Debug.Log($"[ARSceneBuilder] Auto-created XRReferenceImageLibrary asset at {libraryPath}");
+            }
+
+            if (imageManager != null && imageManager.referenceLibrary == null)
+            {
+                imageManager.referenceLibrary = library;
+                EditorUtility.SetDirty(imageManager);
+                Debug.Log($"[ARSceneBuilder] Assigned MiningSafetyImageLibrary to ARTrackedImageManager.");
             }
         }
 
