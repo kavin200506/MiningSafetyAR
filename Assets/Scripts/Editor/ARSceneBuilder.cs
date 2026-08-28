@@ -107,8 +107,8 @@ namespace MiningSafetyAR.Editor
             {
                 planeManager = originGO.AddComponent<ARPlaneManager>();
             }
-            planeManager.requestedFindingMode = PlaneDetectionMode.Horizontal | PlaneDetectionMode.Vertical;
-            Debug.Log("[ARSceneBuilder] Set ARPlaneManager requestedFindingMode to Horizontal & Vertical.");
+            planeManager.requestedDetectionMode = PlaneDetectionMode.Horizontal | PlaneDetectionMode.Vertical;
+            Debug.Log("[ARSceneBuilder] Set ARPlaneManager requestedDetectionMode to Horizontal & Vertical.");
 
             ARPlacementManager placementManager = originGO.GetComponent<ARPlacementManager>();
             if (placementManager == null)
