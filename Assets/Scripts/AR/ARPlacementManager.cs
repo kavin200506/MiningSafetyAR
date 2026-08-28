@@ -110,6 +110,7 @@ namespace MiningSafetyAR.AR
         {
             try
             {
+                Vector2 tapPosition = Vector2.zero;
                 bool tapDetected = false;
 
                 // 1. Check New Input System Enhanced Touch (Mobile Touchscreen Taps)
@@ -118,6 +119,7 @@ namespace MiningSafetyAR.AR
                     var touch = UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches[0];
                     if (touch.phase == UnityEngine.InputSystem.TouchPhase.Began)
                     {
+                        tapPosition = touch.screenPosition;
                         tapDetected = true;
                     }
                 }
@@ -125,6 +127,7 @@ namespace MiningSafetyAR.AR
                 // 2. Check New Input System Pointer / Mouse / Tap Press
                 if (!tapDetected && Pointer.current != null && Pointer.current.press.wasPressedThisFrame)
                 {
+                    tapPosition = Pointer.current.position.ReadValue();
                     tapDetected = true;
                 }
 
@@ -134,18 +137,26 @@ namespace MiningSafetyAR.AR
                     UnityEngine.Touch legacyTouch = Input.GetTouch(0);
                     if (legacyTouch.phase == UnityEngine.TouchPhase.Began)
                     {
+                        tapPosition = legacyTouch.position;
                         tapDetected = true;
                     }
                 }
 
                 if (tapDetected)
                 {
-                    Debug.Log($"[DIAG] [ARPlacementManager] Screen Tap Detected! HasDetectedPlane={HasDetectedPlane}, TotalTrackedPlanes={(planeManager != null ? planeManager.trackables.count : 0)}");
+                    Debug.Log($"[DIAG] [ARPlacementManager] Screen Tap Detected at {tapPosition}! HasDetectedPlane={HasDetectedPlane}, TotalTrackedPlanes={(planeManager != null ? planeManager.trackables.count : 0)}");
 
-                    Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
-                    Debug.Log($"[DIAG] [ARPlacementManager] Targeting screen-center reticle position: {screenCenter}");
+                    // Try direct tap position first
+                    bool placed = PerformPlacementRaycast(tapPosition);
                     
-                    bool placed = PerformPlacementRaycast(screenCenter);
+                    // Fallback to screen-center reticle position if direct tap raycast missed plane boundary
+                    if (!placed)
+                    {
+                        Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
+                        Debug.Log($"[DIAG] [ARPlacementManager] Direct tap at {tapPosition} missed plane polygon — trying screen-center reticle fallback at {screenCenter}");
+                        placed = PerformPlacementRaycast(screenCenter);
+                    }
+
                     if (!placed)
                     {
                         Debug.LogWarning("[WARN] [ARPlacementManager] Placement raycast was unhandled or failed — firing OnNoPlaneDetected event.");
