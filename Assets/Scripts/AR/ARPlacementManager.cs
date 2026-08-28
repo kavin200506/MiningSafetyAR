@@ -264,8 +264,8 @@ namespace MiningSafetyAR.AR
                 bool hitSuccess = false;
                 string hitTypeString = "";
 
-                // Tier 1: Real AR Plane Surface (Unity Samples standard: TrackableType.PlaneWithinPolygon)
-                TrackableType planeTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds | TrackableType.Planes;
+                // Tier 1: Real AR Plane Surface (Matching reference project ARPlaceCube.cs: TrackableType.AllTypes)
+                TrackableType planeTypes = TrackableType.AllTypes | TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds | TrackableType.Planes;
                 if (raycastManager != null && raycastManager.Raycast(touchPosition, hits, planeTypes) && hits.Count > 0)
                 {
                     hitPose = hits[0].pose;
