@@ -132,8 +132,8 @@ namespace MiningSafetyAR.Editor
                 Debug.Log("[ARSceneBuilder] Created AppManagers container.");
             }
 
-            // 8. Ensure URP Renderer has AR Background Renderer Feature
-            EnsureARBackgroundRendererFeature();
+            // 8. Ensure URP Renderer has AR Background Renderer Feature & AR Command Buffer Support Feature
+            EnsureARRendererFeatures();
 
             // 9. Enforce Android Min SDK Level 29 for ARCore Vulkan requirements
             PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel29;
@@ -142,28 +142,51 @@ namespace MiningSafetyAR.Editor
             AssetDatabase.Refresh();
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorUtility.DisplayDialog("AR Scene Setup Complete", 
-                "Successfully set up AR Session, XR Origin, AR Raycast Manager, AR Plane Manager (with plane prefab), AR Placement Manager (with 3D object prefab), App Managers, and URP AR Background Renderer Feature!", 
+                "Successfully set up AR Session, XR Origin, AR Raycast Manager, AR Plane Manager (with plane prefab), AR Placement Manager (with 3D object prefab), App Managers, and URP AR Renderer Features!", 
                 "OK");
         }
 
-        private static void EnsureARBackgroundRendererFeature()
+        private static void EnsureARRendererFeatures()
         {
             string[] guids = AssetDatabase.FindAssets("t:ScriptableRendererData");
+
+            System.Type cmdFeatureType = System.AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a => {
+                    try { return a.GetTypes(); } catch { return new System.Type[0]; }
+                })
+                .FirstOrDefault(t => t.Name == "ARCommandBufferSupportRendererFeature");
+
             foreach (string guid in guids)
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 ScriptableRendererData rendererData = AssetDatabase.LoadAssetAtPath<ScriptableRendererData>(path);
                 if (rendererData != null)
                 {
-                    bool hasFeature = rendererData.rendererFeatures.Any(f => f is ARBackgroundRendererFeature);
-                    if (!hasFeature)
+                    // 1. ARBackgroundRendererFeature
+                    bool hasBgFeature = rendererData.rendererFeatures.Any(f => f is ARBackgroundRendererFeature);
+                    if (!hasBgFeature)
                     {
-                        ARBackgroundRendererFeature feature = ScriptableObject.CreateInstance<ARBackgroundRendererFeature>();
-                        feature.name = "AR Background Renderer Feature";
-                        AssetDatabase.AddObjectToAsset(feature, rendererData);
-                        rendererData.rendererFeatures.Add(feature);
+                        ARBackgroundRendererFeature bgFeature = ScriptableObject.CreateInstance<ARBackgroundRendererFeature>();
+                        bgFeature.name = "AR Background Renderer Feature";
+                        AssetDatabase.AddObjectToAsset(bgFeature, rendererData);
+                        rendererData.rendererFeatures.Add(bgFeature);
                         EditorUtility.SetDirty(rendererData);
                         Debug.Log($"[ARSceneBuilder] Added ARBackgroundRendererFeature to URP Renderer at {path}");
+                    }
+
+                    // 2. ARCommandBufferSupportRendererFeature for Vulkan
+                    if (cmdFeatureType != null)
+                    {
+                        bool hasCmdFeature = rendererData.rendererFeatures.Any(f => f != null && f.GetType() == cmdFeatureType);
+                        if (!hasCmdFeature)
+                        {
+                            ScriptableRendererFeature cmdFeature = (ScriptableRendererFeature)ScriptableObject.CreateInstance(cmdFeatureType);
+                            cmdFeature.name = "AR Command Buffer Support Renderer Feature";
+                            AssetDatabase.AddObjectToAsset(cmdFeature, rendererData);
+                            rendererData.rendererFeatures.Add(cmdFeature);
+                            EditorUtility.SetDirty(rendererData);
+                            Debug.Log($"[ARSceneBuilder] Added ARCommandBufferSupportRendererFeature to URP Renderer at {path}");
+                        }
                     }
                 }
             }
