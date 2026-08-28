@@ -51,6 +51,7 @@ namespace MiningSafetyAR.AR
         {
             if (Instance != null && Instance != this)
             {
+                Debug.LogWarning("[WARN] [ARPlacementManager] Duplicate ARPlacementManager instance detected! Destroying extra component.");
                 Destroy(gameObject);
                 return;
             }
@@ -60,17 +61,43 @@ namespace MiningSafetyAR.AR
             planeManager = GetComponent<ARPlaneManager>();
             occlusionManager = GetComponent<AROcclusionManager>() ?? FindFirstObjectByType<AROcclusionManager>();
 
-            Debug.Log($"[DIAG] Startup check: placementIndicator assigned={placementIndicator != null}, defaultPlacementPrefab assigned={defaultPlacementPrefab != null}, occlusionManager assigned={occlusionManager != null}");
+            Debug.Log($"[DIAG] [ARPlacementManager] Initializing on {SystemInfo.deviceModel} (OS: {SystemInfo.operatingSystem})");
+            Debug.Log($"[DIAG] [ARPlacementManager] Graphics API: {SystemInfo.graphicsDeviceType}, Screen Resolution: {Screen.width}x{Screen.height}");
+            Debug.Log($"[DIAG] [ARPlacementManager] Component status: RaycastManager={raycastManager != null}, PlaneManager={planeManager != null}, OcclusionManager={occlusionManager != null}");
+            Debug.Log($"[DIAG] [ARPlacementManager] Inspector assignments: placementIndicator={(placementIndicator != null ? placementIndicator.name : "NULL")}, defaultPlacementPrefab={(defaultPlacementPrefab != null ? defaultPlacementPrefab.name : "NULL")}");
         }
 
         private void OnEnable()
         {
             EnhancedTouchSupport.Enable();
+            if (planeManager != null)
+            {
+                planeManager.trackablesChanged.AddListener(OnPlanesChanged);
+            }
         }
 
         private void OnDisable()
         {
             EnhancedTouchSupport.Disable();
+            if (planeManager != null)
+            {
+                planeManager.trackablesChanged.RemoveListener(OnPlanesChanged);
+            }
+        }
+
+        private void OnPlanesChanged(ARTrackablesChangedEventArgs<ARPlane> eventArgs)
+        {
+            if (eventArgs.added.Count > 0)
+            {
+                foreach (var plane in eventArgs.added)
+                {
+                    Debug.Log($"[DIAG] [ARPlacementManager] NEW PLANE DETECTED! ID: {plane.trackableId}, Alignment: {plane.alignment}, Center: {plane.center}, Size: {plane.size}");
+                }
+            }
+            if (eventArgs.removed.Count > 0)
+            {
+                Debug.Log($"[DIAG] [ARPlacementManager] Planes removed count: {eventArgs.removed.Count}");
+            }
         }
 
         private void Update()
@@ -81,196 +108,228 @@ namespace MiningSafetyAR.AR
 
         private void CheckTouchInput()
         {
-            bool tapDetected = false;
-
-            // 1. Check New Input System Enhanced Touch (Mobile Touchscreen Taps)
-            if (UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches.Count > 0)
+            try
             {
-                var touch = UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches[0];
-                if (touch.phase == UnityEngine.InputSystem.TouchPhase.Began)
+                bool tapDetected = false;
+
+                // 1. Check New Input System Enhanced Touch (Mobile Touchscreen Taps)
+                if (UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches.Count > 0)
+                {
+                    var touch = UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches[0];
+                    if (touch.phase == UnityEngine.InputSystem.TouchPhase.Began)
+                    {
+                        tapDetected = true;
+                    }
+                }
+
+                // 2. Check New Input System Pointer / Mouse / Tap Press
+                if (!tapDetected && Pointer.current != null && Pointer.current.press.wasPressedThisFrame)
                 {
                     tapDetected = true;
                 }
-            }
 
-            // 2. Check New Input System Pointer / Mouse / Tap Press
-            if (!tapDetected && Pointer.current != null && Pointer.current.press.wasPressedThisFrame)
-            {
-                tapDetected = true;
-            }
-
-            // 3. Fallback Legacy Input
-            if (!tapDetected && Input.touchCount > 0)
-            {
-                UnityEngine.Touch legacyTouch = Input.GetTouch(0);
-                if (legacyTouch.phase == UnityEngine.TouchPhase.Began)
+                // 3. Fallback Legacy Input
+                if (!tapDetected && Input.touchCount > 0)
                 {
-                    tapDetected = true;
+                    UnityEngine.Touch legacyTouch = Input.GetTouch(0);
+                    if (legacyTouch.phase == UnityEngine.TouchPhase.Began)
+                    {
+                        tapDetected = true;
+                    }
+                }
+
+                if (tapDetected)
+                {
+                    Debug.Log($"[DIAG] [ARPlacementManager] Screen Tap Detected! HasDetectedPlane={HasDetectedPlane}, TotalTrackedPlanes={(planeManager != null ? planeManager.trackables.count : 0)}");
+
+                    Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
+                    Debug.Log($"[DIAG] [ARPlacementManager] Targeting screen-center reticle position: {screenCenter}");
+                    
+                    bool placed = PerformPlacementRaycast(screenCenter);
+                    if (!placed)
+                    {
+                        Debug.LogWarning("[WARN] [ARPlacementManager] Placement raycast was unhandled or failed — firing OnNoPlaneDetected event.");
+                        OnNoPlaneDetected?.Invoke();
+                    }
                 }
             }
-
-            if (tapDetected)
+            catch (Exception ex)
             {
-                Debug.Log($"[DIAG] tapDetected={tapDetected}, HasDetectedPlane={HasDetectedPlane}, placementIndicator_isNull={placementIndicator == null}, placementIndicator_activeSelf={(placementIndicator != null ? placementIndicator.activeSelf.ToString() : "N/A")}");
-
-                Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
-                Debug.Log("[ARPlacementManager] Placing object at reticle position");
-                
-                bool placed = PerformPlacementRaycast(screenCenter);
-                if (!placed)
-                {
-                    OnNoPlaneDetected?.Invoke();
-                }
+                Debug.LogError($"[ERROR] [ARPlacementManager] Exception during CheckTouchInput: {ex.Message}\n{ex.StackTrace}");
             }
         }
 
         private void UpdatePlacementIndicator()
         {
-            if (Time.time >= nextPlaneLogTime)
+            try
             {
-                nextPlaneLogTime = Time.time + 1.0f;
-                int trackableCount = planeManager != null ? planeManager.trackables.count : 0;
-                Debug.Log($"[ARPlacementManager] Tracked Planes Count: {trackableCount}");
-            }
+                if (Time.time >= nextPlaneLogTime)
+                {
+                    nextPlaneLogTime = Time.time + 1.0f;
+                    int trackableCount = planeManager != null ? planeManager.trackables.count : 0;
+                    Debug.Log($"[INFO] [ARPlacementManager] Active Tracked Planes: {trackableCount}");
+                }
 
-            if (placementIndicator == null) return;
+                if (placementIndicator == null)
+                {
+                    return;
+                }
 
-            Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
-            TrackableType surfaceTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds | TrackableType.Planes;
-            
-            if (raycastManager.Raycast(screenCenter, hits, surfaceTypes))
-            {
-                Pose hitPose = hits[0].pose;
-                placementIndicator.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
-                if (!placementIndicator.activeSelf) placementIndicator.SetActive(true);
+                Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
+                TrackableType surfaceTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds | TrackableType.Planes;
+                
+                if (raycastManager != null && raycastManager.Raycast(screenCenter, hits, surfaceTypes) && hits.Count > 0)
+                {
+                    Pose hitPose = hits[0].pose;
+                    placementIndicator.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
+                    if (!placementIndicator.activeSelf) placementIndicator.SetActive(true);
+                }
+                else
+                {
+                    if (placementIndicator.activeSelf) placementIndicator.SetActive(false);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                if (placementIndicator.activeSelf) placementIndicator.SetActive(false);
+                Debug.LogError($"[ERROR] [ARPlacementManager] Exception during UpdatePlacementIndicator: {ex.Message}");
             }
         }
 
         public bool PerformPlacementRaycast(Vector2 touchPosition, GameObject prefabToSpawn = null)
         {
-            Pose hitPose = default;
-            bool hitSuccess = false;
-            string hitTypeString = "";
+            try
+            {
+                Pose hitPose = default;
+                bool hitSuccess = false;
+                string hitTypeString = "";
 
-            // Tier 1: Real AR Plane Surface (Wooden table / floor surface - MOST ACCURATE)
-            TrackableType planeTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds | TrackableType.Planes;
-            if (raycastManager.Raycast(touchPosition, hits, planeTypes) && hits.Count > 0)
-            {
-                hitPose = hits[0].pose;
-                hitSuccess = true;
-                hitTypeString = "Plane Surface";
-            }
-            // Tier 2: Environment Depth Map (if hardware depth is available)
-            else if (occlusionManager != null && 
-                     occlusionManager.enabled && 
-                     occlusionManager.descriptor != null && 
-                     occlusionManager.descriptor.environmentDepthImageSupported == Supported.Supported)
-            {
-                if (raycastManager.Raycast(touchPosition, hits, TrackableType.Depth) && hits.Count > 0)
+                // Tier 1: Real AR Plane Surface (Wooden table / floor surface - MOST ACCURATE)
+                TrackableType planeTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds | TrackableType.Planes;
+                if (raycastManager != null && raycastManager.Raycast(touchPosition, hits, planeTypes) && hits.Count > 0)
                 {
                     hitPose = hits[0].pose;
                     hitSuccess = true;
-                    hitTypeString = "Depth Map";
+                    hitTypeString = "Plane Surface";
+                    Debug.Log($"[DIAG] [ARPlacementManager] Tier 1 Hit: Plane Surface at pose {hitPose.position}, hitDistance={hits[0].distance:F2}m");
                 }
-            }
-            // Tier 3: Instant Placement Fallback
-            else
-            {
-                try
+                // Tier 2: Environment Depth Map (if hardware depth is available)
+                else if (occlusionManager != null && 
+                         occlusionManager.enabled && 
+                         occlusionManager.descriptor != null && 
+                         occlusionManager.descriptor.environmentDepthImageSupported == Supported.Supported)
                 {
-                    ARRaycast instantRaycast = raycastManager.AddRaycast(touchPosition, 1.5f);
-                    if (instantRaycast != null)
+                    if (raycastManager.Raycast(touchPosition, hits, TrackableType.Depth) && hits.Count > 0)
                     {
-                        hitPose = instantRaycast.pose;
+                        hitPose = hits[0].pose;
                         hitSuccess = true;
-                        hitTypeString = "Instant Placement";
+                        hitTypeString = "Depth Map";
+                        Debug.Log($"[DIAG] [ARPlacementManager] Tier 2 Hit: Depth Map at pose {hitPose.position}, hitDistance={hits[0].distance:F2}m");
                     }
                 }
-                catch (Exception ex)
+                // Tier 3: Instant Placement Fallback
+                else
                 {
-                    Debug.LogWarning($"[ARPlacementManager] Instant Placement fallback exception: {ex.Message}");
+                    try
+                    {
+                        ARRaycast instantRaycast = raycastManager != null ? raycastManager.AddRaycast(touchPosition, 1.5f) : null;
+                        if (instantRaycast != null)
+                        {
+                            hitPose = instantRaycast.pose;
+                            hitSuccess = true;
+                            hitTypeString = "Instant Placement";
+                            Debug.Log($"[DIAG] [ARPlacementManager] Tier 3 Hit: Instant Placement at pose {hitPose.position}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"[WARN] [ARPlacementManager] Instant Placement fallback exception: {ex.Message}");
+                    }
                 }
-            }
 
-            Debug.Log($"[DIAG] Raycast at {touchPosition}: hitSuccess={hitSuccess}, hitType={hitTypeString}");
-
-            if (!hitSuccess)
-            {
-                Debug.LogWarning($"[ARPlacementManager] All hit-test methods failed at touch position {touchPosition}");
-                return false;
-            }
-
-            Camera mainCamera = Camera.main ?? FindFirstObjectByType<Camera>();
-            float camDist = mainCamera != null ? Vector3.Distance(mainCamera.transform.position, hitPose.position) : -1f;
-            Debug.Log($"[DIAG] HitPose position={hitPose.position}, distance from camera={(mainCamera != null ? camDist.ToString("F2") : "N/A")}");
-
-            GameObject targetPrefab = prefabToSpawn != null ? prefabToSpawn : defaultPlacementPrefab;
-
-            if (spawnedObject == null)
-            {
-                if (targetPrefab != null)
+                if (!hitSuccess)
                 {
-                    spawnedObject = Instantiate(targetPrefab, hitPose.position, hitPose.rotation);
+                    Debug.LogWarning($"[WARN] [ARPlacementManager] ALL 3 hit-test tiers failed for touchPosition={touchPosition}. Active planes count={(planeManager != null ? planeManager.trackables.count : 0)}");
+                    return false;
+                }
+
+                Camera mainCamera = Camera.main ?? FindFirstObjectByType<Camera>();
+                float camDist = mainCamera != null ? Vector3.Distance(mainCamera.transform.position, hitPose.position) : -1f;
+                Debug.Log($"[DIAG] [ARPlacementManager] Final HitPose position={hitPose.position}, Distance from Camera={(camDist >= 0 ? camDist.ToString("F2") + "m" : "N/A")}");
+
+                GameObject targetPrefab = prefabToSpawn != null ? prefabToSpawn : defaultPlacementPrefab;
+
+                if (spawnedObject == null)
+                {
+                    if (targetPrefab != null)
+                    {
+                        spawnedObject = Instantiate(targetPrefab, hitPose.position, hitPose.rotation);
+                        Debug.Log($"[DIAG] [ARPlacementManager] Instantiated targetPrefab asset '{targetPrefab.name}' at {hitPose.position}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[WARN] [ARPlacementManager] defaultPlacementPrefab was null! Generating fallback 3D safety orange primitive cube.");
+                        spawnedObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                        spawnedObject.name = "Safety Equipment (Cube)";
+                        spawnedObject.transform.localScale = new Vector3(0.25f, 0.25f, 0.25f);
+                        spawnedObject.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
+
+                        MeshRenderer mr = spawnedObject.GetComponent<MeshRenderer>();
+                        if (mr != null)
+                        {
+                            Material mat = GraphicsSettings.currentRenderPipeline != null ? 
+                                new Material(GraphicsSettings.currentRenderPipeline.defaultMaterial) : 
+                                new Material(Shader.Find("Sprites/Default"));
+                            mat.color = new Color(1.0f, 0.4f, 0.0f); // Safety Orange
+                            mr.sharedMaterial = mat;
+                        }
+                    }
+
+                    spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
+                    Debug.Log($"[INFO] [ARPlacementManager] Successfully spawned and anchored 3D object via {hitTypeString} at {hitPose.position}");
                 }
                 else
                 {
-                    // Fallback 3D Safety Cube with valid URP Material
-                    spawnedObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    spawnedObject.name = "Safety Equipment (Cube)";
-                    spawnedObject.transform.localScale = new Vector3(0.25f, 0.25f, 0.25f);
-                    spawnedObject.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
-
-                    MeshRenderer mr = spawnedObject.GetComponent<MeshRenderer>();
-                    if (mr != null)
+                    if (spawnedAnchor != null)
                     {
-                        Material mat = GraphicsSettings.currentRenderPipeline != null ? 
-                            new Material(GraphicsSettings.currentRenderPipeline.defaultMaterial) : 
-                            new Material(Shader.Find("Sprites/Default"));
-                        mat.color = new Color(1.0f, 0.4f, 0.0f); // Safety Orange
-                        mr.sharedMaterial = mat;
+                        DestroyImmediate(spawnedAnchor);
                     }
+                    spawnedObject.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
+                    spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
+                    Debug.Log($"[INFO] [ARPlacementManager] Repositioned and re-anchored 3D object via {hitTypeString} to {hitPose.position}");
                 }
 
-                spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
-                Debug.Log($"[ARPlacementManager] Successfully spawned 3D object anchored via {hitTypeString} at {hitPose.position}");
+                Renderer spawnedRenderer = spawnedObject != null ? spawnedObject.GetComponent<Renderer>() : null;
+                Debug.Log($"[DIAG] [ARPlacementManager] Object state: Name={(spawnedObject != null ? spawnedObject.name : "NULL")}, ActiveInHierarchy={spawnedObject?.activeInHierarchy}, RendererEnabled={(spawnedRenderer != null ? spawnedRenderer.enabled.ToString() : "N/A")}");
+
+                OnObjectPlaced?.Invoke(hitPose.position, hitPose.rotation);
+                return true;
             }
-            else
+            catch (Exception ex)
             {
-                if (spawnedAnchor != null)
-                {
-                    DestroyImmediate(spawnedAnchor);
-                }
-                spawnedObject.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
-                spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
-                Debug.Log($"[ARPlacementManager] Repositioned 3D object anchored via {hitTypeString} to {hitPose.position}");
+                Debug.LogError($"[ERROR] [ARPlacementManager] Fatal exception in PerformPlacementRaycast: {ex.Message}\n{ex.StackTrace}");
+                return false;
             }
-
-            Renderer spawnedRenderer = spawnedObject != null ? spawnedObject.GetComponent<Renderer>() : null;
-            Debug.Log($"[DIAG] spawnedObject={(spawnedObject != null ? spawnedObject.name : "NULL")}, position={spawnedObject?.transform.position}, activeInHierarchy={spawnedObject?.activeInHierarchy}, hasRenderer={(spawnedRenderer != null)}, rendererEnabled={(spawnedRenderer != null ? spawnedRenderer.enabled.ToString() : "N/A")}, usingPrefab={targetPrefab != null}");
-
-            OnObjectPlaced?.Invoke(hitPose.position, hitPose.rotation);
-            return true;
         }
 
         public void SetPlanesVisible(bool visible)
         {
+            if (planeManager == null) return;
             planeManager.enabled = visible;
             foreach (var plane in planeManager.trackables)
             {
                 plane.gameObject.SetActive(visible);
             }
+            Debug.Log($"[INFO] [ARPlacementManager] Set plane visibility to: {visible}");
         }
 
         public void ClearSpawnedObject()
         {
             if (spawnedObject != null)
             {
+                Debug.Log($"[INFO] [ARPlacementManager] Destroying spawned object '{spawnedObject.name}'");
                 Destroy(spawnedObject);
                 spawnedObject = null;
+                spawnedAnchor = null;
             }
         }
     }
