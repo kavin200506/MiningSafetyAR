@@ -5,6 +5,7 @@ using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.EnhancedTouch;
+using UnityEngine.Rendering;
 
 namespace MiningSafetyAR.AR
 {
@@ -30,6 +31,7 @@ namespace MiningSafetyAR.AR
         private List<ARRaycastHit> hits = new List<ARRaycastHit>();
 
         private GameObject spawnedObject;
+        private ARAnchor spawnedAnchor;
         public GameObject SpawnedObject => spawnedObject;
 
         public event Action<Vector3, Quaternion> OnObjectPlaced;
@@ -103,7 +105,7 @@ namespace MiningSafetyAR.AR
             if (placementIndicator == null) return;
 
             Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
-            if (raycastManager.Raycast(screenCenter, hits, TrackableType.Planes))
+            if (raycastManager.Raycast(screenCenter, hits, TrackableType.PlaneWithinPolygon))
             {
                 Pose hitPose = hits[0].pose;
                 placementIndicator.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
@@ -117,25 +119,24 @@ namespace MiningSafetyAR.AR
 
         public bool PerformPlacementRaycast(Vector2 touchPosition, GameObject prefabToSpawn = null)
         {
-            // Raycast against all AR Planes and Feature Points
-            TrackableType trackableTypes = TrackableType.Planes | TrackableType.FeaturePoint;
-            bool hitSuccess = raycastManager.Raycast(touchPosition, hits, trackableTypes);
+            TrackableType planeTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds;
+            bool hitSuccess = raycastManager.Raycast(touchPosition, hits, planeTypes);
 
             Pose hitPose;
             if (hitSuccess && hits.Count > 0)
             {
                 hitPose = hits[0].pose;
-                Debug.Log($"[ARPlacementManager] Raycast hit AR Surface at {hitPose.position}");
+                Debug.Log($"[ARPlacementManager] Raycast hit AR Surface plane at {hitPose.position}");
             }
             else
             {
-                // Fallback: Find Main Camera or any active Camera
+                // Fallback: Calculate world position in front of camera
                 Camera mainCam = Camera.main ?? FindFirstObjectByType<Camera>();
                 if (mainCam != null)
                 {
-                    Vector3 spawnPos = mainCam.ScreenToWorldPoint(new Vector3(touchPosition.x, touchPosition.y, 1.2f));
-                    hitPose = new Pose(spawnPos, Quaternion.LookRotation(mainCam.transform.forward));
-                    Debug.Log($"[ARPlacementManager] AR surface detection initializing — Spawning at camera ray position {spawnPos}");
+                    Vector3 spawnPos = mainCam.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, 1.5f));
+                    hitPose = new Pose(spawnPos, Quaternion.LookRotation(mainCam.transform.forward, Vector3.up));
+                    Debug.Log($"[ARPlacementManager] Surface scanning in progress — Placing at forward position {spawnPos}");
                 }
                 else
                 {
@@ -145,7 +146,7 @@ namespace MiningSafetyAR.AR
             }
 
             GameObject targetPrefab = prefabToSpawn != null ? prefabToSpawn : defaultPlacementPrefab;
-            
+
             if (spawnedObject == null)
             {
                 if (targetPrefab != null)
@@ -154,31 +155,36 @@ namespace MiningSafetyAR.AR
                 }
                 else
                 {
-                    // Fallback Primitive 3D Cube if defaultPlacementPrefab was null
-                    Debug.LogWarning("[ARPlacementManager] defaultPlacementPrefab was unassigned! Creating fallback 3D safety cube.");
+                    // Fallback 3D Safety Cube with valid URP Material (No Magenta/Pink!)
                     spawnedObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    spawnedObject.name = "Safety Equipment (Fallback)";
+                    spawnedObject.name = "Safety Equipment (Cube)";
                     spawnedObject.transform.localScale = new Vector3(0.25f, 0.25f, 0.25f);
                     spawnedObject.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
 
                     MeshRenderer mr = spawnedObject.GetComponent<MeshRenderer>();
                     if (mr != null)
                     {
-                        Shader defaultShader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-                        if (defaultShader != null)
-                        {
-                            Material mat = new Material(defaultShader);
-                            mat.color = new Color(1.0f, 0.4f, 0.0f); // Safety Orange
-                            mr.sharedMaterial = mat;
-                        }
+                        Material mat = GraphicsSettings.currentRenderPipeline != null ? 
+                            new Material(GraphicsSettings.currentRenderPipeline.defaultMaterial) : 
+                            new Material(Shader.Find("Sprites/Default"));
+                        mat.color = new Color(1.0f, 0.4f, 0.0f); // Safety Orange
+                        mr.sharedMaterial = mat;
                     }
                 }
-                Debug.Log($"[ARPlacementManager] Successfully spawned 3D object at {hitPose.position}");
+
+                // Add ARAnchor to lock object firmly to physical surface space
+                spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
+                Debug.Log($"[ARPlacementManager] Successfully spawned 3D object anchored at {hitPose.position}");
             }
             else
             {
+                if (spawnedAnchor != null)
+                {
+                    Destroy(spawnedAnchor);
+                }
                 spawnedObject.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
-                Debug.Log($"[ARPlacementManager] Repositioned 3D object to {hitPose.position}");
+                spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
+                Debug.Log($"[ARPlacementManager] Repositioned 3D object anchored to {hitPose.position}");
             }
 
             OnObjectPlaced?.Invoke(hitPose.position, hitPose.rotation);
