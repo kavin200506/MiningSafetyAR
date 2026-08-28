@@ -285,12 +285,12 @@ namespace MiningSafetyAR.Editor
             {
                 SerializedObject so = new SerializedObject(projectSettingsAsset);
                 SerializedProperty prop = so.FindProperty("activeInputHandler");
-                if (prop != null && prop.intValue != 2)
+                if (prop != null && prop.intValue != 1)
                 {
-                    prop.intValue = 2; // 2 = Both (Legacy + New Input System)
+                    prop.intValue = 1; // 1 = Input System Package (New) - Official supported mode for Android
                     so.ApplyModifiedProperties();
                     AssetDatabase.SaveAssets();
-                    Debug.Log("[ARSceneBuilder] Updated activeInputHandler to 2 ('Both') in ProjectSettings.");
+                    Debug.Log("[ARSceneBuilder] Updated activeInputHandler to 1 ('Input System Package (New)') in ProjectSettings for Android compatibility.");
                 }
             }
         }
