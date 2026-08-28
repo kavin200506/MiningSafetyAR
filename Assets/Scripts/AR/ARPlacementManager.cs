@@ -9,6 +9,11 @@ using UnityEngine.Rendering;
 
 namespace MiningSafetyAR.AR
 {
+    /// <summary>
+    /// Implements Unity's official AR Foundation 6.x architecture (arfoundation-samples pattern)
+    /// utilizing InputAction("<Pointer>/press"), ARRaycastManager surface raycasting,
+    /// and ARAnchor spatial locking.
+    /// </summary>
     [RequireComponent(typeof(ARRaycastManager))]
     [RequireComponent(typeof(ARPlaneManager))]
     public class ARPlacementManager : MonoBehaviour
@@ -41,6 +46,7 @@ namespace MiningSafetyAR.AR
         public GameObject SpawnedObject => spawnedObject;
 
         private float nextPlaneLogTime = 0f;
+        private InputAction pressAction;
 
         public bool HasDetectedPlane => planeManager != null && planeManager.trackables.count > 0;
 
@@ -61,7 +67,11 @@ namespace MiningSafetyAR.AR
             planeManager = GetComponent<ARPlaneManager>();
             occlusionManager = GetComponent<AROcclusionManager>() ?? FindFirstObjectByType<AROcclusionManager>();
 
-            Debug.Log($"[DIAG] [ARPlacementManager] Initializing on {SystemInfo.deviceModel} (OS: {SystemInfo.operatingSystem})");
+            // Setup Unity Official AR Foundation InputAction Pointer Press Architecture
+            pressAction = new InputAction("touch", binding: "<Pointer>/press");
+            pressAction.started += OnPointerPressBegan;
+
+            Debug.Log($"[DIAG] [ARPlacementManager] Initializing official AR Foundation sample architecture on {SystemInfo.deviceModel} (OS: {SystemInfo.operatingSystem})");
             Debug.Log($"[DIAG] [ARPlacementManager] Graphics API: {SystemInfo.graphicsDeviceType}, Screen Resolution: {Screen.width}x{Screen.height}");
             Debug.Log($"[DIAG] [ARPlacementManager] Component status: RaycastManager={raycastManager != null}, PlaneManager={planeManager != null}, OcclusionManager={occlusionManager != null}");
             Debug.Log($"[DIAG] [ARPlacementManager] Inspector assignments: placementIndicator={(placementIndicator != null ? placementIndicator.name : "NULL")}, defaultPlacementPrefab={(defaultPlacementPrefab != null ? defaultPlacementPrefab.name : "NULL")}");
@@ -70,6 +80,11 @@ namespace MiningSafetyAR.AR
         private void OnEnable()
         {
             EnhancedTouchSupport.Enable();
+            if (pressAction != null)
+            {
+                pressAction.Enable();
+            }
+
             if (planeManager != null)
             {
                 planeManager.trackablesChanged.AddListener(OnPlanesChanged);
@@ -79,9 +94,22 @@ namespace MiningSafetyAR.AR
         private void OnDisable()
         {
             EnhancedTouchSupport.Disable();
+            if (pressAction != null)
+            {
+                pressAction.Disable();
+            }
+
             if (planeManager != null)
             {
                 planeManager.trackablesChanged.RemoveListener(OnPlanesChanged);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (pressAction != null)
+            {
+                pressAction.Dispose();
             }
         }
 
@@ -100,56 +128,19 @@ namespace MiningSafetyAR.AR
             }
         }
 
-        private void Update()
-        {
-            UpdatePlacementIndicator();
-            CheckTouchInput();
-        }
-
-        private void CheckTouchInput()
+        private void OnPointerPressBegan(InputAction.CallbackContext context)
         {
             try
             {
-                Vector2 tapPosition = Vector2.zero;
-                bool tapDetected = false;
-
-                // 1. Check New Input System Enhanced Touch (Mobile Touchscreen Taps)
-                if (UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches.Count > 0)
+                if (context.control.device is Pointer pointerDevice)
                 {
-                    var touch = UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches[0];
-                    if (touch.phase == UnityEngine.InputSystem.TouchPhase.Began)
-                    {
-                        tapPosition = touch.screenPosition;
-                        tapDetected = true;
-                    }
-                }
+                    Vector2 tapPosition = pointerDevice.position.ReadValue();
+                    Debug.Log($"[DIAG] [ARPlacementManager] Pointer Press Began at {tapPosition}! HasDetectedPlane={HasDetectedPlane}, TotalTrackedPlanes={(planeManager != null ? planeManager.trackables.count : 0)}");
 
-                // 2. Check New Input System Pointer / Mouse / Tap Press
-                if (!tapDetected && Pointer.current != null && Pointer.current.press.wasPressedThisFrame)
-                {
-                    tapPosition = Pointer.current.position.ReadValue();
-                    tapDetected = true;
-                }
-
-                // 3. Fallback Legacy Input
-                if (!tapDetected && Input.touchCount > 0)
-                {
-                    UnityEngine.Touch legacyTouch = Input.GetTouch(0);
-                    if (legacyTouch.phase == UnityEngine.TouchPhase.Began)
-                    {
-                        tapPosition = legacyTouch.position;
-                        tapDetected = true;
-                    }
-                }
-
-                if (tapDetected)
-                {
-                    Debug.Log($"[DIAG] [ARPlacementManager] Screen Tap Detected at {tapPosition}! HasDetectedPlane={HasDetectedPlane}, TotalTrackedPlanes={(planeManager != null ? planeManager.trackables.count : 0)}");
-
-                    // Try direct tap position first
+                    // 1. Try direct tap position raycast
                     bool placed = PerformPlacementRaycast(tapPosition);
                     
-                    // Fallback to screen-center reticle position if direct tap raycast missed plane boundary
+                    // 2. Fallback to screen-center reticle position if direct tap raycast missed plane polygon
                     if (!placed)
                     {
                         Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
@@ -166,8 +157,13 @@ namespace MiningSafetyAR.AR
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[ERROR] [ARPlacementManager] Exception during CheckTouchInput: {ex.Message}\n{ex.StackTrace}");
+                Debug.LogError($"[ERROR] [ARPlacementManager] Exception during OnPointerPressBegan: {ex.Message}\n{ex.StackTrace}");
             }
+        }
+
+        private void Update()
+        {
+            UpdatePlacementIndicator();
         }
 
         private void UpdatePlacementIndicator()
@@ -214,7 +210,7 @@ namespace MiningSafetyAR.AR
                 bool hitSuccess = false;
                 string hitTypeString = "";
 
-                // Tier 1: Real AR Plane Surface (Wooden table / floor surface - MOST ACCURATE)
+                // Tier 1: Real AR Plane Surface (Unity Samples standard: TrackableType.PlaneWithinPolygon)
                 TrackableType planeTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds | TrackableType.Planes;
                 if (raycastManager != null && raycastManager.Raycast(touchPosition, hits, planeTypes) && hits.Count > 0)
                 {
