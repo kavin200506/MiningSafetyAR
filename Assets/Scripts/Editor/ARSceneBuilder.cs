@@ -3,6 +3,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
+using Unity.XR.CoreUtils;
 using MiningSafetyAR.AR;
 using MiningSafetyAR.Modules;
 using MiningSafetyAR.Data;
