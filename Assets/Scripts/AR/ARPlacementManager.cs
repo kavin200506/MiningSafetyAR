@@ -182,12 +182,19 @@ namespace MiningSafetyAR.AR
             // Step C - Instant Placement
             if (!hitSuccess)
             {
-                ARRaycast instantRaycast = raycastManager.AddRaycast(touchPosition, 2.0f);
-                if (instantRaycast != null)
+                try
                 {
-                    hitPose = instantRaycast.pose;
-                    hitSuccess = true;
-                    Debug.Log("[ARPlacementManager] Placed via Instant Placement (estimated distance 2.0m) — pose will refine automatically");
+                    ARRaycast instantRaycast = raycastManager.AddRaycast(touchPosition, 2.0f);
+                    if (instantRaycast != null)
+                    {
+                        hitPose = instantRaycast.pose;
+                        hitSuccess = true;
+                        Debug.Log("[ARPlacementManager] Placed via Instant Placement (estimated distance 2.0m) — pose will refine automatically");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[ARPlacementManager] Instant Placement unavailable: {ex.Message}");
                 }
             }
 
