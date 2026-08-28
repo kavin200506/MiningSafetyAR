@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
+using UnityEngine.XR.ARSubsystems;
 using UnityEngine.Rendering.Universal;
 using Unity.XR.CoreUtils;
 using MiningSafetyAR.AR;
@@ -90,8 +91,8 @@ namespace MiningSafetyAR.Editor
                 {
                     occlusionMgr = xrOrigin.Camera.gameObject.AddComponent<AROcclusionManager>();
                 }
-                occlusionMgr.requestedEnvironmentDepthMode = EnvironmentDepthMode.Fastest;
-                occlusionMgr.requestedOcclusionPreferenceMode = OcclusionPreferenceMode.PreferEnvironmentOcclusion;
+                occlusionMgr.requestedEnvironmentDepthMode = UnityEngine.XR.ARSubsystems.EnvironmentDepthMode.Fastest;
+                occlusionMgr.requestedOcclusionPreferenceMode = UnityEngine.XR.ARSubsystems.OcclusionPreferenceMode.PreferEnvironmentOcclusion;
                 Debug.Log("[ARSceneBuilder] Configured AROcclusionManager on AR Camera.");
             }
 
