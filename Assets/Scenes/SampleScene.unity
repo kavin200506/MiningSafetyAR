@@ -571,8 +571,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 43045e8a058f0402884f11ddad38e499, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.AR.ARImageTrackingManager
-  fireExtinguisherPrefab: {fileID: 0}
-  exitSignPrefab: {fileID: 0}
+  fireExtinguisherPrefab: {fileID: 6134629332891498935, guid: 5a826361964774ca698cdf00d54cdcae, type: 3}
+  exitSignPrefab: {fileID: 5252302089801081371, guid: b98c7aa55bdbc4354b0cbb86195b7917, type: 3}
   fireExtinguisherMarkerName: FireExtinguisherMarker
   exitSignMarkerName: ExitSignMarker
 --- !u!114 &773190236
