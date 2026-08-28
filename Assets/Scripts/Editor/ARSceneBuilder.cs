@@ -137,7 +137,20 @@ namespace MiningSafetyAR.Editor
             {
                 imageTrackingManager = originGO.AddComponent<ARImageTrackingManager>();
             }
-            Debug.Log("[ARSceneBuilder] Configured ARTrackedImageManager & ARImageTrackingManager on XR Origin.");
+
+            GameObject extPrefab = EnsureFireExtinguisherPrefab();
+            if (extPrefab != null && imageTrackingManager.FireExtinguisherPrefab == null)
+            {
+                imageTrackingManager.FireExtinguisherPrefab = extPrefab;
+            }
+
+            GameObject exitPrefab = EnsureExitSignPrefab();
+            if (exitPrefab != null && imageTrackingManager.ExitSignPrefab == null)
+            {
+                imageTrackingManager.ExitSignPrefab = exitPrefab;
+            }
+
+            Debug.Log("[ARSceneBuilder] Configured ARTrackedImageManager, ARImageTrackingManager, and 3D equipment marker prefabs on XR Origin.");
 
             // 5. Ensure AR Default Plane Prefab & Materials exist and are assigned
             GameObject planePrefab = EnsureARDefaultPlanePrefab();
@@ -628,6 +641,94 @@ namespace MiningSafetyAR.Editor
             Object.DestroyImmediate(tempCube);
 
             Debug.Log($"[ARSceneBuilder] Auto-created Sample AREquipment prefab at {prefabPath}");
+            return savedPrefab;
+        }
+
+        private static GameObject EnsureFireExtinguisherPrefab()
+        {
+            string folderPath = "Assets/Prefabs";
+            string prefabPath = "Assets/Prefabs/FireExtinguisherModel.prefab";
+            string materialPath = "Assets/Prefabs/FireExtinguisherMaterial.mat";
+
+            if (!Directory.Exists(folderPath))
+            {
+                Directory.CreateDirectory(folderPath);
+                AssetDatabase.Refresh();
+            }
+
+            Material mat = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+            if (mat == null)
+            {
+                Shader defaultShader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+                if (defaultShader != null)
+                {
+                    mat = new Material(defaultShader);
+                    mat.color = new Color(1.0f, 0.15f, 0.15f); // Vivid Safety Red
+                    AssetDatabase.CreateAsset(mat, materialPath);
+                }
+            }
+
+            GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (existingPrefab != null) return existingPrefab;
+
+            GameObject tempCylinder = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            tempCylinder.name = "Fire Extinguisher 3D";
+            tempCylinder.transform.localScale = new Vector3(0.35f, 0.35f, 0.35f);
+
+            MeshRenderer mr = tempCylinder.GetComponent<MeshRenderer>();
+            if (mr != null && mat != null)
+            {
+                mr.sharedMaterial = mat;
+            }
+
+            GameObject savedPrefab = PrefabUtility.SaveAsPrefabAsset(tempCylinder, prefabPath);
+            Object.DestroyImmediate(tempCylinder);
+
+            Debug.Log($"[ARSceneBuilder] Auto-created FireExtinguisherModel prefab at {prefabPath}");
+            return savedPrefab;
+        }
+
+        private static GameObject EnsureExitSignPrefab()
+        {
+            string folderPath = "Assets/Prefabs";
+            string prefabPath = "Assets/Prefabs/ExitSignModel.prefab";
+            string materialPath = "Assets/Prefabs/ExitSignMaterial.mat";
+
+            if (!Directory.Exists(folderPath))
+            {
+                Directory.CreateDirectory(folderPath);
+                AssetDatabase.Refresh();
+            }
+
+            Material mat = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+            if (mat == null)
+            {
+                Shader defaultShader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+                if (defaultShader != null)
+                {
+                    mat = new Material(defaultShader);
+                    mat.color = new Color(0.0f, 1.0f, 0.4f); // Vivid Emerald Green
+                    AssetDatabase.CreateAsset(mat, materialPath);
+                }
+            }
+
+            GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (existingPrefab != null) return existingPrefab;
+
+            GameObject tempCube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            tempCube.name = "Exit Sign 3D";
+            tempCube.transform.localScale = new Vector3(0.35f, 0.35f, 0.35f);
+
+            MeshRenderer mr = tempCube.GetComponent<MeshRenderer>();
+            if (mr != null && mat != null)
+            {
+                mr.sharedMaterial = mat;
+            }
+
+            GameObject savedPrefab = PrefabUtility.SaveAsPrefabAsset(tempCube, prefabPath);
+            Object.DestroyImmediate(tempCube);
+
+            Debug.Log($"[ARSceneBuilder] Auto-created ExitSignModel prefab at {prefabPath}");
             return savedPrefab;
         }
     }
