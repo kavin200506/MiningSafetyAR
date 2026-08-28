@@ -107,6 +107,8 @@ namespace MiningSafetyAR.Editor
             {
                 planeManager = originGO.AddComponent<ARPlaneManager>();
             }
+            planeManager.requestedFindingMode = PlaneDetectionMode.Horizontal | PlaneDetectionMode.Vertical;
+            Debug.Log("[ARSceneBuilder] Set ARPlaneManager requestedFindingMode to Horizontal & Vertical.");
 
             ARPlacementManager placementManager = originGO.GetComponent<ARPlacementManager>();
             if (placementManager == null)
@@ -114,12 +116,12 @@ namespace MiningSafetyAR.Editor
                 placementManager = originGO.AddComponent<ARPlacementManager>();
             }
 
-            // 5. Ensure AR Default Plane Prefab & Material exist and are assigned
+            // 5. Ensure AR Default Plane Prefab & Materials exist and are assigned
             GameObject planePrefab = EnsureARDefaultPlanePrefab();
             if (planePrefab != null)
             {
                 planeManager.planePrefab = planePrefab;
-                Debug.Log("[ARSceneBuilder] Assigned transparent AR Default Plane prefab to ARPlaneManager.");
+                Debug.Log("[ARSceneBuilder] Assigned transparent AR Default Plane prefab with boundary outline to ARPlaneManager.");
             }
 
             // 6. Ensure Placement Indicator Reticle exists and is assigned
@@ -176,7 +178,7 @@ namespace MiningSafetyAR.Editor
             AssetDatabase.Refresh();
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorUtility.DisplayDialog("AR Scene Setup Complete", 
-                "Successfully configured AR Session, XR Origin, AROcclusionManager, AR Plane Manager (with transparent blue plane prefab), Placement Indicator reticle, AR Placement Manager, App Managers, and URP Renderer Features!", 
+                "Successfully configured AR Session, XR Origin, AROcclusionManager, AR Plane Manager (with horizontal/vertical surface detection & crisp cyan boundary outlines), Placement Indicator reticle, AR Placement Manager, App Managers, and URP Renderer Features!", 
                 "OK");
         }
 
@@ -231,6 +233,7 @@ namespace MiningSafetyAR.Editor
             string folderPath = "Assets/Prefabs";
             string prefabPath = "Assets/Prefabs/ARDefaultPlane.prefab";
             string materialPath = "Assets/Prefabs/ARDefaultPlaneMaterial.mat";
+            string boundaryMaterialPath = "Assets/Prefabs/ARPlaneBoundaryMaterial.mat";
 
             if (!Directory.Exists(folderPath))
             {
@@ -238,31 +241,49 @@ namespace MiningSafetyAR.Editor
                 AssetDatabase.Refresh();
             }
 
-            // Ensure Material Asset exists on disk
+            Shader unlitShader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
+
+            // 1. Interior Surface Material (Semi-transparent Cyan)
             Material planeMat = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
-            if (planeMat == null)
+            if (planeMat == null && unlitShader != null)
             {
-                Shader defaultShader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
-                if (defaultShader != null)
-                {
-                    planeMat = new Material(defaultShader);
-                    planeMat.color = new Color(0.2f, 0.8f, 1.0f, 0.35f);
+                planeMat = new Material(unlitShader);
+                AssetDatabase.CreateAsset(planeMat, materialPath);
+            }
+            if (planeMat != null)
+            {
+                planeMat.color = new Color(0.2f, 0.7f, 1.0f, 0.25f);
+                planeMat.SetFloat("_Surface", 1f); // Transparent
+                planeMat.SetFloat("_Blend", 0f);   // Alpha blend
+                planeMat.SetOverrideTag("RenderType", "Transparent");
+                planeMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                planeMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                planeMat.SetInt("_ZWrite", 0);
+                planeMat.DisableKeyword("_ALPHATEST_ON");
+                planeMat.EnableKeyword("_ALPHABLEND_ON");
+                planeMat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+                EditorUtility.SetDirty(planeMat);
+            }
 
-                    // Enable URP Transparency
-                    planeMat.SetFloat("_Surface", 1f); // 1 = Transparent
-                    planeMat.SetFloat("_Blend", 0f);   // 0 = Alpha blend mode
-                    planeMat.SetOverrideTag("RenderType", "Transparent");
-                    planeMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                    planeMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                    planeMat.SetInt("_ZWrite", 0);
-                    planeMat.DisableKeyword("_ALPHATEST_ON");
-                    planeMat.EnableKeyword("_ALPHABLEND_ON");
-                    planeMat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-                    planeMat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
-
-                    AssetDatabase.CreateAsset(planeMat, materialPath);
-                    Debug.Log($"[ARSceneBuilder] Created AR Default Plane Material Asset at {materialPath}");
-                }
+            // 2. Boundary Outline Material (Vivid Solid Cyan)
+            Material boundaryMat = AssetDatabase.LoadAssetAtPath<Material>(boundaryMaterialPath);
+            if (boundaryMat == null && unlitShader != null)
+            {
+                boundaryMat = new Material(unlitShader);
+                AssetDatabase.CreateAsset(boundaryMat, boundaryMaterialPath);
+            }
+            if (boundaryMat != null)
+            {
+                boundaryMat.color = new Color(0.0f, 0.9f, 1.0f, 0.85f);
+                boundaryMat.SetFloat("_Surface", 1f);
+                boundaryMat.SetFloat("_Blend", 0f);
+                boundaryMat.SetOverrideTag("RenderType", "Transparent");
+                boundaryMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                boundaryMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                boundaryMat.SetInt("_ZWrite", 0);
+                boundaryMat.EnableKeyword("_ALPHABLEND_ON");
+                boundaryMat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+                EditorUtility.SetDirty(boundaryMat);
             }
 
             GameObject tempPlane = new GameObject("AR Default Plane");
@@ -276,21 +297,19 @@ namespace MiningSafetyAR.Editor
                 mr.sharedMaterial = planeMat;
             }
 
-            // Ensure LineRenderer boundary outline exists for clear plane boundaries
-            LineRenderer lr = tempPlane.GetComponent<LineRenderer>();
-            if (lr == null)
+            LineRenderer lr = tempPlane.AddComponent<LineRenderer>();
+            lr.startWidth = 0.015f;
+            lr.endWidth = 0.015f;
+            lr.useWorldSpace = false;
+            if (boundaryMat != null)
             {
-                lr = tempPlane.AddComponent<LineRenderer>();
-                lr.startWidth = 0.02f;
-                lr.endWidth = 0.02f;
-                lr.useWorldSpace = false;
-                if (planeMat != null) lr.sharedMaterial = planeMat;
+                lr.sharedMaterial = boundaryMat;
             }
 
             GameObject savedPrefab = PrefabUtility.SaveAsPrefabAsset(tempPlane, prefabPath);
             Object.DestroyImmediate(tempPlane);
 
-            Debug.Log($"[ARSceneBuilder] Auto-created transparent AR Default Plane prefab at {prefabPath}");
+            Debug.Log($"[ARSceneBuilder] Auto-created transparent AR Default Plane prefab with boundary outline at {prefabPath}");
             return savedPrefab;
         }
 
@@ -313,21 +332,22 @@ namespace MiningSafetyAR.Editor
                 if (defaultShader != null)
                 {
                     reticleMat = new Material(defaultShader);
-                    reticleMat.color = new Color(0.0f, 1.0f, 0.5f, 0.6f); // Bright Emerald Green Reticle
-
-                    reticleMat.SetFloat("_Surface", 1f);
-                    reticleMat.SetFloat("_Blend", 0f);
-                    reticleMat.SetOverrideTag("RenderType", "Transparent");
-                    reticleMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                    reticleMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                    reticleMat.SetInt("_ZWrite", 0);
-                    reticleMat.DisableKeyword("_ALPHATEST_ON");
-                    reticleMat.EnableKeyword("_ALPHABLEND_ON");
-                    reticleMat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
-
                     AssetDatabase.CreateAsset(reticleMat, materialPath);
-                    Debug.Log($"[ARSceneBuilder] Created Placement Indicator Material Asset at {materialPath}");
                 }
+            }
+            if (reticleMat != null)
+            {
+                reticleMat.color = new Color(0.0f, 1.0f, 0.5f, 0.7f); // Bright Emerald Green Reticle
+                reticleMat.SetFloat("_Surface", 1f);
+                reticleMat.SetFloat("_Blend", 0f);
+                reticleMat.SetOverrideTag("RenderType", "Transparent");
+                reticleMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                reticleMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                reticleMat.SetInt("_ZWrite", 0);
+                reticleMat.DisableKeyword("_ALPHATEST_ON");
+                reticleMat.EnableKeyword("_ALPHABLEND_ON");
+                reticleMat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+                EditorUtility.SetDirty(reticleMat);
             }
 
             GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
