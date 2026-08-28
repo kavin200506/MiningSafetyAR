@@ -77,12 +77,22 @@ namespace MiningSafetyAR.Editor
             else
             {
                 originGO = xrOrigin.gameObject;
-                if (xrOrigin.Camera != null)
+            }
+
+            if (xrOrigin.Camera != null)
+            {
+                if (xrOrigin.Camera.GetComponent<ARCameraManager>() == null) xrOrigin.Camera.gameObject.AddComponent<ARCameraManager>();
+                if (xrOrigin.Camera.GetComponent<ARCameraBackground>() == null) xrOrigin.Camera.gameObject.AddComponent<ARCameraBackground>();
+                if (xrOrigin.Camera.GetComponent<UnityEngine.InputSystem.XR.TrackedPoseDriver>() == null) xrOrigin.Camera.gameObject.AddComponent<UnityEngine.InputSystem.XR.TrackedPoseDriver>();
+
+                AROcclusionManager occlusionMgr = xrOrigin.Camera.GetComponent<AROcclusionManager>();
+                if (occlusionMgr == null)
                 {
-                    if (xrOrigin.Camera.GetComponent<ARCameraManager>() == null) xrOrigin.Camera.gameObject.AddComponent<ARCameraManager>();
-                    if (xrOrigin.Camera.GetComponent<ARCameraBackground>() == null) xrOrigin.Camera.gameObject.AddComponent<ARCameraBackground>();
-                    if (xrOrigin.Camera.GetComponent<UnityEngine.InputSystem.XR.TrackedPoseDriver>() == null) xrOrigin.Camera.gameObject.AddComponent<UnityEngine.InputSystem.XR.TrackedPoseDriver>();
+                    occlusionMgr = xrOrigin.Camera.gameObject.AddComponent<AROcclusionManager>();
                 }
+                occlusionMgr.requestedEnvironmentDepthMode = EnvironmentDepthMode.Fastest;
+                occlusionMgr.requestedOcclusionPreferenceMode = OcclusionPreferenceMode.PreferEnvironmentOcclusion;
+                Debug.Log("[ARSceneBuilder] Configured AROcclusionManager on AR Camera.");
             }
 
             // 4. Add AR Managers to XR Origin
