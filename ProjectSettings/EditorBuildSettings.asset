@@ -5,12 +5,16 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 1
-    path: Assets/Scenes/SampleScene.unity
+  - enabled: 0
+    path: Assets/Scenes/AR Image Tracking.unity
     guid: 99c9720ab356a0642a771bea13969a05
+  - enabled: 1
+    path: Assets/Scenes/AR Plane Detection Placement.unity
+    guid: ade38218321fa40d799a24b91df34c94
   m_configObjects:
-    UnityEditor.XR.ARCore.ARCoreSettings: {fileID: 11400000, guid: a9d8cd74203e34fe4ac3a3c13c1bddb4, type: 2}
+    UnityEditor.XR.ARCore.ARCoreSettings: {fileID: 11400000, guid: cbd3db67e59464d9585bd5c5b65740f3, type: 2}
+    UnityEditor.XR.ARKit.ARKitSettings: {fileID: 11400000, guid: 17fbec4aee5fc4d89825583c1899c827, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
-    com.unity.xr.arfoundation.simulation_settings: {fileID: 11400000, guid: 29aa46c7ace224b5cb5107372e5e6a8c, type: 2}
-    com.unity.xr.management.loader_settings: {fileID: 11400000, guid: c9e11f2e405a84a6baedea5e7b3ff4ae, type: 2}
+    com.unity.xr.arfoundation.simulation_settings: {fileID: 11400000, guid: e64416a52109f43acbccabb520beeefb, type: 2}
+    com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 50a7771e8b6c3438c95f4656af950462, type: 2}
   m_UseUCBPForAssetBundles: 0
