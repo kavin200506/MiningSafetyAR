@@ -108,17 +108,14 @@ namespace MiningSafetyAR.AR
             {
                 Debug.Log($"[DIAG] tapDetected={tapDetected}, HasDetectedPlane={HasDetectedPlane}, placementIndicator_isNull={placementIndicator == null}, placementIndicator_activeSelf={(placementIndicator != null ? placementIndicator.activeSelf.ToString() : "N/A")}");
 
-                bool reticleValid = placementIndicator == null || placementIndicator.activeSelf;
-                if (!HasDetectedPlane || !reticleValid)
-                {
-                    Debug.Log("[ARPlacementManager] Ignoring tap — no valid plane target at reticle.");
-                    OnNoPlaneDetected?.Invoke();
-                    return;
-                }
-
                 Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
                 Debug.Log("[ARPlacementManager] Placing object at reticle position");
-                PerformPlacementRaycast(screenCenter);
+                
+                bool placed = PerformPlacementRaycast(screenCenter);
+                if (!placed)
+                {
+                    OnNoPlaneDetected?.Invoke();
+                }
             }
         }
 
