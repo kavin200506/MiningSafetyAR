@@ -71,7 +71,7 @@ namespace MiningSafetyAR.AR
                 var touch = UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches[0];
                 if (touch.phase == UnityEngine.InputSystem.TouchPhase.Began)
                 {
-                    Debug.Log($"[ARPlacementManager] Enhanced Touch detected at {touch.screenPosition}");
+                    Debug.Log($"[ARPlacementManager] Touch detected at {touch.screenPosition}");
                     PerformPlacementRaycast(touch.screenPosition);
                     return;
                 }
@@ -129,8 +129,8 @@ namespace MiningSafetyAR.AR
             }
             else
             {
-                // Fallback: Spawn 1.2m in front of camera so placement ALWAYS succeeds on tap
-                Camera mainCam = Camera.main;
+                // Fallback: Find Main Camera or any active Camera
+                Camera mainCam = Camera.main ?? FindFirstObjectByType<Camera>();
                 if (mainCam != null)
                 {
                     Vector3 spawnPos = mainCam.ScreenToWorldPoint(new Vector3(touchPosition.x, touchPosition.y, 1.2f));
@@ -139,21 +139,40 @@ namespace MiningSafetyAR.AR
                 }
                 else
                 {
-                    Debug.LogWarning("[ARPlacementManager] Raycast failed and Camera.main is null.");
+                    Debug.LogWarning("[ARPlacementManager] Raycast failed and Camera is null.");
                     return false;
                 }
             }
 
             GameObject targetPrefab = prefabToSpawn != null ? prefabToSpawn : defaultPlacementPrefab;
-            if (targetPrefab == null)
-            {
-                Debug.LogWarning("[ARPlacementManager] No defaultPlacementPrefab assigned!");
-                return false;
-            }
-
+            
             if (spawnedObject == null)
             {
-                spawnedObject = Instantiate(targetPrefab, hitPose.position, hitPose.rotation);
+                if (targetPrefab != null)
+                {
+                    spawnedObject = Instantiate(targetPrefab, hitPose.position, hitPose.rotation);
+                }
+                else
+                {
+                    // Fallback Primitive 3D Cube if defaultPlacementPrefab was null
+                    Debug.LogWarning("[ARPlacementManager] defaultPlacementPrefab was unassigned! Creating fallback 3D safety cube.");
+                    spawnedObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    spawnedObject.name = "Safety Equipment (Fallback)";
+                    spawnedObject.transform.localScale = new Vector3(0.25f, 0.25f, 0.25f);
+                    spawnedObject.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
+
+                    MeshRenderer mr = spawnedObject.GetComponent<MeshRenderer>();
+                    if (mr != null)
+                    {
+                        Shader defaultShader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+                        if (defaultShader != null)
+                        {
+                            Material mat = new Material(defaultShader);
+                            mat.color = new Color(1.0f, 0.4f, 0.0f); // Safety Orange
+                            mr.sharedMaterial = mat;
+                        }
+                    }
+                }
                 Debug.Log($"[ARPlacementManager] Successfully spawned 3D object at {hitPose.position}");
             }
             else
