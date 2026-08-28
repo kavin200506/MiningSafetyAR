@@ -122,6 +122,19 @@ namespace MiningSafetyAR.Editor
                 placementManager = originGO.AddComponent<ARPlacementManager>();
             }
 
+            ARTrackedImageManager imageManager = originGO.GetComponent<ARTrackedImageManager>();
+            if (imageManager == null)
+            {
+                imageManager = originGO.AddComponent<ARTrackedImageManager>();
+            }
+
+            ARImageTrackingManager imageTrackingManager = originGO.GetComponent<ARImageTrackingManager>();
+            if (imageTrackingManager == null)
+            {
+                imageTrackingManager = originGO.AddComponent<ARImageTrackingManager>();
+            }
+            Debug.Log("[ARSceneBuilder] Configured ARTrackedImageManager & ARImageTrackingManager on XR Origin.");
+
             // 5. Ensure AR Default Plane Prefab & Materials exist and are assigned
             GameObject planePrefab = EnsureARDefaultPlanePrefab();
             if (planePrefab != null)
