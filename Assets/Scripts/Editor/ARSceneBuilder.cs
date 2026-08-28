@@ -19,7 +19,18 @@ namespace MiningSafetyAR.Editor
         [MenuItem("Mining Safety AR/Setup Core AR Scene")]
         public static void SetupARScene()
         {
-            // 1. Ensure AR Session exists
+            // 1. Clean up old duplicate root Main Camera outside XR Origin
+            Camera[] rootCameras = Object.FindObjectsByType<Camera>(FindObjectsSortMode.None);
+            foreach (Camera cam in rootCameras)
+            {
+                if (cam != null && cam.transform.parent == null && cam.gameObject.name == "Main Camera")
+                {
+                    Undo.DestroyObjectImmediate(cam.gameObject);
+                    Debug.Log("[ARSceneBuilder] Removed duplicate root Main Camera outside XR Origin.");
+                }
+            }
+
+            // 2. Ensure AR Session exists
             ARSession arSession = Object.FindFirstObjectByType<ARSession>();
             if (arSession == null)
             {
@@ -119,6 +130,8 @@ namespace MiningSafetyAR.Editor
                 Debug.Log("[ARSceneBuilder] Created AppManagers container.");
             }
 
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorUtility.DisplayDialog("AR Scene Setup Complete", 
                 "Successfully set up AR Session, XR Origin, AR Raycast Manager, AR Plane Manager (with plane prefab), AR Placement Manager (with 3D object prefab), and App Managers!", 
