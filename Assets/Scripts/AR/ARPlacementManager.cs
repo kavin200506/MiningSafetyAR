@@ -136,7 +136,9 @@ namespace MiningSafetyAR.AR
             if (placementIndicator == null) return;
 
             Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
-            if (raycastManager.Raycast(screenCenter, hits, TrackableType.PlaneWithinPolygon))
+            TrackableType surfaceTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds | TrackableType.Planes;
+            
+            if (raycastManager.Raycast(screenCenter, hits, surfaceTypes))
             {
                 Pose hitPose = hits[0].pose;
                 placementIndicator.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
@@ -150,57 +152,51 @@ namespace MiningSafetyAR.AR
 
         public bool PerformPlacementRaycast(Vector2 touchPosition, GameObject prefabToSpawn = null)
         {
-            bool depthSupported = occlusionManager != null && 
-                                  occlusionManager.enabled && 
-                                  occlusionManager.descriptor != null && 
-                                  occlusionManager.descriptor.environmentDepthImageSupported == Supported.Supported;
-
             Pose hitPose = default;
             bool hitSuccess = false;
+            string hitTypeString = "";
 
-            // Step A - Depth
-            if (depthSupported)
+            // Tier 1: Real AR Plane Surface (Wooden table / floor surface - MOST ACCURATE)
+            TrackableType planeTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds | TrackableType.Planes;
+            if (raycastManager.Raycast(touchPosition, hits, planeTypes) && hits.Count > 0)
+            {
+                hitPose = hits[0].pose;
+                hitSuccess = true;
+                hitTypeString = "Plane Surface";
+            }
+            // Tier 2: Environment Depth Map (if hardware depth is available)
+            else if (occlusionManager != null && 
+                     occlusionManager.enabled && 
+                     occlusionManager.descriptor != null && 
+                     occlusionManager.descriptor.environmentDepthImageSupported == Supported.Supported)
             {
                 if (raycastManager.Raycast(touchPosition, hits, TrackableType.Depth) && hits.Count > 0)
                 {
                     hitPose = hits[0].pose;
                     hitSuccess = true;
-                    Debug.Log("[ARPlacementManager] Placed via Depth hit-test");
+                    hitTypeString = "Depth Map";
                 }
             }
-
-            // Step B - Plane
-            if (!hitSuccess)
-            {
-                TrackableType planeTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds;
-                if (raycastManager.Raycast(touchPosition, hits, planeTypes) && hits.Count > 0)
-                {
-                    hitPose = hits[0].pose;
-                    hitSuccess = true;
-                    Debug.Log("[ARPlacementManager] Placed via Plane hit-test");
-                }
-            }
-
-            // Step C - Instant Placement
-            if (!hitSuccess)
+            // Tier 3: Instant Placement Fallback
+            else
             {
                 try
                 {
-                    ARRaycast instantRaycast = raycastManager.AddRaycast(touchPosition, 2.0f);
+                    ARRaycast instantRaycast = raycastManager.AddRaycast(touchPosition, 1.5f);
                     if (instantRaycast != null)
                     {
                         hitPose = instantRaycast.pose;
                         hitSuccess = true;
-                        Debug.Log("[ARPlacementManager] Placed via Instant Placement (estimated distance 2.0m) — pose will refine automatically");
+                        hitTypeString = "Instant Placement";
                     }
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning($"[ARPlacementManager] Instant Placement unavailable: {ex.Message}");
+                    Debug.LogWarning($"[ARPlacementManager] Instant Placement fallback exception: {ex.Message}");
                 }
             }
 
-            Debug.Log($"[DIAG] Raycast at {touchPosition}: hitSuccess={hitSuccess}, hits.Count={hits.Count}");
+            Debug.Log($"[DIAG] Raycast at {touchPosition}: hitSuccess={hitSuccess}, hitType={hitTypeString}");
 
             if (!hitSuccess)
             {
@@ -240,7 +236,7 @@ namespace MiningSafetyAR.AR
                 }
 
                 spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
-                Debug.Log($"[ARPlacementManager] Successfully spawned 3D object anchored at {hitPose.position}");
+                Debug.Log($"[ARPlacementManager] Successfully spawned 3D object anchored via {hitTypeString} at {hitPose.position}");
             }
             else
             {
@@ -250,7 +246,7 @@ namespace MiningSafetyAR.AR
                 }
                 spawnedObject.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
                 spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
-                Debug.Log($"[ARPlacementManager] Repositioned 3D object anchored to {hitPose.position}");
+                Debug.Log($"[ARPlacementManager] Repositioned 3D object anchored via {hitTypeString} to {hitPose.position}");
             }
 
             Renderer spawnedRenderer = spawnedObject != null ? spawnedObject.GetComponent<Renderer>() : null;
