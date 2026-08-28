@@ -360,6 +360,35 @@ namespace MiningSafetyAR.Editor
                 Debug.Log($"[ARSceneBuilder] Auto-created XRReferenceImageLibrary asset at {libraryPath}");
             }
 
+            // Programmatically populate texture entries & real-world size if missing
+            Texture2D extTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/ImageTracking/FireExtinguisherMarker.jpg") ?? AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/ImageTracking/FireExtinguisherMarker.png");
+            Texture2D exitTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/ImageTracking/ExitSignMarker.jpg") ?? AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/ImageTracking/ExitSignMarker.png");
+
+            SerializedObject libSO = new SerializedObject(library);
+            SerializedProperty imagesProp = libSO.FindProperty("m_Images");
+            if (imagesProp != null && imagesProp.arraySize == 0)
+            {
+                imagesProp.arraySize = 2;
+
+                // Entry 0: FireExtinguisherMarker
+                SerializedProperty elem0 = imagesProp.GetArrayElementAtIndex(0);
+                elem0.FindPropertyRelative("m_Name").stringValue = "FireExtinguisherMarker";
+                elem0.FindPropertyRelative("m_Texture").objectReferenceValue = extTex;
+                elem0.FindPropertyRelative("m_SpecifySize").boolValue = true;
+                elem0.FindPropertyRelative("m_Size").vector2Value = new Vector2(0.2f, 0.2f);
+
+                // Entry 1: ExitSignMarker
+                SerializedProperty elem1 = imagesProp.GetArrayElementAtIndex(1);
+                elem1.FindPropertyRelative("m_Name").stringValue = "ExitSignMarker";
+                elem1.FindPropertyRelative("m_Texture").objectReferenceValue = exitTex;
+                elem1.FindPropertyRelative("m_SpecifySize").boolValue = true;
+                elem1.FindPropertyRelative("m_Size").vector2Value = new Vector2(0.2f, 0.2f);
+
+                libSO.ApplyModifiedProperties();
+                AssetDatabase.SaveAssets();
+                Debug.Log("[ARSceneBuilder] Programmatically populated MiningSafetyImageLibrary with FireExtinguisherMarker and ExitSignMarker (0.2m size).");
+            }
+
             if (imageManager != null && imageManager.referenceLibrary == null)
             {
                 imageManager.referenceLibrary = library;
