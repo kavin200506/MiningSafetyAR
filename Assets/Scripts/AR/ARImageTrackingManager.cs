@@ -95,6 +95,25 @@ namespace MiningSafetyAR.AR
             {
                 UpdateTrackedImage(trackedImage);
             }
+
+            // Process removed tracked images
+            foreach (var removedEntry in eventArgs.removed)
+            {
+                ARTrackedImage trackedImage = removedEntry.Value;
+                if (trackedImage != null && trackedImage.referenceImage != null)
+                {
+                    string imageName = trackedImage.referenceImage.name;
+                    if (spawnedObjects.TryGetValue(imageName, out GameObject spawnedObj))
+                    {
+                        if (spawnedObj != null)
+                        {
+                            Destroy(spawnedObj);
+                        }
+                        spawnedObjects.Remove(imageName);
+                        Debug.Log($"[ARImageTrackingManager] Marker permanently removed: {imageName}, cleaning up spawned object.");
+                    }
+                }
+            }
         }
 
         private void UpdateTrackedImage(ARTrackedImage trackedImage)
