@@ -73,9 +73,10 @@ namespace MiningSafetyAR.Editor
                 planeManager = originGO.AddComponent<ARPlaneManager>();
             }
 
-            if (originGO.GetComponent<ARPlacementManager>() == null)
+            ARPlacementManager placementManager = originGO.GetComponent<ARPlacementManager>();
+            if (placementManager == null)
             {
-                originGO.AddComponent<ARPlacementManager>();
+                placementManager = originGO.AddComponent<ARPlacementManager>();
             }
 
             // 4. Ensure AR Default Plane Prefab exists and is assigned
@@ -86,7 +87,15 @@ namespace MiningSafetyAR.Editor
                 Debug.Log("[ARSceneBuilder] Assigned AR Default Plane prefab to ARPlaneManager.");
             }
 
-            // 5. Setup Managers GameObject (LocalScoreManager, LanguageManager, CloudSyncManager)
+            // 5. Ensure Placement Object Prefab exists and is assigned (Stage 10)
+            GameObject placementPrefab = EnsureSamplePlacementPrefab();
+            if (placementPrefab != null && placementManager.DefaultPlacementPrefab == null)
+            {
+                placementManager.DefaultPlacementPrefab = placementPrefab;
+                Debug.Log("[ARSceneBuilder] Assigned Sample AR Equipment prefab to ARPlacementManager.");
+            }
+
+            // 6. Setup Managers GameObject (LocalScoreManager, LanguageManager, CloudSyncManager)
             GameObject managersGO = GameObject.Find("AppManagers");
             if (managersGO == null)
             {
@@ -101,7 +110,7 @@ namespace MiningSafetyAR.Editor
 
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorUtility.DisplayDialog("AR Scene Setup Complete", 
-                "Successfully set up AR Session, XR Origin, AR Raycast Manager, AR Plane Manager (with visualizer plane prefab), AR Placement Manager, and App Managers in the scene!", 
+                "Successfully set up AR Session, XR Origin, AR Raycast Manager, AR Plane Manager (with plane prefab), AR Placement Manager (with 3D object prefab), and App Managers!", 
                 "OK");
         }
 
@@ -119,7 +128,6 @@ namespace MiningSafetyAR.Editor
                 AssetDatabase.Refresh();
             }
 
-            // Create temporary plane visualizer GameObject
             GameObject tempPlane = new GameObject("AR Default Plane");
             tempPlane.AddComponent<ARPlane>();
             tempPlane.AddComponent<ARPlaneMeshVisualizer>();
@@ -138,6 +146,43 @@ namespace MiningSafetyAR.Editor
             Object.DestroyImmediate(tempPlane);
 
             Debug.Log($"[ARSceneBuilder] Auto-created AR Default Plane prefab at {prefabPath}");
+            return savedPrefab;
+        }
+
+        private static GameObject EnsureSamplePlacementPrefab()
+        {
+            string folderPath = "Assets/Prefabs";
+            string prefabPath = "Assets/Prefabs/SampleAREquipment.prefab";
+
+            GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (existingPrefab != null) return existingPrefab;
+
+            if (!Directory.Exists(folderPath))
+            {
+                Directory.CreateDirectory(folderPath);
+                AssetDatabase.Refresh();
+            }
+
+            GameObject tempCube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            tempCube.name = "Sample AREquipment";
+            tempCube.transform.localScale = new Vector3(0.25f, 0.25f, 0.25f);
+
+            MeshRenderer mr = tempCube.GetComponent<MeshRenderer>();
+            if (mr != null)
+            {
+                Shader defaultShader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+                if (defaultShader != null)
+                {
+                    Material mat = new Material(defaultShader);
+                    mat.color = new Color(1.0f, 0.4f, 0.0f); // Safety Orange
+                    mr.sharedMaterial = mat;
+                }
+            }
+
+            GameObject savedPrefab = PrefabUtility.SaveAsPrefabAsset(tempCube, prefabPath);
+            Object.DestroyImmediate(tempCube);
+
+            Debug.Log($"[ARSceneBuilder] Auto-created Sample AREquipment prefab at {prefabPath}");
             return savedPrefab;
         }
     }
