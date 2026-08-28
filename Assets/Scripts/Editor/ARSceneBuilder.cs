@@ -198,7 +198,7 @@ namespace MiningSafetyAR.Editor
             report.AppendLine("=== Mining Safety AR - Editor Settings Validation Report ===");
 
             // 1. Active Input Handling Mode
-            int inputMode = (int)PlayerSettings.activeInputHandler;
+            int inputMode = GetActiveInputHandlerMode();
             string inputModeName = inputMode switch
             {
                 0 => "Legacy Input Manager",
@@ -248,12 +248,35 @@ namespace MiningSafetyAR.Editor
             EditorUtility.DisplayDialog("Editor Settings Validation", report.ToString(), "OK");
         }
 
+        private static int GetActiveInputHandlerMode()
+        {
+            Object projectSettingsAsset = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset").FirstOrDefault();
+            if (projectSettingsAsset != null)
+            {
+                SerializedObject so = new SerializedObject(projectSettingsAsset);
+                SerializedProperty prop = so.FindProperty("activeInputHandler");
+                if (prop != null)
+                {
+                    return prop.intValue;
+                }
+            }
+            return -1;
+        }
+
         private static void EnsureActiveInputHandlingBoth()
         {
-            if (PlayerSettings.activeInputHandler != (ActiveInputHandler)2) // 2 = Both
+            Object projectSettingsAsset = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset").FirstOrDefault();
+            if (projectSettingsAsset != null)
             {
-                PlayerSettings.activeInputHandler = (ActiveInputHandler)2;
-                Debug.Log("[ARSceneBuilder] Updated PlayerSettings.activeInputHandler to 'Both' (Legacy + New Input System).");
+                SerializedObject so = new SerializedObject(projectSettingsAsset);
+                SerializedProperty prop = so.FindProperty("activeInputHandler");
+                if (prop != null && prop.intValue != 2)
+                {
+                    prop.intValue = 2; // 2 = Both (Legacy + New Input System)
+                    so.ApplyModifiedProperties();
+                    AssetDatabase.SaveAssets();
+                    Debug.Log("[ARSceneBuilder] Updated activeInputHandler to 2 ('Both') in ProjectSettings.");
+                }
             }
         }
 
