@@ -72,54 +72,47 @@ namespace MiningSafetyAR.AR
 
         private void CheckTouchInput()
         {
+            bool tapDetected = false;
+
             // 1. Check New Input System Enhanced Touch (Mobile Touchscreen Taps)
             if (UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches.Count > 0)
             {
                 var touch = UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches[0];
                 if (touch.phase == UnityEngine.InputSystem.TouchPhase.Began)
                 {
-                    if (!HasDetectedPlane)
-                    {
-                        Debug.Log("[ARPlacementManager] Ignoring tap — no plane tracked yet.");
-                        OnNoPlaneDetected?.Invoke();
-                        return;
-                    }
-                    Debug.Log($"[ARPlacementManager] Touch detected at {touch.screenPosition}");
-                    PerformPlacementRaycast(touch.screenPosition);
-                    return;
+                    tapDetected = true;
                 }
             }
 
             // 2. Check New Input System Pointer / Mouse / Tap Press
-            if (Pointer.current != null && Pointer.current.press.wasPressedThisFrame)
+            if (!tapDetected && Pointer.current != null && Pointer.current.press.wasPressedThisFrame)
             {
-                Vector2 pointerPos = Pointer.current.position.ReadValue();
-                if (!HasDetectedPlane)
-                {
-                    Debug.Log("[ARPlacementManager] Ignoring tap — no plane tracked yet.");
-                    OnNoPlaneDetected?.Invoke();
-                    return;
-                }
-                Debug.Log($"[ARPlacementManager] Pointer press detected at {pointerPos}");
-                PerformPlacementRaycast(pointerPos);
-                return;
+                tapDetected = true;
             }
 
             // 3. Fallback Legacy Input
-            if (Input.touchCount > 0)
+            if (!tapDetected && Input.touchCount > 0)
             {
                 UnityEngine.Touch legacyTouch = Input.GetTouch(0);
                 if (legacyTouch.phase == UnityEngine.TouchPhase.Began)
                 {
-                    if (!HasDetectedPlane)
-                    {
-                        Debug.Log("[ARPlacementManager] Ignoring tap — no plane tracked yet.");
-                        OnNoPlaneDetected?.Invoke();
-                        return;
-                    }
-                    Debug.Log($"[ARPlacementManager] Legacy Touch detected at {legacyTouch.position}");
-                    PerformPlacementRaycast(legacyTouch.position);
+                    tapDetected = true;
                 }
+            }
+
+            if (tapDetected)
+            {
+                bool reticleValid = placementIndicator == null || placementIndicator.activeSelf;
+                if (!HasDetectedPlane || !reticleValid)
+                {
+                    Debug.Log("[ARPlacementManager] Ignoring tap — no valid plane target at reticle.");
+                    OnNoPlaneDetected?.Invoke();
+                    return;
+                }
+
+                Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
+                Debug.Log("[ARPlacementManager] Placing object at reticle position");
+                PerformPlacementRaycast(screenCenter);
             }
         }
 
