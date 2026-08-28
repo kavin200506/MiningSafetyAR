@@ -22,7 +22,7 @@ namespace MiningSafetyAR.Editor
         [MenuItem("Mining Safety AR/Setup Core AR Scene")]
         public static void SetupARScene()
         {
-            // 1. Clean up old duplicate root Main Camera outside XR Origin
+            // 1. Remove duplicate Main Cameras outside XR Origin
             Camera[] rootCameras = Object.FindObjectsByType<Camera>(FindObjectsSortMode.None);
             foreach (Camera cam in rootCameras)
             {
@@ -114,15 +114,34 @@ namespace MiningSafetyAR.Editor
                 placementManager = originGO.AddComponent<ARPlacementManager>();
             }
 
-            // 5. Ensure AR Default Plane Prefab exists and is assigned
+            // 5. Ensure AR Default Plane Prefab & Material exist and are assigned
             GameObject planePrefab = EnsureARDefaultPlanePrefab();
-            if (planePrefab != null && planeManager.planePrefab == null)
+            if (planePrefab != null)
             {
                 planeManager.planePrefab = planePrefab;
-                Debug.Log("[ARSceneBuilder] Assigned AR Default Plane prefab to ARPlaneManager.");
+                Debug.Log("[ARSceneBuilder] Assigned transparent AR Default Plane prefab to ARPlaneManager.");
             }
 
-            // 6. Ensure Placement Object Prefab exists and is assigned (Stage 10)
+            // 6. Ensure Placement Indicator Reticle exists and is assigned
+            GameObject indicatorGO = GameObject.Find("Placement Indicator");
+            if (indicatorGO == null)
+            {
+                GameObject indicatorPrefab = EnsurePlacementIndicatorPrefab();
+                if (indicatorPrefab != null)
+                {
+                    indicatorGO = (GameObject)PrefabUtility.InstantiatePrefab(indicatorPrefab);
+                    indicatorGO.name = "Placement Indicator";
+                    Undo.RegisterCreatedObjectUndo(indicatorGO, "Create Placement Indicator");
+                }
+            }
+
+            if (indicatorGO != null && placementManager != null)
+            {
+                placementManager.PlacementIndicator = indicatorGO;
+                Debug.Log("[ARSceneBuilder] Assigned Placement Indicator to ARPlacementManager.");
+            }
+
+            // 7. Ensure Placement Equipment Prefab exists and is assigned
             GameObject placementPrefab = EnsureSamplePlacementPrefab();
             if (placementPrefab != null && placementManager.DefaultPlacementPrefab == null)
             {
@@ -130,7 +149,7 @@ namespace MiningSafetyAR.Editor
                 Debug.Log("[ARSceneBuilder] Assigned Sample AR Equipment prefab to ARPlacementManager.");
             }
 
-            // 7. Setup Managers GameObject (LocalScoreManager, LanguageManager, CloudSyncManager)
+            // 8. Setup Managers GameObject
             GameObject managersGO = GameObject.Find("AppManagers");
             if (managersGO == null)
             {
@@ -143,10 +162,10 @@ namespace MiningSafetyAR.Editor
                 Debug.Log("[ARSceneBuilder] Created AppManagers container.");
             }
 
-            // 8. Ensure URP Renderer has AR Background Renderer Feature & AR Command Buffer Support Feature
+            // 9. URP AR Renderer Feature setup
             EnsureARRendererFeatures();
 
-            // 9. Enforce Android Min SDK Level 29 & prioritize OpenGLES3 for fast builds
+            // 10. Configure Build Player Settings for fast compilation & compatibility
             PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel29;
             PlayerSettings.SetGraphicsAPIs(BuildTarget.Android, new UnityEngine.Rendering.GraphicsDeviceType[] {
                 UnityEngine.Rendering.GraphicsDeviceType.OpenGLES3,
@@ -157,7 +176,7 @@ namespace MiningSafetyAR.Editor
             AssetDatabase.Refresh();
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorUtility.DisplayDialog("AR Scene Setup Complete", 
-                "Successfully set up AR Session, XR Origin, AR Raycast Manager, AR Plane Manager (with plane prefab), AR Placement Manager (with 3D object prefab), App Managers, and URP AR Renderer Features!", 
+                "Successfully configured AR Session, XR Origin, AROcclusionManager, AR Plane Manager (with transparent blue plane prefab), Placement Indicator reticle, AR Placement Manager, App Managers, and URP Renderer Features!", 
                 "OK");
         }
 
@@ -211,14 +230,39 @@ namespace MiningSafetyAR.Editor
         {
             string folderPath = "Assets/Prefabs";
             string prefabPath = "Assets/Prefabs/ARDefaultPlane.prefab";
-
-            GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-            if (existingPrefab != null) return existingPrefab;
+            string materialPath = "Assets/Prefabs/ARDefaultPlaneMaterial.mat";
 
             if (!Directory.Exists(folderPath))
             {
                 Directory.CreateDirectory(folderPath);
                 AssetDatabase.Refresh();
+            }
+
+            // Ensure Material Asset exists on disk
+            Material planeMat = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+            if (planeMat == null)
+            {
+                Shader defaultShader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
+                if (defaultShader != null)
+                {
+                    planeMat = new Material(defaultShader);
+                    planeMat.color = new Color(0.2f, 0.8f, 1.0f, 0.35f);
+
+                    // Enable URP Transparency
+                    planeMat.SetFloat("_Surface", 1f); // 1 = Transparent
+                    planeMat.SetFloat("_Blend", 0f);   // 0 = Alpha blend mode
+                    planeMat.SetOverrideTag("RenderType", "Transparent");
+                    planeMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                    planeMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                    planeMat.SetInt("_ZWrite", 0);
+                    planeMat.DisableKeyword("_ALPHATEST_ON");
+                    planeMat.EnableKeyword("_ALPHABLEND_ON");
+                    planeMat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+                    planeMat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+
+                    AssetDatabase.CreateAsset(planeMat, materialPath);
+                    Debug.Log($"[ARSceneBuilder] Created AR Default Plane Material Asset at {materialPath}");
+                }
             }
 
             GameObject tempPlane = new GameObject("AR Default Plane");
@@ -227,25 +271,20 @@ namespace MiningSafetyAR.Editor
             tempPlane.AddComponent<MeshFilter>();
             
             MeshRenderer mr = tempPlane.AddComponent<MeshRenderer>();
-            Shader defaultShader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
-            if (defaultShader != null)
+            if (planeMat != null)
             {
-                Material planeMat = new Material(defaultShader);
-                planeMat.color = new Color(0.2f, 0.8f, 1.0f, 0.35f);
-
-                // Enable URP Transparency
-                planeMat.SetFloat("_Surface", 1f); // 1 = Transparent
-                planeMat.SetFloat("_Blend", 0f);   // 0 = Alpha blend mode
-                planeMat.SetOverrideTag("RenderType", "Transparent");
-                planeMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                planeMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                planeMat.SetInt("_ZWrite", 0);
-                planeMat.DisableKeyword("_ALPHATEST_ON");
-                planeMat.EnableKeyword("_ALPHABLEND_ON");
-                planeMat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-                planeMat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
-
                 mr.sharedMaterial = planeMat;
+            }
+
+            // Ensure LineRenderer boundary outline exists for clear plane boundaries
+            LineRenderer lr = tempPlane.GetComponent<LineRenderer>();
+            if (lr == null)
+            {
+                lr = tempPlane.AddComponent<LineRenderer>();
+                lr.startWidth = 0.02f;
+                lr.endWidth = 0.02f;
+                lr.useWorldSpace = false;
+                if (planeMat != null) lr.sharedMaterial = planeMat;
             }
 
             GameObject savedPrefab = PrefabUtility.SaveAsPrefabAsset(tempPlane, prefabPath);
@@ -255,13 +294,11 @@ namespace MiningSafetyAR.Editor
             return savedPrefab;
         }
 
-        private static GameObject EnsureSamplePlacementPrefab()
+        private static GameObject EnsurePlacementIndicatorPrefab()
         {
             string folderPath = "Assets/Prefabs";
-            string prefabPath = "Assets/Prefabs/SampleAREquipment.prefab";
-
-            GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-            if (existingPrefab != null) return existingPrefab;
+            string prefabPath = "Assets/Prefabs/PlacementIndicator.prefab";
+            string materialPath = "Assets/Prefabs/PlacementIndicatorMaterial.mat";
 
             if (!Directory.Exists(folderPath))
             {
@@ -269,20 +306,89 @@ namespace MiningSafetyAR.Editor
                 AssetDatabase.Refresh();
             }
 
+            Material reticleMat = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+            if (reticleMat == null)
+            {
+                Shader defaultShader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
+                if (defaultShader != null)
+                {
+                    reticleMat = new Material(defaultShader);
+                    reticleMat.color = new Color(0.0f, 1.0f, 0.5f, 0.6f); // Bright Emerald Green Reticle
+
+                    reticleMat.SetFloat("_Surface", 1f);
+                    reticleMat.SetFloat("_Blend", 0f);
+                    reticleMat.SetOverrideTag("RenderType", "Transparent");
+                    reticleMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                    reticleMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                    reticleMat.SetInt("_ZWrite", 0);
+                    reticleMat.DisableKeyword("_ALPHATEST_ON");
+                    reticleMat.EnableKeyword("_ALPHABLEND_ON");
+                    reticleMat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+
+                    AssetDatabase.CreateAsset(reticleMat, materialPath);
+                    Debug.Log($"[ARSceneBuilder] Created Placement Indicator Material Asset at {materialPath}");
+                }
+            }
+
+            GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (existingPrefab != null) return existingPrefab;
+
+            GameObject tempQuad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            tempQuad.name = "Placement Indicator Reticle";
+            tempQuad.transform.rotation = Quaternion.Euler(90f, 0f, 0f); // Lay flat on floor
+            tempQuad.transform.localScale = new Vector3(0.4f, 0.4f, 0.4f);
+
+            MeshRenderer mr = tempQuad.GetComponent<MeshRenderer>();
+            if (mr != null && reticleMat != null)
+            {
+                mr.sharedMaterial = reticleMat;
+            }
+
+            MeshCollider collider = tempQuad.GetComponent<MeshCollider>();
+            if (collider != null) Object.DestroyImmediate(collider);
+
+            GameObject savedPrefab = PrefabUtility.SaveAsPrefabAsset(tempQuad, prefabPath);
+            Object.DestroyImmediate(tempQuad);
+
+            Debug.Log($"[ARSceneBuilder] Auto-created Placement Indicator Reticle prefab at {prefabPath}");
+            return savedPrefab;
+        }
+
+        private static GameObject EnsureSamplePlacementPrefab()
+        {
+            string folderPath = "Assets/Prefabs";
+            string prefabPath = "Assets/Prefabs/SampleAREquipment.prefab";
+            string materialPath = "Assets/Prefabs/SampleAREquipmentMaterial.mat";
+
+            if (!Directory.Exists(folderPath))
+            {
+                Directory.CreateDirectory(folderPath);
+                AssetDatabase.Refresh();
+            }
+
+            Material equipMat = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+            if (equipMat == null)
+            {
+                Shader defaultShader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+                if (defaultShader != null)
+                {
+                    equipMat = new Material(defaultShader);
+                    equipMat.color = new Color(1.0f, 0.4f, 0.0f); // Safety Orange
+                    AssetDatabase.CreateAsset(equipMat, materialPath);
+                }
+            }
+
+            GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (existingPrefab != null) return existingPrefab;
+
             GameObject tempCube = GameObject.CreatePrimitive(PrimitiveType.Cube);
             tempCube.name = "Sample AREquipment";
             tempCube.transform.localScale = new Vector3(0.25f, 0.25f, 0.25f);
 
             MeshRenderer mr = tempCube.GetComponent<MeshRenderer>();
-            if (mr != null)
+            if (mr != null && equipMat != null)
             {
-                Shader defaultShader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-                if (defaultShader != null)
-                {
-                    Material mat = new Material(defaultShader);
-                    mat.color = new Color(1.0f, 0.4f, 0.0f); // Safety Orange
-                    mr.sharedMaterial = mat;
-                }
+                mr.sharedMaterial = equipMat;
             }
 
             GameObject savedPrefab = PrefabUtility.SaveAsPrefabAsset(tempCube, prefabPath);

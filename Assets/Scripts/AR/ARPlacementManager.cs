@@ -25,6 +25,11 @@ namespace MiningSafetyAR.AR
 
         [Header("Placement Visual Indicator")]
         [SerializeField] private GameObject placementIndicator;
+        public GameObject PlacementIndicator
+        {
+            get => placementIndicator;
+            set => placementIndicator = value;
+        }
 
         private ARRaycastManager raycastManager;
         private ARPlaneManager planeManager;
