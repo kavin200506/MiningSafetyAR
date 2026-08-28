@@ -177,11 +177,33 @@ namespace MiningSafetyAR.AR
             else
             {
                 // Fallback primitive 3D object if prefab is not assigned in Inspector
-                Debug.LogWarning($"[WARN] [ARImageTrackingManager] Prefab for marker '{imageName}' was unassigned! Generating fallback 3D visual object.");
-                newObj = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                newObj.name = $"{imageName}_FallbackCylinder";
-                newObj.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+                Debug.LogWarning($"[WARN] [ARImageTrackingManager] Prefab for marker '{imageName}' was unassigned! Generating prominent 3D safety visual object.");
+                
+                PrimitiveType primType = string.Equals(imageName, fireExtinguisherMarkerName, StringComparison.OrdinalIgnoreCase) ? 
+                    PrimitiveType.Cylinder : PrimitiveType.Cube;
+
+                newObj = GameObject.CreatePrimitive(primType);
+                newObj.name = $"{imageName}_3DMarkerVisual";
+                newObj.transform.localScale = new Vector3(0.35f, 0.35f, 0.35f);
                 newObj.transform.SetPositionAndRotation(position, rotation);
+
+                MeshRenderer mr = newObj.GetComponent<MeshRenderer>();
+                if (mr != null)
+                {
+                    Shader defaultShader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
+                    Material mat = defaultShader != null ? new Material(defaultShader) : new Material(Shader.Find("Sprites/Default"));
+
+                    if (string.Equals(imageName, fireExtinguisherMarkerName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        mat.color = new Color(1.0f, 0.15f, 0.15f, 1.0f); // Bright Safety Red
+                    }
+                    else
+                    {
+                        mat.color = new Color(0.0f, 1.0f, 0.4f, 1.0f);  // Bright Emerald Green
+                    }
+
+                    mr.sharedMaterial = mat;
+                }
             }
 
             if (newObj != null)
