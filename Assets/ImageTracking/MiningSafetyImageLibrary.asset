@@ -16,4 +16,24 @@ MonoBehaviour:
   m_GuidHigh: 16228415120446638984
   m_DataStore:
     m_Storage: []
-  m_Images: []
+  m_Images:
+  - m_SerializedGuid:
+      m_GuidLow: 1122334455667788990
+      m_GuidHigh: 9988776655443322110
+    m_SerializedTextureGuid:
+      m_GuidLow: 334688646693544008
+      m_GuidHigh: 3819168352758284153
+    m_Size: {x: 0.2, y: 0.2}
+    m_SpecifySize: 1
+    m_Name: FireExtinguisherMarker
+    m_Texture: {fileID: 2800000, guid: 088660480d8d04a5793f92cb61690035, type: 3}
+  - m_SerializedGuid:
+      m_GuidLow: 2233445566778899001
+      m_GuidHigh: 8877665544332211009
+    m_SerializedTextureGuid:
+      m_GuidLow: 4944748562776469782
+      m_GuidHigh: 15425006355449415417
+    m_Size: {x: 0.2, y: 0.2}
+    m_SpecifySize: 1
+    m_Name: ExitSignMarker
+    m_Texture: {fileID: 2800000, guid: 93ea3116469e449ff986b41a8ea110d6, type: 3}
