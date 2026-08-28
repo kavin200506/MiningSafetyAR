@@ -28,6 +28,7 @@ namespace MiningSafetyAR.AR
 
         private ARRaycastManager raycastManager;
         private ARPlaneManager planeManager;
+        private AROcclusionManager occlusionManager;
         private List<ARRaycastHit> hits = new List<ARRaycastHit>();
 
         private GameObject spawnedObject;
@@ -52,8 +53,9 @@ namespace MiningSafetyAR.AR
 
             raycastManager = GetComponent<ARRaycastManager>();
             planeManager = GetComponent<ARPlaneManager>();
+            occlusionManager = GetComponent<AROcclusionManager>() ?? FindFirstObjectByType<AROcclusionManager>();
 
-            Debug.Log($"[DIAG] Startup check: placementIndicator assigned={placementIndicator != null}, defaultPlacementPrefab assigned={defaultPlacementPrefab != null}");
+            Debug.Log($"[DIAG] Startup check: placementIndicator assigned={placementIndicator != null}, defaultPlacementPrefab assigned={defaultPlacementPrefab != null}, occlusionManager assigned={occlusionManager != null}");
         }
 
         private void OnEnable()
@@ -146,18 +148,57 @@ namespace MiningSafetyAR.AR
 
         public bool PerformPlacementRaycast(Vector2 touchPosition, GameObject prefabToSpawn = null)
         {
-            TrackableType planeTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds;
-            bool hitSuccess = raycastManager.Raycast(touchPosition, hits, planeTypes);
+            bool depthSupported = occlusionManager != null && 
+                                  occlusionManager.enabled && 
+                                  occlusionManager.descriptor != null && 
+                                  occlusionManager.descriptor.environmentDepthImageSupported == Supported.Supported;
+
+            Pose hitPose = default;
+            bool hitSuccess = false;
+
+            // Step A - Depth
+            if (depthSupported)
+            {
+                if (raycastManager.Raycast(touchPosition, hits, TrackableType.Depth) && hits.Count > 0)
+                {
+                    hitPose = hits[0].pose;
+                    hitSuccess = true;
+                    Debug.Log("[ARPlacementManager] Placed via Depth hit-test");
+                }
+            }
+
+            // Step B - Plane
+            if (!hitSuccess)
+            {
+                TrackableType planeTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds;
+                if (raycastManager.Raycast(touchPosition, hits, planeTypes) && hits.Count > 0)
+                {
+                    hitPose = hits[0].pose;
+                    hitSuccess = true;
+                    Debug.Log("[ARPlacementManager] Placed via Plane hit-test");
+                }
+            }
+
+            // Step C - Instant Placement
+            if (!hitSuccess)
+            {
+                ARRaycast instantRaycast = raycastManager.AddRaycast(touchPosition, 2.0f);
+                if (instantRaycast != null)
+                {
+                    hitPose = instantRaycast.pose;
+                    hitSuccess = true;
+                    Debug.Log("[ARPlacementManager] Placed via Instant Placement (estimated distance 2.0m) — pose will refine automatically");
+                }
+            }
 
             Debug.Log($"[DIAG] Raycast at {touchPosition}: hitSuccess={hitSuccess}, hits.Count={hits.Count}");
 
-            if (!hitSuccess || hits.Count == 0)
+            if (!hitSuccess)
             {
-                Debug.LogWarning($"[ARPlacementManager] No plane detected at touch position {touchPosition} — keep scanning the environment.");
+                Debug.LogWarning($"[ARPlacementManager] All hit-test methods failed at touch position {touchPosition}");
                 return false;
             }
 
-            Pose hitPose = hits[0].pose;
             Camera mainCamera = Camera.main ?? FindFirstObjectByType<Camera>();
             float camDist = mainCamera != null ? Vector3.Distance(mainCamera.transform.position, hitPose.position) : -1f;
             Debug.Log($"[DIAG] HitPose position={hitPose.position}, distance from camera={(mainCamera != null ? camDist.ToString("F2") : "N/A")}");
