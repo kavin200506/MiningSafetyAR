@@ -241,7 +241,7 @@ namespace MiningSafetyAR.AR
             {
                 if (spawnedAnchor != null)
                 {
-                    Destroy(spawnedAnchor);
+                    DestroyImmediate(spawnedAnchor);
                 }
                 spawnedObject.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
                 spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
