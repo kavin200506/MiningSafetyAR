@@ -1,0 +1,462 @@
+So, by the end of this video, you would
+have created this cool AR experience
+where you can scan an image to spawn any
+character of your choice and control it
+using a joystick. And the best part, you
+can do this in about 15 minutes. All
+right, then. Let's get started. So, to
+begin with, you need to have Unity
+software downloaded. If you don't have
+it already, you can visit their website
+and download Unity Hub for free. Once
+you have the software installed, you can
+use this platform to manage different
+projects and different versions of Unity
+editor. Now, as you can see here, I have
+already installed the latest version of
+editor that's available for me. If
+you're doing it for the first time, you
+can navigate inside install editor, and
+here download the latest version that's
+available to you, and make sure it has
+the tag LTS which stands for long-term
+support. Now, before installing, it will
+ask you to choose the modules. Make sure
+to select Android build support with
+OpenJDK, Android SDK and NDK tools, and
+along with that, make sure to select
+Windows build support I to CPP, and
+install the editor. All right, once you
+have your editor installed, you can
+navigate inside projects, create a new
+project, make sure to select the right
+editor version, select Universal 3D Core
+Render Pipeline, give your project a
+name, and create the project. All right,
+so once we have the project open, we can
+now import all the packages and
+resources that we'll be using to create
+this AR application. So, for that,
+navigate inside Windows package
+management package manager. Here, select
+Unity registry, look for the AR
+Foundation package, and install it.
+Next, search for the Google AR Core XR
+plugin package, and install this as
+well. Now, if you're building for iOS,
+then there are a different set of
+packages that you will need, and we have
+a dedicated video on that. You can find
+the link for that video at the top.
+Soon, we'll be downloading and importing
+3D assets from Sketchfab, which is of
+.GLTF format. And for us to be able to
+import this into Unity, we need one more
+package. So, inside your package
+manager, click on the plus symbol,
+select add package by name, and here you
+need to type com.unity.cloud.gltfast,
+and click on install. All right, so with
+that, we have all the required
+write
+Now, we can download the assets. And the
+first asset that we need is going to be
+an image. Now since we're going to use
+this image for image detection, we
+cannot download any image of our choice.
+There are some key points that you'll
+have to remember while selecting your
+image. So here are some of the points
+for you to refer to while selecting your
+image. But the key thing to remember
+here is you do not want to have a
+repeating pattern or too many feature
+points like barcodes. So for this video,
+I have chosen this particular image here
+from Pixel Stock. I will leave a link
+for this in the description. And next,
+we need a 3D model that we can spawn
+when the image is detected. And for
+that, I'm using this really cool
+animated Charizard model from Jimmy.
+Once again, you can find the link for
+this in the description below. And the
+final asset that we need is going to be
+the joystick back that we'll be using to
+move the 3D model around. And you can
+download this from Unity's asset store.
+So once you have your assets downloaded,
+you can now import them inside Unity. I
+would highly recommend to maintain
+folder hygiene. So create a new folder
+called as assets. And inside this
+folder, you can import all your assets.
+And now to import the joystick back, we
+can click on open in Unity
+and import this package inside our
+project.
+All right. So with that, we have all the
+resources that we need. Now let's see
+how to set up our project for AR
+development. First, navigate inside
+file, build profiles,
+select Android, and switch the platform.
+Once that's done, navigate inside player
+settings and change the company name.
+Make sure you're on the Android tab,
+scroll down and select Vulkan as the
+graphics API and remove it from the
+list. Then, uncheck multi-thread
+rendering and scroll further down below
+till you find override default package
+name. Make sure to uncheck it and check
+it back again to make sure that the
+package name matches with your company
+name and product name. Then, make sure
+the minimum API level is set to 7.1,
+scripting backend is set to IL2CPP, and
+the target architecture has ARM64
+enabled. So now with these settings,
+you'll be able to run it on your Android
+device. Next, you have to navigate
+inside XR Plugin Management and inside
+the Android tab, make sure to check
+Google AR Core as the plugin provider.
+And with that, we have finished setting
+up our project. Now, we can finally
+start setting up our scene. Now, setting
+this up is fairly simple. You can select
+the main camera and delete it. Then,
+right click on your hierarchy, navigate
+inside XR, and select XR Origin Mobile
+AR. Now, this will add the XR Origin
+game object with the XR Origin
+component. Now, the purpose of XR Origin
+is to transform the objects and
+trackable features to their final
+position, rotation, and scale inside the
+Unity scene. And as a child of the XR
+Origin, you'll find the camera offset
+and the main camera. Now, along with
+this, we need one more component that
+manages the entire life cycle of the AR
+experience, and that is the AR Session.
+So, to add it, you can navigate inside
+XR and add AR Session. Now, to add image
+tracking, you need to select XR Origin,
+click on add components, and add AR
+Tracked Image Manager. Now, this image
+manager has a dependency on XR Origin,
+so make sure to add it on the same game
+object as of XR Origin. Now, this
+component needs a serialized library,
+basically a reference to a single image
+or multiple images. And to create the
+reference image library, we can go
+inside our Assets folder, right click,
+create,
+XR, and select reference image library.
+You can rename this. I'll call it as
+Charizard. Click on add image, and here
+we can drag and drop the image that we
+imported. Now, if you want, you can also
+specify the size, but for now, I'm going
+to let it be at its default value. Next,
+select the XR Origin again, scroll down,
+and now we can refer the serialized
+library that we just created. At this
+point, the tracked image manager will
+look for the detected image, and once
+the image is found, it will instantiate
+the tracked image prefab that is given
+here. But, we're not going to do it this
+way. Instead, we're going to write our
+own script to see when the image is
+detected, and when it is, we're going to
+spawn our 3D model and also control it
+along with the joystick. So, for that,
+let's go back to our Assets folder and
+create a new folder called as Scripts.
+Now, in this folder, we'll create a new
+script, and we'll call it as AR Tracked
+Image Spawner. So, let's open the script
+and I will see you in Visual Studio. So,
+first here we want to declare the
+packages that we'll be using, which is
+Unity Engine XR. AR Foundation. Then we
+can get rid of this default code over
+here. Now, in here we can start by
+declaring all the variables that we'll
+be using. So, the first one we need is a
+Charizard prefab game object, which
+we'll be using to reference the prefab
+that we'll be creating inside Unity
+editor. Then we need one more variable
+to store the instantiated prefab. We
+call it as Charizard. And finally, we
+need one more variable that we can use
+to reference and store the AR Tracked
+Image Manager. All right, so now what we
+want to do is we want to get the AR
+Tracked Image Manager component and
+listen to the events of when the images
+are detected. So, this we can script
+inside the on enable function. First, we
+get the AR Tracked Image Manager
+component. Now, here you'll see that it
+is game object.getcomponent. What this
+means is that the AR Tracked Image
+Spawner script that we have, we have to
+attach it to the same game object as
+that of AR Tracked Image Manager. Now,
+if you attach it to some other game
+object, then it will not work.
+Alternatively, we can set this as
+serialized field and you can refer to it
+as well. Next, we want to listen to the
+events when the trackables have changed
+and call the on image changed function.
+Here, we can write the function for on
+image changed, which takes the parameter
+AR Trackable Changed Event Args and has
+a variable called event args. Now, this
+event arg variable has all the data with
+respect to the image that has been
+detected, whether it is added, removed,
+the name of it, the size of it, etc. So,
+what we want to do inside this function
+is to go through each of the new image
+that has been added and we want to
+instantiate the Charizard prefab. And we
+want to instantiate it at the same
+position where the image is detected.
+And that's about it. Now, you can save
+the script and go back to Unity. So,
+back here in Unity, we can select the XR
+Origin game object and add the script
+that we just wrote. Now, this needs a
+Charizard prefab, so let's set that up.
+By the way, 87% of people watching our
+videos are not subscribed. If you found
+this video to be helpful until now, then
+please hit the subscribe button. It
+takes 1 second, costs you nothing, and
+it helps our channel grow. Thank you.
+Now, back to the video. So, to set up
+this prefab, you can select the model
+and add it to your scene, and reset its
+position to zero. Next, right click on
+it, navigate inside prefab, and unpack
+it completely. Then, we can rename this
+as Charizard prefab. Now, this is not a
+prefab yet. We'll soon convert it into
+one, but before that, as you can see
+here, it already has an animator
+component, but it does not have a
+controller, and we'll have to create
+one. So, for that, once again, inside
+your project folder, navigate inside the
+asset folder where you have created all
+your assets. You can right click,
+navigate inside create, animation, and
+create an animation controller. Then,
+rename it as Charizard controller, and
+open it up. Inside the project window,
+create one more folder called as
+animations. Open the child objects of
+this model, select all the animations
+that are there, copy it, and navigate
+inside the animation folders, and paste
+it in here. Now, the reason for doing
+this is so that we have the flexibility
+to edit the animations if you want to.
+So, now, inside the animator window, we
+can create a new state and call it as
+jump. And for the animation, search for
+20,150 jump 01 start, and drag and drop
+it in here. Then, create one more empty
+state, and call it as hover. And for the
+motion, look for 20,000 default weight
+01, and reference it here. Next, add a
+transition from jump to hover, and then
+finally, let's create one more empty
+state, and call it as fly. And look for
+the animation titled 20,100
+run 01 loop, and reference it here. Once
+again, we can add a transition from
+hover to fly, but we want this to
+transition only when we are pressing the
+joystick and it's moving forward. For
+that, you'll have to select the
+parameters and add a bool type of
+parameter, and let's call this parameter
+as fly para. Then, select the
+transition, remove the has exit time,
+scroll down, and set the condition as
+param fly to true. Now, we want the
+animation to be set back to the hover
+state when we are no longer pressing the
+joystick. So, we'll make one more
+transition which goes from fly to hover.
+Select the transition and remove the has
+exit time and this time we want to set
+the condition as fly param, but set it
+to false. Now, to visualize this, we can
+select Charizard prefab and here we need
+to reference the controller that we just
+created. Then select the window, drag
+and drop it in here and press play. Now,
+here you'll see that it enters into the
+jump state, it will jump from the ground
+and keeps hovering and then we have set
+this to true, it's going to fly away.
+Now, there's one thing that you might
+notice here is that when the animation
+is playing the character is moving
+forward which is not ideal. So, we'll
+have to edit the animation a little bit
+and to do that you need to select the
+20,100 run 01 loop. Select the origin
+position, right click on it and remove
+the property. And now, when you press
+play and test it again, you'll see that
+it's hovering and when we set this to
+true, it's going to just play the fly
+animation. Now, we can use the joystick
+to move it around. Now, the next step is
+to set the right scale for our prefab
+and how I generally do it is by creating
+a 3D cube which is of size one which
+basically indicates it's 1 m tall, high
+and wide. Set its position to zero and
+now we can scale it to 0.1 which is 10
+cm and then we can select the prefab,
+make sure that it scales uniformly and
+then scale it all the way down until it
+kind of matches the similar height of
+the cube. So, once you're satisfied with
+it, you can select the cube and delete
+it. All right, now the next step is to
+add the joystick prefab that we
+downloaded and write a script to control
+our Charizard. So, for that, first we
+need to create a UI canvas. Scroll down
+and set the UI scale mode to scale with
+screen size. Here, we want to set the
+reference resolution to 2160 cross 1080
+which will cover most of the smartphone
+screen sizes today. And then, navigate
+inside assets,
+joystick pack,
+prefabs, select fixed joystick and drag
+and drop it inside the canvas. Now, to
+adjust the position and scale of this,
+what we could do is change the aspect
+ratio from free
+to 16 by 9 landscape. And then, you You
+select the joystick and move it slightly
+up here like this and let's scale it up
+by two times. Perfect. Now we can go
+back inside asset scripts and create a
+new script called as Charizard
+controller. Now open this up and I will
+see you in Visual Studio. All right, so
+first let's get rid of this code over
+here and declare all the variables that
+we'll be using. The first variable is
+going to be speed which is going to
+store how fast the character is going to
+move. Then we need variables to
+reference the fixed joystick, the rigid
+body and the animator component. And
+finally we need one more variable to see
+if Charizard is flying or not. So on
+enable we want to get all the three
+components. Now since the rigid body and
+the animation controller will be
+attached to the same component as
+Charizard controller, we are using
+object.getcomponent whereas the fixed
+joystick is something that we need to
+fetch once the prefab is instantiated
+which is why we'll be using find first
+object by type fixed joystick. Then
+inside the fixed update we want to
+reference the values of the joystick's
+horizontal and vertical axis and based
+on its motion we want to calculate the
+movement vector and add a linear
+velocity to it. Now along with the
+linear velocity we want to rotate the
+character based on the position of the
+joystick and we are able to achieve this
+with the help of this line of code. And
+the final thing that we are trying to
+achieve with this script is to change
+the animation state from however to fly
+when the joystick is moved around. So
+for that we'll be using the animation
+controller and setting the bool fly
+parameter to true when the X value and
+the Y value is not equal to zero and
+when we leave the joystick or we are not
+using the joystick anymore
+that's when the X value and the Y value
+will be equal to zero and then we set
+the fly parameter to false. All right,
+so now we can save the script and go
+back to Unity. Here we can select
+Charizard prefab and add the controller.
+We can set the speed to 0.2 and then
+add the rigid body component and make
+sure to uncheck use gravity. And with
+that we have the Charizard prefab setup
+so we can go back to assets. Here we can
+select the game object and drag and drop
+it in here. Select the prefab from your
+scene, delete it, then select the XR
+origin, scroll down, and here we can
+reference the Charizard prefab. All
+right, we're almost done. Before we can
+build it and test it on our device,
+there's one more setting that we'll have
+to configure, and that is to navigate
+inside assets,
+settings, and here you need to select PC
+renderer, scroll all the way down, click
+on add render features, and add AR
+background render feature. Now do the
+same for mobile render as well.
+And that's about it. Now you can connect
+your Android device to your laptop or
+machine. You need to make sure to enable
+the USB debugging mode. Now if you're
+not sure how to do that, I will leave a
+link for that in the description below.
+So once you have it connected, you can
+navigate inside file, build profiles,
+click on open scene list, and add the
+open scenes. Then go back inside
+Android, click on build and run.
+Here, we want to create a new folder
+called as builds, and in here give your
+file a name, and click on save. Now it's
+going to take some time for this project
+to build, so I'll see you once that's
+done. All right, so the app has been
+successfully built onto my device, and
+now when I scan the image,
+you can see that the Charizard appears,
+and now I can use the joystick and move
+it around.
+Congratulations, you built your first AR
+application right from scratch. So what
+are the next steps? You can play around,
+you can have different buttons for
+different animations like how I've done
+here. Now if you use this video to build
+something cool, make sure to tag us. And
+that's it for this video. Thank you so
+much for watching. Make sure to like and
+subscribe, and I will see you in the
+next one.
