@@ -468,12 +468,6 @@ namespace MiningSafetyAR.Editor
                 Debug.Log("[ARSceneBuilder] Programmatically populated MiningSafetyImageLibrary with valid Texture references, m_SerializedTextureGuid, and 0.2m size.");
             }
 
-                libSO.ApplyModifiedProperties();
-                EditorUtility.SetDirty(library);
-                AssetDatabase.SaveAssets();
-                Debug.Log("[ARSceneBuilder] Programmatically populated MiningSafetyImageLibrary with valid Texture references, GUIDs, and 0.2m size.");
-            }
-
             if (imageManager != null && imageManager.referenceLibrary == null)
             {
                 imageManager.referenceLibrary = library;
