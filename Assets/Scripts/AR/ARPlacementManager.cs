@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
 
 namespace MiningSafetyAR.AR
 {
@@ -45,15 +47,52 @@ namespace MiningSafetyAR.AR
             planeManager = GetComponent<ARPlaneManager>();
         }
 
+        private void OnEnable()
+        {
+            EnhancedTouchSupport.Enable();
+        }
+
+        private void OnDisable()
+        {
+            EnhancedTouchSupport.Disable();
+        }
+
         private void Update()
         {
             UpdatePlacementIndicator();
+            CheckTouchInput();
+        }
 
+        private void CheckTouchInput()
+        {
+            // 1. Check New Input System Enhanced Touch (Mobile Touchscreens)
+            if (UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches.Count > 0)
+            {
+                var touch = UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches[0];
+                if (touch.phase == UnityEngine.InputSystem.TouchPhase.Began)
+                {
+                    Debug.Log($"[ARPlacementManager] Enhanced Touch detected at {touch.screenPosition}");
+                    PerformPlacementRaycast(touch.screenPosition);
+                    return;
+                }
+            }
+
+            // 2. Check New Input System Pointer / Mouse / Tap Press
+            if (Pointer.current != null && Pointer.current.press.wasPressedThisFrame)
+            {
+                Vector2 pointerPos = Pointer.current.position.ReadValue();
+                Debug.Log($"[ARPlacementManager] Pointer press detected at {pointerPos}");
+                PerformPlacementRaycast(pointerPos);
+                return;
+            }
+
+            // 3. Fallback Legacy Input
             if (Input.touchCount > 0)
             {
                 Touch touch = Input.GetTouch(0);
                 if (touch.phase == TouchPhase.Began)
                 {
+                    Debug.Log($"[ARPlacementManager] Legacy Touch detected at {touch.position}");
                     PerformPlacementRaycast(touch.position);
                 }
             }
@@ -78,22 +117,37 @@ namespace MiningSafetyAR.AR
 
         public bool PerformPlacementRaycast(Vector2 touchPosition, GameObject prefabToSpawn = null)
         {
-            if (raycastManager.Raycast(touchPosition, hits, TrackableType.PlaneWithinPolygon))
+            // Perform raycast against detected AR planes (Estimated or Polygon)
+            TrackableType trackableTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds;
+            
+            if (raycastManager.Raycast(touchPosition, hits, trackableTypes))
             {
                 Pose hitPose = hits[0].pose;
                 GameObject targetPrefab = prefabToSpawn != null ? prefabToSpawn : defaultPlacementPrefab;
 
-                if (spawnedObject == null && targetPrefab != null)
+                if (targetPrefab == null)
+                {
+                    Debug.LogWarning("[ARPlacementManager] No defaultPlacementPrefab assigned!");
+                    return false;
+                }
+
+                if (spawnedObject == null)
                 {
                     spawnedObject = Instantiate(targetPrefab, hitPose.position, hitPose.rotation);
+                    Debug.Log($"[ARPlacementManager] Spawned 3D object at {hitPose.position}");
                 }
-                else if (spawnedObject != null)
+                else
                 {
                     spawnedObject.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
+                    Debug.Log($"[ARPlacementManager] Repositioned 3D object to {hitPose.position}");
                 }
 
                 OnObjectPlaced?.Invoke(hitPose.position, hitPose.rotation);
                 return true;
+            }
+            else
+            {
+                Debug.Log($"[ARPlacementManager] Raycast from {touchPosition} did not hit an AR plane.");
             }
             return false;
         }
