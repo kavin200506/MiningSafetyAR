@@ -18,6 +18,8 @@ using MiningSafetyAR.Assessment;
 using MiningSafetyAR.Localization;
 using MiningSafetyAR.Sync;
 
+using UnityEditor.XR.ARSubsystems;
+
 namespace MiningSafetyAR.Editor
 {
     public class ARSceneBuilder : EditorWindow
@@ -375,35 +377,6 @@ namespace MiningSafetyAR.Editor
             }
         }
 
-        private static void SetSerializableGuid(SerializedProperty guidProp, string hexGuid)
-        {
-            if (guidProp == null || string.IsNullOrEmpty(hexGuid)) return;
-
-            if (guidProp.propertyType == SerializedPropertyType.String)
-            {
-                guidProp.stringValue = hexGuid;
-                return;
-            }
-
-            try
-            {
-                System.Guid guid = new System.Guid(hexGuid);
-                byte[] bytes = guid.ToByteArray();
-                ulong low = System.BitConverter.ToUInt64(bytes, 0);
-                ulong high = System.BitConverter.ToUInt64(bytes, 8);
-
-                SerializedProperty lowProp = guidProp.FindPropertyRelative("m_GuidLow");
-                SerializedProperty highProp = guidProp.FindPropertyRelative("m_GuidHigh");
-
-                if (lowProp != null) lowProp.longValue = (long)low;
-                if (highProp != null) highProp.longValue = (long)high;
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogWarning($"[ARSceneBuilder] Failed to set GUID '{hexGuid}': {ex.Message}");
-            }
-        }
-
         private static void EnsureReferenceImageLibrary(ARTrackedImageManager imageManager)
         {
             FixMarkerTextureImporters();
@@ -428,44 +401,36 @@ namespace MiningSafetyAR.Editor
             Texture2D extTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/ImageTracking/FireExtinguisherMarker.jpg") ?? AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/ImageTracking/FireExtinguisherMarker.png");
             Texture2D exitTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/ImageTracking/ExitSignMarker.jpg") ?? AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/ImageTracking/ExitSignMarker.png");
 
-            string extPath = extTex != null ? AssetDatabase.GetAssetPath(extTex) : "";
-            string extGuid = !string.IsNullOrEmpty(extPath) ? AssetDatabase.AssetPathToGUID(extPath) : "";
-
-            string exitPath = exitTex != null ? AssetDatabase.GetAssetPath(exitTex) : "";
-            string exitGuid = !string.IsNullOrEmpty(exitPath) ? AssetDatabase.AssetPathToGUID(exitPath) : "";
-
-            SerializedObject libSO = new SerializedObject(library);
-            SerializedProperty imagesProp = libSO.FindProperty("m_Images");
-            if (imagesProp != null)
+            if (library.count != 2)
             {
-                imagesProp.arraySize = 2;
+                while (library.count > 0)
+                {
+                    library.RemoveAt(0);
+                }
 
-                // Entry 0: FireExtinguisherMarker
-                SerializedProperty elem0 = imagesProp.GetArrayElementAtIndex(0);
-                elem0.FindPropertyRelative("m_Name").stringValue = "FireExtinguisherMarker";
-                elem0.FindPropertyRelative("m_Texture").objectReferenceValue = extTex;
-                elem0.FindPropertyRelative("m_SpecifySize").boolValue = true;
-                elem0.FindPropertyRelative("m_Size").vector2Value = new Vector2(0.2f, 0.2f);
+                if (extTex != null)
+                {
+                    library.Add();
+                    int fireIndex = library.count - 1;
+                    library.SetTexture(fireIndex, extTex, true);
+                    library.SetName(fireIndex, "FireExtinguisherMarker");
+                    library.SetSize(fireIndex, new Vector2(0.2f, 0.2f));
+                    library.SetSpecifySize(fireIndex, true);
+                }
 
-                SetSerializableGuid(elem0.FindPropertyRelative("m_SerializedGuid"), System.Guid.NewGuid().ToString("N"));
-                SetSerializableGuid(elem0.FindPropertyRelative("m_SerializedTextureGuid"), extGuid);
-                SetSerializableGuid(elem0.FindPropertyRelative("m_TextureGUID"), extGuid);
+                if (exitTex != null)
+                {
+                    library.Add();
+                    int exitIndex = library.count - 1;
+                    library.SetTexture(exitIndex, exitTex, true);
+                    library.SetName(exitIndex, "ExitSignMarker");
+                    library.SetSize(exitIndex, new Vector2(0.2f, 0.2f));
+                    library.SetSpecifySize(exitIndex, true);
+                }
 
-                // Entry 1: ExitSignMarker
-                SerializedProperty elem1 = imagesProp.GetArrayElementAtIndex(1);
-                elem1.FindPropertyRelative("m_Name").stringValue = "ExitSignMarker";
-                elem1.FindPropertyRelative("m_Texture").objectReferenceValue = exitTex;
-                elem1.FindPropertyRelative("m_SpecifySize").boolValue = true;
-                elem1.FindPropertyRelative("m_Size").vector2Value = new Vector2(0.2f, 0.2f);
-
-                SetSerializableGuid(elem1.FindPropertyRelative("m_SerializedGuid"), System.Guid.NewGuid().ToString("N"));
-                SetSerializableGuid(elem1.FindPropertyRelative("m_SerializedTextureGuid"), exitGuid);
-                SetSerializableGuid(elem1.FindPropertyRelative("m_TextureGUID"), exitGuid);
-
-                libSO.ApplyModifiedProperties();
                 EditorUtility.SetDirty(library);
                 AssetDatabase.SaveAssets();
-                Debug.Log("[ARSceneBuilder] Programmatically populated MiningSafetyImageLibrary with valid Texture references, m_SerializedTextureGuid, and 0.2m size.");
+                Debug.Log($"[ARSceneBuilder] Rebuilt MiningSafetyImageLibrary using official XRReferenceImageLibraryExtensions API — {library.count} images configured.");
             }
 
             if (imageManager != null && imageManager.referenceLibrary == null)
