@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 378fb4eec0f59ac4c95c0d5b227aa85e, type: 3}
   m_Name: SimulationEnvironmentAssetsManager
-  m_EditorClassIdentifier: Unity.XR.Simulation.Editor::UnityEditor.XR.Simulation.SimulationEnvironmentAssetsManager
+  m_EditorClassIdentifier: 
   m_EnvironmentPrefabPaths:
   - Assets/UnityXRContent/ARFoundation/SimulationEnvironments/Backyard/Backyard_45ftx40ft.prefab
   - Assets/UnityXRContent/ARFoundation/SimulationEnvironments/Backyard/Backyard_55ftx40ft.prefab
