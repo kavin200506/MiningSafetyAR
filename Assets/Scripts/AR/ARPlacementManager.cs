@@ -34,7 +34,12 @@ namespace MiningSafetyAR.AR
         private ARAnchor spawnedAnchor;
         public GameObject SpawnedObject => spawnedObject;
 
+        private float nextPlaneLogTime = 0f;
+
+        public bool HasDetectedPlane => planeManager != null && planeManager.trackables.count > 0;
+
         public event Action<Vector3, Quaternion> OnObjectPlaced;
+        public event Action OnNoPlaneDetected;
 
         private void Awake()
         {
@@ -73,6 +78,12 @@ namespace MiningSafetyAR.AR
                 var touch = UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches[0];
                 if (touch.phase == UnityEngine.InputSystem.TouchPhase.Began)
                 {
+                    if (!HasDetectedPlane)
+                    {
+                        Debug.Log("[ARPlacementManager] Ignoring tap — no plane tracked yet.");
+                        OnNoPlaneDetected?.Invoke();
+                        return;
+                    }
                     Debug.Log($"[ARPlacementManager] Touch detected at {touch.screenPosition}");
                     PerformPlacementRaycast(touch.screenPosition);
                     return;
@@ -83,6 +94,12 @@ namespace MiningSafetyAR.AR
             if (Pointer.current != null && Pointer.current.press.wasPressedThisFrame)
             {
                 Vector2 pointerPos = Pointer.current.position.ReadValue();
+                if (!HasDetectedPlane)
+                {
+                    Debug.Log("[ARPlacementManager] Ignoring tap — no plane tracked yet.");
+                    OnNoPlaneDetected?.Invoke();
+                    return;
+                }
                 Debug.Log($"[ARPlacementManager] Pointer press detected at {pointerPos}");
                 PerformPlacementRaycast(pointerPos);
                 return;
@@ -94,6 +111,12 @@ namespace MiningSafetyAR.AR
                 UnityEngine.Touch legacyTouch = Input.GetTouch(0);
                 if (legacyTouch.phase == UnityEngine.TouchPhase.Began)
                 {
+                    if (!HasDetectedPlane)
+                    {
+                        Debug.Log("[ARPlacementManager] Ignoring tap — no plane tracked yet.");
+                        OnNoPlaneDetected?.Invoke();
+                        return;
+                    }
                     Debug.Log($"[ARPlacementManager] Legacy Touch detected at {legacyTouch.position}");
                     PerformPlacementRaycast(legacyTouch.position);
                 }
@@ -102,6 +125,13 @@ namespace MiningSafetyAR.AR
 
         private void UpdatePlacementIndicator()
         {
+            if (Time.time >= nextPlaneLogTime)
+            {
+                nextPlaneLogTime = Time.time + 1.0f;
+                int trackableCount = planeManager != null ? planeManager.trackables.count : 0;
+                Debug.Log($"[ARPlacementManager] Tracked Planes Count: {trackableCount}");
+            }
+
             if (placementIndicator == null) return;
 
             Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
@@ -122,28 +152,14 @@ namespace MiningSafetyAR.AR
             TrackableType planeTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds;
             bool hitSuccess = raycastManager.Raycast(touchPosition, hits, planeTypes);
 
-            Pose hitPose;
-            if (hitSuccess && hits.Count > 0)
+            if (!hitSuccess || hits.Count == 0)
             {
-                hitPose = hits[0].pose;
-                Debug.Log($"[ARPlacementManager] Raycast hit AR Surface plane at {hitPose.position}");
+                Debug.LogWarning($"[ARPlacementManager] No plane detected at touch position {touchPosition} — keep scanning the environment.");
+                return false;
             }
-            else
-            {
-                // Fallback: Calculate world position in front of camera
-                Camera mainCam = Camera.main ?? FindFirstObjectByType<Camera>();
-                if (mainCam != null)
-                {
-                    Vector3 spawnPos = mainCam.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, 1.5f));
-                    hitPose = new Pose(spawnPos, Quaternion.LookRotation(mainCam.transform.forward, Vector3.up));
-                    Debug.Log($"[ARPlacementManager] Surface scanning in progress — Placing at forward position {spawnPos}");
-                }
-                else
-                {
-                    Debug.LogWarning("[ARPlacementManager] Raycast failed and Camera is null.");
-                    return false;
-                }
-            }
+
+            Pose hitPose = hits[0].pose;
+            Debug.Log($"[ARPlacementManager] Raycast hit AR Surface plane at {hitPose.position}");
 
             GameObject targetPrefab = prefabToSpawn != null ? prefabToSpawn : defaultPlacementPrefab;
 
@@ -155,7 +171,7 @@ namespace MiningSafetyAR.AR
                 }
                 else
                 {
-                    // Fallback 3D Safety Cube with valid URP Material (No Magenta/Pink!)
+                    // Fallback 3D Safety Cube with valid URP Material
                     spawnedObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     spawnedObject.name = "Safety Equipment (Cube)";
                     spawnedObject.transform.localScale = new Vector3(0.25f, 0.25f, 0.25f);
@@ -172,7 +188,6 @@ namespace MiningSafetyAR.AR
                     }
                 }
 
-                // Add ARAnchor to lock object firmly to physical surface space
                 spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
                 Debug.Log($"[ARPlacementManager] Successfully spawned 3D object anchored at {hitPose.position}");
             }
