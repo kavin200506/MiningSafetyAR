@@ -470,6 +470,8 @@ GameObject:
   - component: {fileID: 773190232}
   - component: {fileID: 773190231}
   - component: {fileID: 773190230}
+  - component: {fileID: 773190236}
+  - component: {fileID: 773190235}
   m_Layer: 0
   m_Name: XR Origin
   m_TagString: Untagged
@@ -557,6 +559,40 @@ Transform:
   - {fileID: 1375737369}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &773190235
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 773190229}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43045e8a058f0402884f11ddad38e499, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.AR.ARImageTrackingManager
+  fireExtinguisherPrefab: {fileID: 0}
+  exitSignPrefab: {fileID: 0}
+  fireExtinguisherMarkerName: FireExtinguisherMarker
+  exitSignMarkerName: ExitSignMarker
+--- !u!114 &773190236
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 773190229}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4dea56a9eaadd1c439095de4f9a371cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.XR.ARFoundation::UnityEngine.XR.ARFoundation.ARTrackedImageManager
+  <trackablesChanged>k__BackingField:
+    m_PersistentCalls:
+      m_Calls: []
+  m_SerializedLibrary: {fileID: 11400000, guid: c139c4b8f0cb74d7da38801afc3738ca, type: 2}
+  m_MaxNumberOfMovingImages: 0
+  m_TrackedImagePrefab: {fileID: 0}
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
