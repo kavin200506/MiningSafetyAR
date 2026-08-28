@@ -135,6 +135,9 @@ namespace MiningSafetyAR.Editor
             // 8. Ensure URP Renderer has AR Background Renderer Feature
             EnsureARBackgroundRendererFeature();
 
+            // 9. Enforce Android Min SDK Level 29 for ARCore Vulkan requirements
+            PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel29;
+
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
