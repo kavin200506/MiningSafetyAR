@@ -35,3 +35,15 @@
 .DS_Store?
 ehthumbs.db
 Thumbs.db
+
+# Log files
+device_logs.txt
+device_logs.txt.tmp
+MiningSafetyAR_AllCodeSummary.txt
+
+# XR Temp
+Assets/XR/Temp/
+.utmp/
+*.apk
+*_BackUpThisFolder_ButDontShipItWithYourGame/
+*_BurstDebugInformation_DoNotShip/
