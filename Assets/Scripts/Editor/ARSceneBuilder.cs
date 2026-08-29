@@ -676,6 +676,20 @@ namespace MiningSafetyAR.Editor
                 AssetDatabase.Refresh();
             }
 
+            GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (existingPrefab != null) return existingPrefab;
+
+            GameObject gltfModel = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Models/FireExtinguisher/FireExtinguisher.gltf") ??
+                                   AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Models/FireExtinguisher/Untitled.gltf") ??
+                                   AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/FireExtinguisher/FireExtinguisher.gltf");
+
+            if (gltfModel != null)
+            {
+                GameObject savedPrefab = PrefabUtility.SaveAsPrefabAsset(gltfModel, prefabPath);
+                Debug.Log($"[ARSceneBuilder] Created FireExtinguisherModel prefab from GLTF model at {prefabPath}");
+                return savedPrefab;
+            }
+
             Material mat = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
             if (mat == null)
             {
@@ -688,9 +702,6 @@ namespace MiningSafetyAR.Editor
                 }
             }
 
-            GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-            if (existingPrefab != null) return existingPrefab;
-
             GameObject tempCylinder = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             tempCylinder.name = "Fire Extinguisher 3D";
             tempCylinder.transform.localScale = new Vector3(0.35f, 0.35f, 0.35f);
@@ -701,11 +712,11 @@ namespace MiningSafetyAR.Editor
                 mr.sharedMaterial = mat;
             }
 
-            GameObject savedPrefab = PrefabUtility.SaveAsPrefabAsset(tempCylinder, prefabPath);
+            GameObject primitiveSavedPrefab = PrefabUtility.SaveAsPrefabAsset(tempCylinder, prefabPath);
             Object.DestroyImmediate(tempCylinder);
 
             Debug.Log($"[ARSceneBuilder] Auto-created FireExtinguisherModel prefab at {prefabPath}");
-            return savedPrefab;
+            return primitiveSavedPrefab;
         }
 
         private static GameObject EnsureExitSignPrefab()
