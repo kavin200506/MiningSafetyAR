@@ -860,9 +860,9 @@ namespace MiningSafetyAR.Editor
                     bool modified = false;
                     foreach (var psr in renderers)
                     {
-                        if (psr != null && psr.renderAlignment != ParticleSystemRenderSpace.View)
+                        if (psr != null && psr.alignment != ParticleSystemRenderSpace.View)
                         {
-                            psr.renderAlignment = ParticleSystemRenderSpace.View; // Billboard View Alignment
+                            psr.alignment = ParticleSystemRenderSpace.View; // Billboard View Alignment
                             EditorUtility.SetDirty(psr);
                             updatedParticleRenderersCount++;
                             modified = true;
