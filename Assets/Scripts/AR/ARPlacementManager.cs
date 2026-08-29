@@ -6,6 +6,7 @@ using UnityEngine.XR.ARSubsystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.EnhancedTouch;
 using UnityEngine.Rendering;
+using MiningSafetyAR.Modules;
 
 namespace MiningSafetyAR.AR
 {
@@ -347,6 +348,17 @@ namespace MiningSafetyAR.AR
 
                     spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
                     Debug.Log($"[INFO] [ARPlacementManager] Successfully spawned and anchored 3D object via {hitTypeString} at {hitPose.position}");
+
+                    GroundFireController fireController = spawnedObject.GetComponent<GroundFireController>() ?? spawnedObject.GetComponentInChildren<GroundFireController>();
+                    if (fireController != null)
+                    {
+                        fireController.IgniteFire();
+                        Debug.Log($"[FIRE_DIAG] [ARPlacementManager] Triggered IgniteFire on newly spawned object '{spawnedObject.name}'");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[FIRE_DIAG] [ARPlacementManager] Spawned object '{spawnedObject.name}' does NOT have GroundFireController attached!");
+                    }
                 }
                 else
                 {
@@ -357,10 +369,17 @@ namespace MiningSafetyAR.AR
                     spawnedObject.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
                     spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
                     Debug.Log($"[INFO] [ARPlacementManager] Repositioned and re-anchored 3D object via {hitTypeString} to {hitPose.position}");
+
+                    GroundFireController fireController = spawnedObject.GetComponent<GroundFireController>() ?? spawnedObject.GetComponentInChildren<GroundFireController>();
+                    if (fireController != null)
+                    {
+                        fireController.IgniteFire();
+                        Debug.Log($"[FIRE_DIAG] [ARPlacementManager] Triggered IgniteFire on repositioned object '{spawnedObject.name}'");
+                    }
                 }
 
                 Renderer spawnedRenderer = spawnedObject != null ? spawnedObject.GetComponent<Renderer>() : null;
-                Debug.Log($"[DIAG] [ARPlacementManager] Object state: Name={(spawnedObject != null ? spawnedObject.name : "NULL")}, ActiveInHierarchy={spawnedObject?.activeInHierarchy}, RendererEnabled={(spawnedRenderer != null ? spawnedRenderer.enabled.ToString() : "N/A")}");
+                Debug.Log($"[FIRE_DIAG] [ARPlacementManager] Object state: Name={(spawnedObject != null ? spawnedObject.name : "NULL")}, ActiveInHierarchy={spawnedObject?.activeInHierarchy}, Pos={spawnedObject?.transform.position}, CamDist={camDist:F2}m");
 
                 OnObjectPlaced?.Invoke(hitPose.position, hitPose.rotation);
                 return true;
