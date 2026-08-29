@@ -1,0 +1,77 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Styles/Theme.uss" />
+    <Style src="project://database/Assets/UI/Styles/Reset.uss" />
+    <Style src="project://database/Assets/UI/Styles/Components.uss" />
+    <Style src="project://database/Assets/UI/Styles/Header.uss" />
+    <Style src="project://database/Assets/UI/Styles/BottomNav.uss" />
+    <Style src="project://database/Assets/UI/Styles/Tables.uss" />
+    <ui:VisualElement class="page-container">
+        <ui:VisualElement class="header">
+            <ui:VisualElement class="header__back-btn" />
+            <ui:Label class="header__title" text="Progress" />
+            <ui:VisualElement class="header__right-action" />
+        </ui:VisualElement>
+        <ui:ScrollView class="scroll-area">
+            <ui:VisualElement class="card-accent" name="overview-card" style="align-items: center; padding: 16px;">
+                <ui:Label name="overall-progress" text="68%" style="font-size: 32px; font-weight: 800; color: #FF6D00;" />
+                <ui:VisualElement class="progress-track" name="overview-track" style="height: 6px; background-color: #FFE0B2; border-radius: 3px; width: 100%; margin: 8px 0;">
+                    <ui:VisualElement class="progress-fill" style="height: 100%; background-color: #FF6D00; width: 68%;" />
+                </ui:VisualElement>
+                <ui:VisualElement style="flex-direction: row; justify-content: space-around; width: 100%; margin-top: 8px;">
+                    <ui:VisualElement style="align-items: center;">
+                        <ui:Label name="completed-count" text="2" style="font-size: 16px; font-weight: 700; color: #1A1A1A;" />
+                        <ui:Label text="Completed" style="font-size: 10px; color: #666666;" />
+                    </ui:VisualElement>
+                    <ui:VisualElement style="align-items: center;">
+                        <ui:Label name="total-attempts" text="7" style="font-size: 16px; font-weight: 700; color: #1A1A1A;" />
+                        <ui:Label text="Total Attempts" style="font-size: 10px; color: #666666;" />
+                    </ui:VisualElement>
+                    <ui:VisualElement style="align-items: center;">
+                        <ui:Label name="cert-count" text="2" style="font-size: 16px; font-weight: 700; color: #1A1A1A;" />
+                        <ui:Label text="Certificates" style="font-size: 10px; color: #666666;" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement style="margin-top: 20px;">
+                <ui:Label text="Competency Scores" style="font-size: 14px; font-weight: 600; color: #1A1A1A; margin-bottom: 8px;" />
+                <ui:VisualElement name="competency-bars" />
+            </ui:VisualElement>
+            <ui:VisualElement style="margin-top: 20px;">
+                <ui:Label text="Module Progress" style="font-size: 14px; font-weight: 600; color: #1A1A1A; margin-bottom: 8px;" />
+                <ui:VisualElement name="module-rows" />
+            </ui:VisualElement>
+            <ui:VisualElement style="margin-top: 20px;">
+                <ui:Label text="Attempt History" style="font-size: 14px; font-weight: 600; color: #1A1A1A; margin-bottom: 8px;" />
+                <ui:VisualElement class="table" name="history-table">
+                    <ui:VisualElement class="table-header">
+                        <ui:Label text="#" style="width: 30px; font-size: 11px; color: #999999;" />
+                        <ui:Label text="Module" style="flex: 1; font-size: 11px; color: #999999;" />
+                        <ui:Label text="Date" style="width: 70px; font-size: 11px; color: #999999;" />
+                        <ui:Label text="Score" style="width: 50px; font-size: 11px; color: #999999;" />
+                        <ui:Label text="Status" style="width: 50px; font-size: 11px; color: #999999;" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="history-body" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement style="height: 80px;" />
+        </ui:ScrollView>
+        <ui:VisualElement name="bottom-nav" class="bottom-nav">
+            <ui:Button name="tab-home" class="bottom-nav__tab">
+                <ui:Label text="&#x2302;" style="font-size: 18px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Home" />
+            </ui:Button>
+            <ui:Button name="tab-training" class="bottom-nav__tab">
+                <ui:Label text="&#x1F4DA;" style="font-size: 18px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Training" />
+            </ui:Button>
+            <ui:Button name="tab-progress" class="bottom-nav__tab bottom-nav__tab--active">
+                <ui:Label text="&#x1F4CA;" style="font-size: 18px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Progress" />
+            </ui:Button>
+            <ui:Button name="tab-settings" class="bottom-nav__tab">
+                <ui:Label text="&#x2699;" style="font-size: 18px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Settings" />
+            </ui:Button>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

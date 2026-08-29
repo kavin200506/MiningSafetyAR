@@ -1,0 +1,57 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Styles/Theme.uss" />
+    <Style src="project://database/Assets/UI/Styles/Reset.uss" />
+    <Style src="project://database/Assets/UI/Styles/Components.uss" />
+    <Style src="project://database/Assets/UI/Styles/Header.uss" />
+    <Style src="project://database/Assets/UI/Styles/Forms.uss" />
+    <Style src="project://database/Assets/UI/Styles/BottomNav.uss" />
+    <ui:VisualElement class="page-container">
+        <ui:VisualElement class="header">
+            <ui:Button class="header__back-btn" name="back-btn" text="&#x2190;" />
+            <ui:Label class="header__title" text="Verify Certificate" />
+            <ui:VisualElement class="header__right-action" />
+        </ui:VisualElement>
+        <ui:ScrollView class="scroll-area">
+            <ui:VisualElement class="card" name="search-card" style="align-items: center; padding: 16px;">
+                <ui:Label text="&#x1F50D;" style="font-size: 28px; text-align: center;" />
+                <ui:Label text="Certificate Verification" style="font-size: 16px; font-weight: 700; color: #1A1A1A; text-align: center; margin-top: 12px;" />
+                <ui:Label text="Enter your certificate ID to verify" style="font-size: 13px; color: #999999; text-align: center; margin-top: 4px;" />
+                <ui:TextField class="input-field" name="cert-input" style="width: 100%; margin-top: 16px;" />
+                <ui:Button class="btn-primary" name="verify-btn" text="VERIFY" style="width: 100%; margin-top: 12px;" />
+                <ui:VisualElement name="quick-fill" style="flex-direction: row; margin-top: 12px; width: 100%; justify-content: space-between;">
+                    <ui:Button class="quick-fill-btn" name="qf-1" text="JH-FIRE-001928" style="flex: 1; height: 32px; background-color: #FFF3E0; border-color: #FFCC80; border-width: 1px; border-radius: 6px; font-size: 10px; color: #FF6D00; margin-right: 6px;" />
+                    <ui:Button class="quick-fill-btn" name="qf-2" text="JH-GAS-002156" style="flex: 1; height: 32px; background-color: #FFF3E0; border-color: #FFCC80; border-width: 1px; border-radius: 6px; font-size: 10px; color: #FF6D00; margin-right: 6px;" />
+                    <ui:Button class="quick-fill-btn" name="qf-3" text="INVALID-000" style="flex: 1; height: 32px; background-color: #F5F5F5; border-color: #E0E0E0; border-width: 1px; border-radius: 6px; font-size: 10px; color: #999999;" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="card" name="loading-card" style="display: none; margin-top: 16px; align-items: center; padding: 16px;">
+                <ui:VisualElement style="width: 24px; height: 24px; border-color: #FF6D00; border-width: 2px; border-radius: 12px; border-top-color: rgba(0,0,0,0);" />
+                <ui:Label text="Checking certificate..." style="margin-top: 12px; color: #999999; font-size: 12px;" />
+            </ui:VisualElement>
+            <ui:VisualElement class="card" name="result-card" style="display: none; margin-top: 16px; padding: 16px;">
+                <ui:Label class="badge" name="verify-badge" text="" style="align-self: center;" />
+                <ui:VisualElement name="verify-details" style="margin-top: 12px;" />
+                <ui:Button class="btn-primary" name="view-cert-btn" text="VIEW CERTIFICATE" style="display: none; margin-top: 16px;" />
+            </ui:VisualElement>
+            <ui:VisualElement style="height: 80px;" />
+        </ui:ScrollView>
+        <ui:VisualElement name="bottom-nav" class="bottom-nav">
+            <ui:Button name="tab-home" class="bottom-nav__tab">
+                <ui:Label text="&#x2302;" style="font-size: 18px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Home" />
+            </ui:Button>
+            <ui:Button name="tab-training" class="bottom-nav__tab">
+                <ui:Label text="&#x1F4DA;" style="font-size: 18px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Training" />
+            </ui:Button>
+            <ui:Button name="tab-progress" class="bottom-nav__tab">
+                <ui:Label text="&#x1F4CA;" style="font-size: 18px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Progress" />
+            </ui:Button>
+            <ui:Button name="tab-settings" class="bottom-nav__tab">
+                <ui:Label text="&#x2699;" style="font-size: 18px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Settings" />
+            </ui:Button>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

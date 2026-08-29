@@ -1,0 +1,7 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="header" class="header">
+        <ui:Button name="back-button" class="header__back-btn" text="←" />
+        <ui:Label name="title" class="header__title" text="" />
+        <ui:VisualElement name="right-action" class="header__right-action" />
+    </ui:VisualElement>
+</ui:UXML>
