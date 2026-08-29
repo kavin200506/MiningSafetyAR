@@ -676,19 +676,20 @@ namespace MiningSafetyAR.Editor
                 AssetDatabase.Refresh();
             }
 
-            GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-            if (existingPrefab != null) return existingPrefab;
-
             GameObject gltfModel = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Models/FireExtinguisher/FireExtinguisher.gltf") ??
                                    AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Models/FireExtinguisher/Untitled.gltf") ??
-                                   AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/FireExtinguisher/FireExtinguisher.gltf");
+                                   AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/FireExtinguisher/FireExtinguisher.gltf") ??
+                                   AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/FireExtinguisher/Untitled.gltf");
 
             if (gltfModel != null)
             {
                 GameObject savedPrefab = PrefabUtility.SaveAsPrefabAsset(gltfModel, prefabPath);
-                Debug.Log($"[ARSceneBuilder] Created FireExtinguisherModel prefab from GLTF model at {prefabPath}");
+                Debug.Log($"[ARSceneBuilder] Assigned GLTF 3D model to FireExtinguisherModel prefab at {prefabPath}");
                 return savedPrefab;
             }
+
+            GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (existingPrefab != null) return existingPrefab;
 
             Material mat = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
             if (mat == null)
