@@ -489,9 +489,9 @@ Shader "SH_Vefects_VFX_URP_Fire_Flames_01"
 				float2 panner47 = ( windSpeed22 * _Noise_01_Speed + ( texCoord36 * _Noise_01_Scale ));
 				float2 texCoord34 = IN.ase_texcoord4.xy * float2( 1,1 ) + float2( 0,0 );
 				float2 panner45 = ( windSpeed22 * _Noise_02_Speed + ( texCoord34 * _Noise_02_Scale ));
-				float noises71 = saturate( ( pow( abs( ( tex2D( _Noise_01_Texture ) , ( panner47 + Distortion43 ) ).r * tex2D( _Noise_02_Texture, ( panner45 + Distortion43 ) ).r ) , _Noises_Power ) * _Noises_Multiply ) );
+				float noises71 = saturate( ( pow( max(0.0001, ( tex2D( _Noise_01_Texture, ( panner47 + Distortion43 ) ).r * tex2D( _Noise_02_Texture, ( panner45 + Distortion43 ) ).r )) , _Noises_Power ) * _Noises_Multiply ) );
 				float2 texCoord78 = IN.ase_texcoord4.xy * float2( 1,1 ) + float2( 0,0.4 );
-				float temp_output_95_0 = ( saturate( ( pow( abs( tex2D( _Mask_Texture ) , ( ( tex2D( _DistortionMaskTexture, texCoord54 ).r * ( Distortion43 * _DistortionMaskIntensity ) ) + texCoord68 ) ).r , _Mask_Power ) * _Mask_Multiply ) ) - ( ( noises71 * _NoisesOpacityBoost ) * tex2D( _TextureSample2, texCoord78 ).r ) );
+				float temp_output_95_0 = ( saturate( ( pow( max(0.0001, tex2D( _Mask_Texture, ( ( tex2D( _DistortionMaskTexture, texCoord54 ).r * ( Distortion43 * _DistortionMaskIntensity ) ) + texCoord68 ) ).r) , _Mask_Power ) * _Mask_Multiply ) ) - ( ( noises71 * _NoisesOpacityBoost ) * tex2D( _TextureSample2, texCoord78 ).r ) );
 				
 				float4 ase_screenPosNorm = ScreenPos / ScreenPos.w;
 				ase_screenPosNorm.z = ( UNITY_NEAR_CLIP_VALUE >= 0 ) ? ase_screenPosNorm.z : ase_screenPosNorm.z * 0.5 + 0.5;
@@ -797,9 +797,9 @@ Shader "SH_Vefects_VFX_URP_Fire_Flames_01"
 				float2 panner47 = ( windSpeed22 * _Noise_01_Speed + ( texCoord36 * _Noise_01_Scale ));
 				float2 texCoord34 = IN.ase_texcoord3.xy * float2( 1,1 ) + float2( 0,0 );
 				float2 panner45 = ( windSpeed22 * _Noise_02_Speed + ( texCoord34 * _Noise_02_Scale ));
-				float noises71 = saturate( ( pow( abs( ( tex2D( _Noise_01_Texture ) , ( panner47 + Distortion43 ) ).r * tex2D( _Noise_02_Texture, ( panner45 + Distortion43 ) ).r ) , _Noises_Power ) * _Noises_Multiply ) );
+				float noises71 = saturate( ( pow( max(0.0001, ( tex2D( _Noise_01_Texture, ( panner47 + Distortion43 ) ).r * tex2D( _Noise_02_Texture, ( panner45 + Distortion43 ) ).r )) , _Noises_Power ) * _Noises_Multiply ) );
 				float2 texCoord78 = IN.ase_texcoord3.xy * float2( 1,1 ) + float2( 0,0.4 );
-				float temp_output_95_0 = ( saturate( ( pow( abs( tex2D( _Mask_Texture ) , ( ( tex2D( _DistortionMaskTexture, texCoord54 ).r * ( Distortion43 * _DistortionMaskIntensity ) ) + texCoord68 ) ).r , _Mask_Power ) * _Mask_Multiply ) ) - ( ( noises71 * _NoisesOpacityBoost ) * tex2D( _TextureSample2, texCoord78 ).r ) );
+				float temp_output_95_0 = ( saturate( ( pow( max(0.0001, tex2D( _Mask_Texture, ( ( tex2D( _DistortionMaskTexture, texCoord54 ).r * ( Distortion43 * _DistortionMaskIntensity ) ) + texCoord68 ) ).r) , _Mask_Power ) * _Mask_Multiply ) ) - ( ( noises71 * _NoisesOpacityBoost ) * tex2D( _TextureSample2, texCoord78 ).r ) );
 				float4 ase_screenPosNorm = ScreenPos / ScreenPos.w;
 				ase_screenPosNorm.z = ( UNITY_NEAR_CLIP_VALUE >= 0 ) ? ase_screenPosNorm.z : ase_screenPosNorm.z * 0.5 + 0.5;
 				float screenDepth93 = LinearEyeDepth(SHADERGRAPH_SAMPLE_SCENE_DEPTH( ase_screenPosNorm.xy ),_ZBufferParams);
@@ -1071,9 +1071,9 @@ Shader "SH_Vefects_VFX_URP_Fire_Flames_01"
 				float2 panner47 = ( windSpeed22 * _Noise_01_Speed + ( texCoord36 * _Noise_01_Scale ));
 				float2 texCoord34 = IN.ase_texcoord.xy * float2( 1,1 ) + float2( 0,0 );
 				float2 panner45 = ( windSpeed22 * _Noise_02_Speed + ( texCoord34 * _Noise_02_Scale ));
-				float noises71 = saturate( ( pow( abs( ( tex2D( _Noise_01_Texture ) , ( panner47 + Distortion43 ) ).r * tex2D( _Noise_02_Texture, ( panner45 + Distortion43 ) ).r ) , _Noises_Power ) * _Noises_Multiply ) );
+				float noises71 = saturate( ( pow( max(0.0001, ( tex2D( _Noise_01_Texture, ( panner47 + Distortion43 ) ).r * tex2D( _Noise_02_Texture, ( panner45 + Distortion43 ) ).r )) , _Noises_Power ) * _Noises_Multiply ) );
 				float2 texCoord78 = IN.ase_texcoord.xy * float2( 1,1 ) + float2( 0,0.4 );
-				float temp_output_95_0 = ( saturate( ( pow( abs( tex2D( _Mask_Texture ) , ( ( tex2D( _DistortionMaskTexture, texCoord54 ).r * ( Distortion43 * _DistortionMaskIntensity ) ) + texCoord68 ) ).r , _Mask_Power ) * _Mask_Multiply ) ) - ( ( noises71 * _NoisesOpacityBoost ) * tex2D( _TextureSample2, texCoord78 ).r ) );
+				float temp_output_95_0 = ( saturate( ( pow( max(0.0001, tex2D( _Mask_Texture, ( ( tex2D( _DistortionMaskTexture, texCoord54 ).r * ( Distortion43 * _DistortionMaskIntensity ) ) + texCoord68 ) ).r) , _Mask_Power ) * _Mask_Multiply ) ) - ( ( noises71 * _NoisesOpacityBoost ) * tex2D( _TextureSample2, texCoord78 ).r ) );
 				float4 screenPos = IN.ase_texcoord1;
 				float4 ase_screenPosNorm = screenPos / screenPos.w;
 				ase_screenPosNorm.z = ( UNITY_NEAR_CLIP_VALUE >= 0 ) ? ase_screenPosNorm.z : ase_screenPosNorm.z * 0.5 + 0.5;
@@ -1349,9 +1349,9 @@ Shader "SH_Vefects_VFX_URP_Fire_Flames_01"
 				float2 panner47 = ( windSpeed22 * _Noise_01_Speed + ( texCoord36 * _Noise_01_Scale ));
 				float2 texCoord34 = IN.ase_texcoord.xy * float2( 1,1 ) + float2( 0,0 );
 				float2 panner45 = ( windSpeed22 * _Noise_02_Speed + ( texCoord34 * _Noise_02_Scale ));
-				float noises71 = saturate( ( pow( abs( ( tex2D( _Noise_01_Texture ) , ( panner47 + Distortion43 ) ).r * tex2D( _Noise_02_Texture, ( panner45 + Distortion43 ) ).r ) , _Noises_Power ) * _Noises_Multiply ) );
+				float noises71 = saturate( ( pow( max(0.0001, ( tex2D( _Noise_01_Texture, ( panner47 + Distortion43 ) ).r * tex2D( _Noise_02_Texture, ( panner45 + Distortion43 ) ).r )) , _Noises_Power ) * _Noises_Multiply ) );
 				float2 texCoord78 = IN.ase_texcoord.xy * float2( 1,1 ) + float2( 0,0.4 );
-				float temp_output_95_0 = ( saturate( ( pow( abs( tex2D( _Mask_Texture ) , ( ( tex2D( _DistortionMaskTexture, texCoord54 ).r * ( Distortion43 * _DistortionMaskIntensity ) ) + texCoord68 ) ).r , _Mask_Power ) * _Mask_Multiply ) ) - ( ( noises71 * _NoisesOpacityBoost ) * tex2D( _TextureSample2, texCoord78 ).r ) );
+				float temp_output_95_0 = ( saturate( ( pow( max(0.0001, tex2D( _Mask_Texture, ( ( tex2D( _DistortionMaskTexture, texCoord54 ).r * ( Distortion43 * _DistortionMaskIntensity ) ) + texCoord68 ) ).r) , _Mask_Power ) * _Mask_Multiply ) ) - ( ( noises71 * _NoisesOpacityBoost ) * tex2D( _TextureSample2, texCoord78 ).r ) );
 				float4 screenPos = IN.ase_texcoord1;
 				float4 ase_screenPosNorm = screenPos / screenPos.w;
 				ase_screenPosNorm.z = ( UNITY_NEAR_CLIP_VALUE >= 0 ) ? ase_screenPosNorm.z : ase_screenPosNorm.z * 0.5 + 0.5;
@@ -1640,9 +1640,9 @@ Shader "SH_Vefects_VFX_URP_Fire_Flames_01"
 				float2 panner47 = ( windSpeed22 * _Noise_01_Speed + ( texCoord36 * _Noise_01_Scale ));
 				float2 texCoord34 = IN.ase_texcoord2.xy * float2( 1,1 ) + float2( 0,0 );
 				float2 panner45 = ( windSpeed22 * _Noise_02_Speed + ( texCoord34 * _Noise_02_Scale ));
-				float noises71 = saturate( ( pow( abs( ( tex2D( _Noise_01_Texture ) , ( panner47 + Distortion43 ) ).r * tex2D( _Noise_02_Texture, ( panner45 + Distortion43 ) ).r ) , _Noises_Power ) * _Noises_Multiply ) );
+				float noises71 = saturate( ( pow( max(0.0001, ( tex2D( _Noise_01_Texture, ( panner47 + Distortion43 ) ).r * tex2D( _Noise_02_Texture, ( panner45 + Distortion43 ) ).r )) , _Noises_Power ) * _Noises_Multiply ) );
 				float2 texCoord78 = IN.ase_texcoord2.xy * float2( 1,1 ) + float2( 0,0.4 );
-				float temp_output_95_0 = ( saturate( ( pow( abs( tex2D( _Mask_Texture ) , ( ( tex2D( _DistortionMaskTexture, texCoord54 ).r * ( Distortion43 * _DistortionMaskIntensity ) ) + texCoord68 ) ).r , _Mask_Power ) * _Mask_Multiply ) ) - ( ( noises71 * _NoisesOpacityBoost ) * tex2D( _TextureSample2, texCoord78 ).r ) );
+				float temp_output_95_0 = ( saturate( ( pow( max(0.0001, tex2D( _Mask_Texture, ( ( tex2D( _DistortionMaskTexture, texCoord54 ).r * ( Distortion43 * _DistortionMaskIntensity ) ) + texCoord68 ) ).r) , _Mask_Power ) * _Mask_Multiply ) ) - ( ( noises71 * _NoisesOpacityBoost ) * tex2D( _TextureSample2, texCoord78 ).r ) );
 				float4 ase_screenPosNorm = ScreenPos / ScreenPos.w;
 				ase_screenPosNorm.z = ( UNITY_NEAR_CLIP_VALUE >= 0 ) ? ase_screenPosNorm.z : ase_screenPosNorm.z * 0.5 + 0.5;
 				float screenDepth93 = LinearEyeDepth(SHADERGRAPH_SAMPLE_SCENE_DEPTH( ase_screenPosNorm.xy ),_ZBufferParams);
