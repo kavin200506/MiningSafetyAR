@@ -8,7 +8,7 @@ namespace MiningSafetyAR.UI.Helpers
         public static void SetProgress(VisualElement track, float value, string color = null)
         {
             if (track == null) return;
-            var fill = track.Q("progress-fill");
+            var fill = track.Q("progress-fill") ?? track.Q(className: "progress-fill") ?? (track.childCount > 0 ? track[0] : null);
             if (fill == null) return;
             float clamped = Mathf.Clamp(value, 0f, 100f);
             fill.style.width = Length.Percent(clamped);
@@ -23,7 +23,7 @@ namespace MiningSafetyAR.UI.Helpers
         public static void SetProgressImmediate(VisualElement track, float value)
         {
             if (track == null) return;
-            var fill = track.Q("progress-fill");
+            var fill = track.Q("progress-fill") ?? track.Q(className: "progress-fill") ?? (track.childCount > 0 ? track[0] : null);
             if (fill == null) return;
             float clamped = Mathf.Clamp(value, 0f, 100f);
             fill.style.width = Length.Percent(clamped);
