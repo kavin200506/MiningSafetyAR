@@ -805,6 +805,83 @@ namespace MiningSafetyAR.Editor
             Debug.Log($"[ARSceneBuilder] {msg}");
             EditorUtility.DisplayDialog("Mining Safety AR — Prefab Assigned", msg, "OK");
         }
+
+        [MenuItem("Mining Safety AR/Optimize Vefects Fire VFX for Mobile (ASTC & View Alignment)")]
+        public static void OptimizeVefectsFireVFXForMobile()
+        {
+            int updatedTexturesCount = 0;
+            int updatedParticleRenderersCount = 0;
+
+            // 1. Optimize Texture Importers under Assets/Vefects
+            string[] textureGuids = AssetDatabase.FindAssets("t:Texture", new string[] { "Assets/Vefects" });
+            foreach (string guid in textureGuids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+                if (importer != null)
+                {
+                    bool modified = false;
+
+                    if (importer.maxTextureSize > 512)
+                    {
+                        importer.maxTextureSize = 512;
+                        modified = true;
+                    }
+
+                    // Android Platform Override: ASTC_6x6 & Max Size 512
+                    TextureImporterPlatformSettings androidSettings = importer.GetPlatformTextureSettings("Android");
+                    if (!androidSettings.overridden || androidSettings.maxTextureSize > 512 || androidSettings.format != TextureImporterFormat.ASTC_6x6)
+                    {
+                        androidSettings.overridden = true;
+                        androidSettings.maxTextureSize = 512;
+                        androidSettings.format = TextureImporterFormat.ASTC_6x6;
+                        importer.SetPlatformTextureSettings(androidSettings);
+                        modified = true;
+                    }
+
+                    if (modified)
+                    {
+                        importer.SaveAndReimport();
+                        updatedTexturesCount++;
+                        Debug.Log($"[ARSceneBuilder] Configured Android ASTC_6x6 & MaxSize 512 on Vefects texture: {path}");
+                    }
+                }
+            }
+
+            // 2. Set ParticleSystemRenderer Render Alignment to View (Billboard Camera Facing)
+            string[] prefabGuids = AssetDatabase.FindAssets("t:Prefab", new string[] { "Assets/Vefects" });
+            foreach (string guid in prefabGuids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab != null)
+                {
+                    ParticleSystemRenderer[] renderers = prefab.GetComponentsInChildren<ParticleSystemRenderer>(true);
+                    bool modified = false;
+                    foreach (var psr in renderers)
+                    {
+                        if (psr != null && psr.renderAlignment != ParticleSystemRenderSpace.View)
+                        {
+                            psr.renderAlignment = ParticleSystemRenderSpace.View; // Billboard View Alignment
+                            EditorUtility.SetDirty(psr);
+                            updatedParticleRenderersCount++;
+                            modified = true;
+                        }
+                    }
+                    if (modified)
+                    {
+                        EditorUtility.SetDirty(prefab);
+                    }
+                }
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            string msg = $"Successfully optimized {updatedTexturesCount} Vefects textures (ASTC 6x6 / 512 Max Size) and {updatedParticleRenderersCount} ParticleSystemRenderers (View Alignment) for Mobile Android!";
+            Debug.Log($"[ARSceneBuilder] {msg}");
+            EditorUtility.DisplayDialog("Vefects Mobile Optimization Complete", msg, "OK");
+        }
     }
 }
 #endif
