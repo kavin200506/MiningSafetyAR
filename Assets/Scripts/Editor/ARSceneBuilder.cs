@@ -570,7 +570,7 @@ namespace MiningSafetyAR.Editor
             }
             if (reticleMat != null)
             {
-                reticleMat.color = new Color(0.0f, 1.0f, 0.5f, 0.7f); // Bright Emerald Green Reticle
+                reticleMat.color = new Color(0.0f, 0.0f, 0.0f, 0.0f); // Fully Transparent Reticle (Hidden per user request)
                 reticleMat.SetFloat("_Surface", 1f);
                 reticleMat.SetFloat("_Blend", 0f);
                 reticleMat.SetOverrideTag("RenderType", "Transparent");
@@ -609,10 +609,10 @@ namespace MiningSafetyAR.Editor
 
         private static GameObject EnsureSamplePlacementPrefab()
         {
-            GameObject firePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/GroundFireParticles.prefab") ?? EnsureGroundFireParticlesPrefab();
+            GameObject firePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Vefects/Free Fire VFX URP/Particles/VFX_Fire_Floor_01_Simple.prefab");
             if (firePrefab != null)
             {
-                Debug.Log("[ARSceneBuilder] Loaded and assigned GroundFireParticles.prefab as the default placement object.");
+                Debug.Log("[ARSceneBuilder] Loaded and assigned Vefects VFX_Fire_Floor_01_Simple.prefab as default placement object.");
                 return firePrefab;
             }
 
@@ -752,111 +752,34 @@ namespace MiningSafetyAR.Editor
             return savedPrefab;
         }
 
-        [MenuItem("Mining Safety AR/Create Ground Fire Particles Prefab")]
-        public static GameObject EnsureGroundFireParticlesPrefab()
-        {
-            string folderPath = "Assets/Prefabs";
-            string prefabPath = "Assets/Prefabs/GroundFireParticles.prefab";
-
-            if (!Directory.Exists(folderPath))
-            {
-                Directory.CreateDirectory(folderPath);
-                AssetDatabase.Refresh();
-            }
-
-            GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-            if (existingPrefab != null) return existingPrefab;
-
-            GameObject fireGO = new GameObject("GroundFireParticles");
-            ParticleSystem ps = fireGO.AddComponent<ParticleSystem>();
-
-            var main = ps.main;
-            main.playOnAwake = false;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.5f, 1.0f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(1.0f, 2.0f);
-            main.startColor = new Color(1.0f, 0.5f, 0.0f, 1.0f); // Bright Orange-Yellow
-
-            var shape = ps.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.radius = 0.15f;
-            shape.angle = 15f;
-
-            var emission = ps.emission;
-            emission.enabled = true;
-            emission.rateOverTime = 40f; // 30-50 particles/sec
-
-            var colorOverLifetime = ps.colorOverLifetime;
-            colorOverLifetime.enabled = true;
-            Gradient grad = new Gradient();
-            grad.SetKeys(
-                new GradientColorKey[] { new GradientColorKey(new Color(1.0f, 0.9f, 0.2f), 0.0f), new GradientColorKey(new Color(1.0f, 0.4f, 0.0f), 0.5f), new GradientColorKey(new Color(0.8f, 0.1f, 0.0f), 1.0f) },
-                new GradientAlphaKey[] { new GradientAlphaKey(1.0f, 0.0f), new GradientAlphaKey(0.8f, 0.6f), new GradientAlphaKey(0.0f, 1.0f) }
-            );
-            colorOverLifetime.color = grad;
-
-            var sizeOverLifetime = ps.sizeOverLifetime;
-            sizeOverLifetime.enabled = true;
-            AnimationCurve curve = new AnimationCurve(new Keyframe(0.0f, 1.0f), new Keyframe(1.0f, 0.3f));
-            sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1.0f, curve);
-
-            GroundFireController controller = fireGO.AddComponent<GroundFireController>();
-            controller.GroundFireParticles = ps;
-
-            ParticleSystemRenderer psr = fireGO.GetComponent<ParticleSystemRenderer>();
-            if (psr != null)
-            {
-                string matPath = "Assets/Prefabs/GroundFireURPMaterial.mat";
-                Material fireMat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
-                if (fireMat == null)
-                {
-                    Shader urpParticleShader = Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Sprites/Default");
-                    if (urpParticleShader != null)
-                    {
-                        fireMat = new Material(urpParticleShader);
-                        if (fireMat.HasProperty("_BaseColor"))
-                        {
-                            fireMat.SetColor("_BaseColor", new Color(1.0f, 0.5f, 0.0f, 1.0f));
-                        }
-                        else
-                        {
-                            fireMat.color = new Color(1.0f, 0.5f, 0.0f, 1.0f);
-                        }
-                        AssetDatabase.CreateAsset(fireMat, matPath);
-                    }
-                }
-                if (fireMat != null)
-                {
-                    psr.sharedMaterial = fireMat;
-                }
-            }
-
-            GameObject savedPrefab = PrefabUtility.SaveAsPrefabAsset(fireGO, prefabPath);
-            Object.DestroyImmediate(fireGO);
-
-            Debug.Log($"[ARSceneBuilder] Auto-created GroundFireParticles prefab with GroundFireController at {prefabPath}");
-            return savedPrefab;
-        }
-
-        [MenuItem("Mining Safety AR/Add Ground Fire Particles to Scene")]
+        [MenuItem("Mining Safety AR/Add Vefects Fire VFX to Scene")]
         public static void AddGroundFireParticlesToScene()
         {
-            GameObject prefab = EnsureGroundFireParticlesPrefab();
+            string vefectsPrefabPath = "Assets/Vefects/Free Fire VFX URP/Particles/VFX_Fire_Floor_01_Simple.prefab";
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(vefectsPrefabPath);
             if (prefab != null)
             {
                 GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
-                instance.name = "GroundFireParticles";
+                instance.name = "VFX_Fire_Floor_01_Simple";
                 instance.transform.position = new Vector3(0, 0, 1.5f);
-                Undo.RegisterCreatedObjectUndo(instance, "Add GroundFireParticles to Scene");
+
+                GroundFireController controller = instance.GetComponent<GroundFireController>();
+                if (controller == null)
+                {
+                    controller = instance.AddComponent<GroundFireController>();
+                }
+
+                Undo.RegisterCreatedObjectUndo(instance, "Add Vefects Fire VFX to Scene");
                 Selection.activeGameObject = instance;
-                Debug.Log("[ARSceneBuilder] Added GroundFireParticles to active Scene Hierarchy!");
+                Debug.Log("[ARSceneBuilder] Added Vefects VFX_Fire_Floor_01_Simple to active Scene Hierarchy!");
             }
         }
 
-        [MenuItem("Mining Safety AR/Set Default AR Placement Prefab to Ground Fire")]
+        [MenuItem("Mining Safety AR/Set Default AR Placement Prefab to Vefects Fire")]
         public static void SetDefaultPlacementToGroundFire()
         {
-            GameObject firePrefab = EnsureGroundFireParticlesPrefab();
+            string vefectsPrefabPath = "Assets/Vefects/Free Fire VFX URP/Particles/VFX_Fire_Floor_01_Simple.prefab";
+            GameObject firePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(vefectsPrefabPath);
             int updatedCount = 0;
             
             ARPlacementManager placementManager = Object.FindFirstObjectByType<ARPlacementManager>();
@@ -878,7 +801,7 @@ namespace MiningSafetyAR.Editor
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
             AssetDatabase.SaveAssets();
 
-            string msg = $"Successfully set 'GroundFireParticles.prefab' as the active AR placement prefab on {updatedCount} components in scene '{UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}'!\n\nNow click File -> Build And Run to test on your phone.";
+            string msg = $"Successfully set 'VFX_Fire_Floor_01_Simple.prefab' as the active AR placement prefab on {updatedCount} components in scene '{UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}'!\n\nNow click File -> Build And Run to test on your phone.";
             Debug.Log($"[ARSceneBuilder] {msg}");
             EditorUtility.DisplayDialog("Mining Safety AR — Prefab Assigned", msg, "OK");
         }

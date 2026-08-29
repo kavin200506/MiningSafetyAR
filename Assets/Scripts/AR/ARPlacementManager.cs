@@ -46,6 +46,30 @@ namespace MiningSafetyAR.AR
         private ARAnchor spawnedAnchor;
         public GameObject SpawnedObject => spawnedObject;
 
+        [Header("Placement Window Settings (3 Seconds)")]
+        [SerializeField] private float placementWindowDuration = 3.0f;
+        public float PlacementWindowDuration
+        {
+            get => placementWindowDuration;
+            set => placementWindowDuration = value;
+        }
+
+        [SerializeField] private bool showTimerUI = true;
+        public bool ShowTimerUI
+        {
+            get => showTimerUI;
+            set => showTimerUI = value;
+        }
+
+        private bool hasFirstPlacementOccurred = false;
+        private float placementStartTime = -1f;
+        private bool isPlacementLocked = false;
+
+        public bool HasFirstPlacementOccurred => hasFirstPlacementOccurred;
+        public bool IsPlacementLocked => isPlacementLocked;
+        public float RemainingPlacementTime => hasFirstPlacementOccurred && !isPlacementLocked ? 
+            Mathf.Max(0f, placementWindowDuration - (Time.time - placementStartTime)) : 0f;
+
         private float nextPlaneLogTime = 0f;
         private InputAction pressAction;
 
@@ -219,6 +243,16 @@ namespace MiningSafetyAR.AR
         {
             UpdatePlacementIndicator();
             CheckTouchInput();
+
+            if (hasFirstPlacementOccurred && !isPlacementLocked)
+            {
+                float elapsedTime = Time.time - placementStartTime;
+                if (elapsedTime >= placementWindowDuration)
+                {
+                    isPlacementLocked = true;
+                    Debug.Log($"[INFO] [ARPlacementManager] 3-second placement window expired! Surface placement is now LOCKED.");
+                }
+            }
         }
 
         private void UpdatePlacementIndicator()
@@ -244,7 +278,8 @@ namespace MiningSafetyAR.AR
                 {
                     Pose hitPose = hits[0].pose;
                     placementIndicator.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
-                    if (!placementIndicator.activeSelf) placementIndicator.SetActive(true);
+                    // Keep green reticle transparent/hidden per request, while keeping brown plane detection active
+                    if (placementIndicator.activeSelf) placementIndicator.SetActive(false);
                 }
                 else
                 {
@@ -261,6 +296,12 @@ namespace MiningSafetyAR.AR
         {
             try
             {
+                if (isPlacementLocked)
+                {
+                    Debug.LogWarning("[WARN] [ARPlacementManager] Placement tap blocked — 3-second placement window has expired.");
+                    return false;
+                }
+
                 Pose hitPose = default;
                 bool hitSuccess = false;
                 string hitTypeString = "";
@@ -312,6 +353,13 @@ namespace MiningSafetyAR.AR
                 {
                     Debug.LogWarning($"[WARN] [ARPlacementManager] ALL 3 hit-test tiers failed for touchPosition={touchPosition}. Active planes count={(planeManager != null ? planeManager.trackables.count : 0)}");
                     return false;
+                }
+
+                if (!hasFirstPlacementOccurred)
+                {
+                    hasFirstPlacementOccurred = true;
+                    placementStartTime = Time.time;
+                    Debug.Log($"[INFO] [ARPlacementManager] First surface placement registered! 3-second placement window started at Time={placementStartTime:F2}s");
                 }
 
                 Camera mainCamera = Camera.main ?? FindFirstObjectByType<Camera>();
@@ -402,6 +450,14 @@ namespace MiningSafetyAR.AR
             Debug.Log($"[INFO] [ARPlacementManager] Set plane visibility to: {visible}");
         }
 
+        public void ResetPlacementTimer()
+        {
+            hasFirstPlacementOccurred = false;
+            placementStartTime = -1f;
+            isPlacementLocked = false;
+            Debug.Log("[INFO] [ARPlacementManager] Placement timer and lock state reset.");
+        }
+
         public void ClearSpawnedObject()
         {
             if (spawnedObject != null)
@@ -411,6 +467,84 @@ namespace MiningSafetyAR.AR
                 spawnedObject = null;
                 spawnedAnchor = null;
             }
+            ResetPlacementTimer();
+        }
+
+        private void OnGUI()
+        {
+            if (!showTimerUI) return;
+
+            float screenWidth = Screen.width;
+            float margin = 30f;
+
+            // --- 1. TOP-RIGHT CORNER: PLACEMENT WINDOW TIMER HUD (DOUBLED SIZE) ---
+            float topRightWidth = 560f;
+            float topRightHeight = 130f;
+            Rect topRightBoxRect = new Rect(screenWidth - topRightWidth - margin, margin, topRightWidth, topRightHeight);
+
+            GUIStyle topRightStyle = new GUIStyle(GUI.skin.box)
+            {
+                fontSize = 28,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                richText = true
+            };
+
+            string timerTitle;
+            string timerSubtitle;
+
+            if (!hasFirstPlacementOccurred)
+            {
+                topRightStyle.normal.textColor = new Color(1.0f, 0.85f, 0.0f); // Amber / Gold
+                timerTitle = "🔥 HAZARD PLACEMENT READY";
+                timerSubtitle = "Tap plane to spawn (3s window)";
+            }
+            else if (!isPlacementLocked)
+            {
+                float remainingSec = Mathf.Max(0f, placementWindowDuration - (Time.time - placementStartTime));
+                topRightStyle.normal.textColor = new Color(0.2f, 1.0f, 0.4f); // Vivid Green
+                timerTitle = $"⏱️ PLACEMENT WINDOW: {remainingSec:F1}s";
+                timerSubtitle = "Tap other regions to adjust fire";
+            }
+            else
+            {
+                topRightStyle.normal.textColor = new Color(1.0f, 0.35f, 0.35f); // Vivid Red
+                timerTitle = "🔒 FIRE PLACEMENT LOCKED";
+                timerSubtitle = "(3s Placement Window Expired)";
+            }
+
+            GUI.Box(topRightBoxRect, $"{timerTitle}\n<size=22>{timerSubtitle}</size>", topRightStyle);
+
+            // --- 2. TOP-LEFT CORNER: DYNAMIC TRAINING INSTRUCTION & SAFETY HINTS BOX (DOUBLED SIZE) ---
+            float topLeftWidth = 640f;
+            float topLeftHeight = 130f;
+            Rect topLeftBoxRect = new Rect(margin, margin, topLeftWidth, topLeftHeight);
+
+            GUIStyle topLeftStyle = new GUIStyle(GUI.skin.box)
+            {
+                fontSize = 26,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                richText = true
+            };
+
+            string hintTitle;
+            string hintContent;
+
+            if (!hasFirstPlacementOccurred)
+            {
+                topLeftStyle.normal.textColor = new Color(0.2f, 0.9f, 1.0f); // Bright Cyan
+                hintTitle = "💡 SIMULATION INSTRUCTION";
+                hintContent = "Just tap on plane surface to start the simulation";
+            }
+            else
+            {
+                topLeftStyle.normal.textColor = new Color(1.0f, 0.85f, 0.0f); // Vivid Gold
+                hintTitle = "💡 SAFETY HINT";
+                hintContent = "Search for fire extinguisher or emergency exit";
+            }
+
+            GUI.Box(topLeftBoxRect, $"<b>{hintTitle}</b>\n<size=22>{hintContent}</size>", topLeftStyle);
         }
     }
 }

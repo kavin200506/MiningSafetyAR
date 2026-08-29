@@ -56,6 +56,12 @@ public class ARPlaceCube : MonoBehaviour
 
     private void PlaceObject(Vector2 touchPosition)
     {
+        if (MiningSafetyAR.AR.ARPlacementManager.Instance != null && MiningSafetyAR.AR.ARPlacementManager.Instance.IsPlacementLocked)
+        {
+            Debug.LogWarning("[ARPlaceCube] Placement attempt blocked — 3-second placement window has expired.");
+            return;
+        }
+
         if (raycastManager == null)
         {
             raycastManager = FindFirstObjectByType<ARRaycastManager>();
@@ -72,7 +78,7 @@ public class ARPlaceCube : MonoBehaviour
             if (prefabToSpawn == null || prefabToSpawn.name.Contains("Dog"))
             {
 #if UNITY_EDITOR
-                GameObject firePrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/GroundFireParticles.prefab");
+                GameObject firePrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Vefects/Free Fire VFX URP/Particles/VFX_Fire_Floor_01_Simple.prefab");
                 if (firePrefab != null) prefabToSpawn = firePrefab;
 #endif
             }
