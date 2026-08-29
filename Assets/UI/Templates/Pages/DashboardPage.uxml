@@ -18,10 +18,10 @@
             <ui:VisualElement class="card" name="progress-card" style="margin-bottom: 20px;">
                 <ui:VisualElement style="flex-direction: row; justify-content: space-between;">
                     <ui:Label text="Overall Progress" style="font-size: 14px; font-weight: 600; color: #1A1A1A;" />
-                    <ui:Label name="progress-value" text="68%" style="font-size: 18px; font-weight: 700; color: #FF6D00;" />
+                    <ui:Label name="progress-value" text="0%" style="font-size: 18px; font-weight: 700; color: #FF6D00;" />
                 </ui:VisualElement>
                 <ui:VisualElement class="progress-track" name="overall-track" style="height: 6px; background-color: #FFE0B2; border-radius: 3px; margin: 12px 0;">
-                    <ui:VisualElement class="progress-fill" style="height: 100%; background-color: #FF6D00; width: 68%;" />
+                    <ui:VisualElement class="progress-fill" name="progress-fill" style="height: 100%; background-color: #FF6D00; width: 0%;" />
                 </ui:VisualElement>
                 <ui:VisualElement style="flex-direction: row; justify-content: space-around; margin-top: 8px;">
                     <ui:VisualElement style="align-items: center;">
