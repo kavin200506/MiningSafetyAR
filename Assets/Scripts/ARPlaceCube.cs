@@ -3,50 +3,101 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
+using MiningSafetyAR.Modules;
+using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 
 public class ARPlaceCube : MonoBehaviour
 {
     [SerializeField] private ARRaycastManager raycastManager;
-    bool isPlacing = false;
+    private bool isPlacing = false;
+    private InputAction pressAction;
 
-    // Update is called once per frame
-    void Update()
+    private void Awake()
     {
-        if (!raycastManager) return;
-
-        if ((Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began ||
-            Input.GetMouseButtonDown(0)) && !isPlacing)
-        {
-            isPlacing = true;
-
-            if (Input.touchCount > 0)
-            {
-                PlaceObject(Input.GetTouch(0).position);
-            }
-            else
-            {
-                PlaceObject(Input.mousePosition);
-            }
-        }
+        pressAction = new InputAction("TouchPress", binding: "<Pointer>/press");
     }
 
-    void PlaceObject(Vector2 touchPosition)
+    private void OnEnable()
     {
-        var rayHits = new List<ARRaycastHit>();
-        raycastManager.Raycast(touchPosition, rayHits, TrackableType.AllTypes);
+        EnhancedTouchSupport.Enable();
+        pressAction.Enable();
+        pressAction.performed += OnPressPerformed;
+    }
 
-        if (rayHits.Count > 0)
+    private void OnDisable()
+    {
+        pressAction.performed -= OnPressPerformed;
+        pressAction.Disable();
+        EnhancedTouchSupport.Disable();
+    }
+
+    private void OnPressPerformed(InputAction.CallbackContext context)
+    {
+        if (isPlacing) return;
+
+        Vector2 pointerPosition = Vector2.zero;
+        if (Touch.activeTouches.Count > 0)
+        {
+            pointerPosition = Touch.activeTouches[0].screenPosition;
+        }
+        else if (Pointer.current != null)
+        {
+            pointerPosition = Pointer.current.position.ReadValue();
+        }
+        else
+        {
+            return;
+        }
+
+        PlaceObject(pointerPosition);
+    }
+
+    private void PlaceObject(Vector2 touchPosition)
+    {
+        if (raycastManager == null)
+        {
+            raycastManager = FindFirstObjectByType<ARRaycastManager>();
+            if (raycastManager == null) return;
+        }
+
+        var rayHits = new List<ARRaycastHit>();
+        if (raycastManager.Raycast(touchPosition, rayHits, TrackableType.AllTypes | TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds) && rayHits.Count > 0)
         {
             Vector3 hitPosePosition = rayHits[0].pose.position;
             Quaternion hitPoseRotation = rayHits[0].pose.rotation;
-            Instantiate(raycastManager.raycastPrefab, hitPosePosition, hitPoseRotation);
+
+            GameObject prefabToSpawn = raycastManager != null ? raycastManager.raycastPrefab : null;
+            if (prefabToSpawn == null || prefabToSpawn.name.Contains("Dog"))
+            {
+#if UNITY_EDITOR
+                GameObject firePrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/GroundFireParticles.prefab");
+                if (firePrefab != null) prefabToSpawn = firePrefab;
+#endif
+            }
+
+            if (prefabToSpawn != null)
+            {
+                GameObject spawnedObj = Instantiate(prefabToSpawn, hitPosePosition, hitPoseRotation);
+                spawnedObj.AddComponent<ARAnchor>();
+
+                GroundFireController fireController = spawnedObj.GetComponent<GroundFireController>() ?? spawnedObj.GetComponentInChildren<GroundFireController>();
+                if (fireController != null)
+                {
+                    fireController.IgniteFire();
+                }
+
+                Debug.Log($"[ARPlaceCube] Successfully placed object '{spawnedObj.name}' at {hitPosePosition}");
+            }
         }
-        
+
         StartCoroutine(SetIsPlacingToFalseWithDelay());
     }
 
-    IEnumerator SetIsPlacingToFalseWithDelay()
+    private IEnumerator SetIsPlacingToFalseWithDelay()
     {
+        isPlacing = true;
         yield return new WaitForSeconds(0.25f);
         isPlacing = false;
     }
