@@ -13,6 +13,9 @@ namespace MiningSafetyAR.UI.Login
         
         [Header("Buttons & Feedback")]
         [SerializeField] private Button loginButton;
+        [SerializeField] private Button forgotPasswordButton;
+        [SerializeField] private Button createAccountButton;
+        [SerializeField] private Button guestButton;
         [SerializeField] private TextMeshProUGUI errorText;
 
         [Header("Scene Routing")]
@@ -27,11 +30,11 @@ namespace MiningSafetyAR.UI.Login
                 errorText.text = "";
             }
 
-            // Hook up the login button
-            if (loginButton != null)
-            {
-                loginButton.onClick.AddListener(AttemptLogin);
-            }
+            // Hook up the buttons
+            if (loginButton != null) loginButton.onClick.AddListener(AttemptLogin);
+            if (forgotPasswordButton != null) forgotPasswordButton.onClick.AddListener(ForgotPassword);
+            if (createAccountButton != null) createAccountButton.onClick.AddListener(CreateAccount);
+            if (guestButton != null) guestButton.onClick.AddListener(ContinueAsGuest);
         }
 
         public void AttemptLogin()
@@ -66,6 +69,30 @@ namespace MiningSafetyAR.UI.Login
             else
             {
                 Debug.LogWarning("LoginController: Next Scene Name is not set!");
+            }
+        }
+
+        public void ForgotPassword()
+        {
+            Debug.Log("Forgot Password clicked!");
+            ShowError("Forgot Password feature coming soon!");
+        }
+
+        public void CreateAccount()
+        {
+            Debug.Log("Create Account clicked!");
+            ShowError("Create Account feature coming soon!");
+        }
+
+        public void ContinueAsGuest()
+        {
+            PlayerPrefs.SetString("Username", "Guest User");
+            PlayerPrefs.Save();
+            
+            Debug.Log("Continuing as Guest. Loading " + nextSceneName);
+            if (!string.IsNullOrEmpty(nextSceneName))
+            {
+                SceneManager.LoadScene(nextSceneName);
             }
         }
 

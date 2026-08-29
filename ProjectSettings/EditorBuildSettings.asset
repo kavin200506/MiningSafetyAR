@@ -12,11 +12,17 @@ EditorBuildSettings:
     path: Assets/UI/Scenes/Splash.unity
     guid: aeabae02ea0795d4dbd2fbb271f76d16
   - enabled: 1
-    path: Assets/Scenes/AR Plane Detection Placement.unity
-    guid: ade38218321fa40d799a24b91df34c94
-  - enabled: 1
     path: Assets/UI/Scenes/Language.unity
     guid: 0ec6b9f050c77414e8b0be4a8d38b518
+  - enabled: 1
+    path: Assets/UI/Scenes/Login.unity
+    guid: a052c5a2ef377cb4691e0d20b3c092d0
+  - enabled: 1
+    path: Assets/UI/Scenes/MainMenu.unity
+    guid: 1af068105b1d0bb40a3e72689b694111
+  - enabled: 1
+    path: Assets/Scenes/AR Plane Detection Placement.unity
+    guid: ade38218321fa40d799a24b91df34c94
   m_configObjects:
     UnityEditor.XR.ARCore.ARCoreSettings: {fileID: 11400000, guid: cbd3db67e59464d9585bd5c5b65740f3, type: 2}
     UnityEditor.XR.ARKit.ARKitSettings: {fileID: 11400000, guid: 17fbec4aee5fc4d89825583c1899c827, type: 2}

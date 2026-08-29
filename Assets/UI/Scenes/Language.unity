@@ -595,6 +595,60 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &825848700
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 825848702}
+  - component: {fileID: 825848701}
+  m_Layer: 0
+  m_Name: LanguageManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &825848701
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 825848700}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 969e8861687e0bb4dad41369c0fd38a3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.UI.Language.LanguageController
+  englishButton: {fileID: 1271369375}
+  hindiButton: {fileID: 855501890}
+  santaliButton: {fileID: 291362694}
+  tamilButton: {fileID: 0}
+  continueButton: {fileID: 958166284}
+  englishSelectedVisual: {fileID: 0}
+  hindiSelectedVisual: {fileID: 0}
+  santaliSelectedVisual: {fileID: 0}
+  tamilSelectedVisual: {fileID: 0}
+  loginSceneName: Login
+--- !u!4 &825848702
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 825848700}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &855501888
 GameObject:
   m_ObjectHideFlags: 0
@@ -1853,3 +1907,4 @@ SceneRoots:
   m_Roots:
   - {fileID: 1485920986}
   - {fileID: 702489142}
+  - {fileID: 825848702}
