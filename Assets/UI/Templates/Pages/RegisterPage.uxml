@@ -1,0 +1,60 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Styles/Theme.uss" />
+    <Style src="project://database/Assets/UI/Styles/Reset.uss" />
+    <Style src="project://database/Assets/UI/Styles/Components.uss" />
+    <Style src="project://database/Assets/UI/Styles/Forms.uss" />
+    <Style src="project://database/Assets/UI/Styles/Header.uss" />
+    <ui:VisualElement class="page-container" style="flex-grow: 1; background-color: #FFFFFF;">
+        <!-- Header -->
+        <ui:VisualElement class="header" style="flex-direction: row; align-items: center; height: 56px; background-color: #FFFFFF; padding: 0 16px; border-bottom-color: #EEEEEE; border-bottom-width: 1px;">
+            <ui:Button class="header__back-btn" name="back-btn" text="&#x2190;" style="width: 40px; height: 40px; font-size: 20px;" />
+            <ui:Label class="header__title" text="Register" style="flex: 1; text-align: center; font-size: 18px; font-weight: 700; color: #1A1A1A;" />
+            <ui:VisualElement class="header__right-action" style="width: 40px; height: 40px;" />
+        </ui:VisualElement>
+        <ui:ScrollView style="flex: 1;">
+            <ui:VisualElement class="register-form" style="padding: 16px 24px;">
+                <ui:VisualElement class="form-group">
+                    <ui:Label class="form-label" text="Full Name" />
+                    <ui:TextField class="input-field" name="name-input" />
+                </ui:VisualElement>
+                <ui:VisualElement class="form-group">
+                    <ui:Label class="form-label" text="Worker ID" />
+                    <ui:TextField class="input-field" name="worker-id" />
+                </ui:VisualElement>
+                <ui:VisualElement class="form-group">
+                    <ui:Label class="form-label" text="Organization / Mine Name" />
+                    <ui:TextField class="input-field" name="org-input" />
+                </ui:VisualElement>
+                <ui:VisualElement class="form-group">
+                    <ui:Label class="form-label" text="Sector" />
+                    <ui:DropdownField class="input-field" name="sector-dropdown" value="Mining" choices="Mining,Steel Manufacturing,Mica Processing,Construction,Other" />
+                </ui:VisualElement>
+                <ui:VisualElement class="form-group">
+                    <ui:Label class="form-label" text="Phone Number" />
+                    <ui:TextField class="input-field" name="phone-input" max-length="10" />
+                </ui:VisualElement>
+                <ui:VisualElement style="flex-direction: row; width: 100%;">
+                    <ui:VisualElement class="form-group" style="flex: 1; margin-right: 6px;">
+                        <ui:Label class="form-label" text="Create PIN" />
+                        <ui:TextField class="input-field" name="pin" is-password-field="true" max-length="4" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="form-group" style="flex: 1; margin-left: 6px;">
+                        <ui:Label class="form-label" text="Confirm PIN" />
+                        <ui:TextField class="input-field" name="confirm-pin" is-password-field="true" max-length="4" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement class="form-group">
+                    <ui:Label class="form-label" text="Preferred Language" />
+                    <ui:VisualElement class="language-selector" style="flex-direction: row; margin-top: 4px;">
+                        <ui:Button class="lang-btn lang-btn--active" name="lang-en" text="English" style="flex: 1; height: 36px; background-color: #FF6D00; color: #FFFFFF; border-radius: 8px; margin-right: 6px;" />
+                        <ui:Button class="lang-btn" name="lang-hi" text="Hindi" style="flex: 1; height: 36px; background-color: #F5F5F5; border-color: #E0E0E0; border-width: 1px; border-radius: 8px; margin-right: 6px;" />
+                        <ui:Button class="lang-btn" name="lang-sat" text="Santali" style="flex: 1; height: 36px; background-color: #F5F5F5; border-color: #E0E0E0; border-width: 1px; border-radius: 8px;" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Label class="register__error" name="error-msg" text="" style="display: none; font-size: 13px; color: #F44336; text-align: center; margin-bottom: 12px;" />
+                <ui:Button class="btn-primary" name="register-btn" text="REGISTER" style="width: 100%; margin-top: 8px;" />
+                <ui:Label class="register__footer" text="Your data is stored securely in Firebase." style="font-size: 11px; color: #999999; text-align: center; margin-top: 12px;" />
+            </ui:VisualElement>
+        </ui:ScrollView>
+    </ui:VisualElement>
+</ui:UXML>

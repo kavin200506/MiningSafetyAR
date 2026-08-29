@@ -1,0 +1,20 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="bottom-nav" class="bottom-nav">
+        <ui:Button name="tab-home" class="bottom-nav__tab bottom-nav__tab--active">
+            <ui:Label name="icon-home" class="bottom-nav__tab-icon" text="⌂" />
+            <ui:Label class="bottom-nav__tab-label" text="Home" />
+        </ui:Button>
+        <ui:Button name="tab-training" class="bottom-nav__tab">
+            <ui:Label name="icon-training" class="bottom-nav__tab-icon" text="📚" />
+            <ui:Label class="bottom-nav__tab-label" text="Training" />
+        </ui:Button>
+        <ui:Button name="tab-progress" class="bottom-nav__tab">
+            <ui:Label name="icon-progress" class="bottom-nav__tab-icon" text="📊" />
+            <ui:Label class="bottom-nav__tab-label" text="Progress" />
+        </ui:Button>
+        <ui:Button name="tab-settings" class="bottom-nav__tab">
+            <ui:Label name="icon-settings" class="bottom-nav__tab-icon" text="⚙" />
+            <ui:Label class="bottom-nav__tab-label" text="Settings" />
+        </ui:Button>
+    </ui:VisualElement>
+</ui:UXML>

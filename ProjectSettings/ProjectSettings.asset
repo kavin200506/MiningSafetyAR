@@ -174,7 +174,7 @@ PlayerSettings:
   androidMaxAspectRatio: 2.4
   androidMinAspectRatio: 1
   applicationIdentifier:
-    Android: com.UnityTechnologies.com.unity.template.urpblank
+    Android: com.company.minear
     Standalone: com.Unity-Technologies.com.unity.template.urp-blank
     iPhone: com.Unity-Technologies.com.unity.template.urp-blank
   buildNumber:
@@ -843,9 +843,25 @@ PlayerSettings:
   webWasm2023: 0
   webEnableSubmoduleStrippingCompatibility: 0
   scriptingDefineSymbols:
-    Android: MAGIC_BAR_PRO
-    Standalone: MAGIC_BAR_PRO
-    iPhone: UNITY_XR_ARKIT_LOADER_ENABLED;MAGIC_BAR_PRO
+    Android: MAGIC_BAR_PRO;UNITY_MCP_READY;UNITY_MCP_DEPS_3
+    EmbeddedLinux: UNITY_MCP_READY;UNITY_MCP_DEPS_3
+    GameCoreScarlett: UNITY_MCP_READY;UNITY_MCP_DEPS_3
+    GameCoreXboxOne: UNITY_MCP_READY;UNITY_MCP_DEPS_3
+    Kepler: UNITY_MCP_READY;UNITY_MCP_DEPS_3
+    LinuxHeadlessSimulation: UNITY_MCP_READY;UNITY_MCP_DEPS_3
+    Nintendo Switch: UNITY_MCP_READY;UNITY_MCP_DEPS_3
+    Nintendo Switch 2: UNITY_MCP_READY;UNITY_MCP_DEPS_3
+    PS4: UNITY_MCP_READY;UNITY_MCP_DEPS_3
+    PS5: UNITY_MCP_READY;UNITY_MCP_DEPS_3
+    QNX: UNITY_MCP_READY;UNITY_MCP_DEPS_3
+    Server: UNITY_MCP_READY;UNITY_MCP_DEPS_3
+    Standalone: MAGIC_BAR_PRO;UNITY_MCP_READY;UNITY_MCP_DEPS_3
+    VisionOS: UNITY_MCP_READY;UNITY_MCP_DEPS_3
+    WebGL: UNITY_MCP_READY;UNITY_MCP_DEPS_3
+    Windows Store Apps: UNITY_MCP_READY;UNITY_MCP_DEPS_3
+    XboxOne: UNITY_MCP_READY;UNITY_MCP_DEPS_3
+    iPhone: UNITY_XR_ARKIT_LOADER_ENABLED;MAGIC_BAR_PRO;UNITY_MCP_READY;UNITY_MCP_DEPS_3
+    tvOS: UNITY_MCP_READY;UNITY_MCP_DEPS_3
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend:

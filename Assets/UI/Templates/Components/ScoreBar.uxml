@@ -1,0 +1,11 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="score-bar" class="score-bar" style="margin-bottom: 12px;">
+        <ui:VisualElement class="score-bar__header" style="flex-direction: row; justify-content: space-between; margin-bottom: 6px;">
+            <ui:Label name="score-label" class="score-bar__label" text="" style="font-size: 13px; color: #1A1A1A;" />
+            <ui:Label name="score-value" class="score-bar__value" text="" style="font-size: 13px; font-weight: 600; color: #FF6D00;" />
+        </ui:VisualElement>
+        <ui:VisualElement name="track" class="progress-track" style="height: 6px; background-color: #E0E0E0; border-radius: 3px;">
+            <ui:VisualElement name="progress-fill" class="progress-fill" style="height: 100%; background-color: #FF6D00; width: 0%; border-radius: 3px;" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

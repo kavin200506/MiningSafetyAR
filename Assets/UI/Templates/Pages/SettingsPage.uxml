@@ -1,0 +1,103 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Styles/Theme.uss" />
+    <Style src="project://database/Assets/UI/Styles/Reset.uss" />
+    <Style src="project://database/Assets/UI/Styles/Components.uss" />
+    <Style src="project://database/Assets/UI/Styles/Header.uss" />
+    <Style src="project://database/Assets/UI/Styles/Forms.uss" />
+    <Style src="project://database/Assets/UI/Styles/BottomNav.uss" />
+    <ui:VisualElement class="page-container">
+        <ui:VisualElement class="header">
+            <ui:VisualElement class="header__back-btn" />
+            <ui:Label class="header__title" text="Settings" />
+            <ui:VisualElement class="header__right-action" />
+        </ui:VisualElement>
+        <ui:ScrollView class="scroll-area">
+            <ui:VisualElement class="card" name="profile-card" style="align-items: center; padding: 16px;">
+                <ui:VisualElement style="width: 60px; height: 60px; border-radius: 30px; background-color: #FFF3E0; align-items: center; justify-content: center; margin-bottom: 8px;">
+                    <ui:Label text="&#x1F477;" style="font-size: 28px;" />
+                </ui:VisualElement>
+                <ui:Label name="profile-name" text="Ramesh Kumar" style="font-size: 16px; font-weight: 700; color: #1A1A1A;" />
+                <ui:Label name="profile-id" text="JH10293" style="font-size: 12px; color: #FF6D00;" />
+                <ui:Label name="profile-org" text="Jharkhand Steel Works" style="font-size: 11px; color: #666666;" />
+            </ui:VisualElement>
+            <ui:VisualElement style="margin-top: 20px;">
+                <ui:Label text="Language" style="font-size: 14px; font-weight: 600; color: #1A1A1A; margin-bottom: 8px;" />
+                <ui:VisualElement name="lang-selector" style="flex-direction: row;">
+                    <ui:Button class="lang-btn lang-btn--active" name="lang-en" text="English" style="flex: 1; height: 36px; background-color: #FF6D00; color: #FFFFFF; border-radius: 8px; margin-right: 6px;" />
+                    <ui:Button class="lang-btn" name="lang-hi" text="Hindi" style="flex: 1; height: 36px; background-color: #F5F5F5; border-color: #E0E0E0; border-width: 1px; border-radius: 8px; margin-right: 6px;" />
+                    <ui:Button class="lang-btn" name="lang-sat" text="Santali" style="flex: 1; height: 36px; background-color: #F5F5F5; border-color: #E0E0E0; border-width: 1px; border-radius: 8px;" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement style="margin-top: 20px;">
+                <ui:Label text="Preferences" style="font-size: 14px; font-weight: 600; color: #1A1A1A; margin-bottom: 8px;" />
+                <ui:VisualElement class="card" style="flex-direction: row; justify-content: space-between; align-items: center; padding: 12px;">
+                    <ui:Label text="Sound Effects" style="font-size: 13px; color: #1A1A1A;" />
+                    <ui:VisualElement class="toggle-switch" name="toggle-sound">
+                        <ui:VisualElement class="toggle-switch__knob" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement class="card" style="flex-direction: row; justify-content: space-between; align-items: center; padding: 12px; margin-top: 8px;">
+                    <ui:Label text="Voice Guidance" style="font-size: 13px; color: #1A1A1A;" />
+                    <ui:VisualElement class="toggle-switch" name="toggle-voice">
+                        <ui:VisualElement class="toggle-switch__knob" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement style="margin-top: 20px;">
+                <ui:Label text="Data &amp; Storage" style="font-size: 14px; font-weight: 600; color: #1A1A1A; margin-bottom: 8px;" />
+                <ui:VisualElement class="card" style="padding: 12px;">
+                    <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 8px;">
+                        <ui:Label text="Offline Content" style="font-size: 12px; color: #666666;" />
+                        <ui:Label text="3 of 5" style="font-size: 12px; color: #1A1A1A;" />
+                    </ui:VisualElement>
+                    <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 8px;">
+                        <ui:Label text="Storage Used" style="font-size: 12px; color: #666666;" />
+                        <ui:Label text="248 MB" style="font-size: 12px; color: #1A1A1A;" />
+                    </ui:VisualElement>
+                    <ui:VisualElement style="flex-direction: row; justify-content: space-between;">
+                        <ui:Label text="Sync Status" style="font-size: 12px; color: #666666;" />
+                        <ui:Label text="Synced" style="font-size: 12px; color: #4CAF50;" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement style="margin-top: 20px;">
+                <ui:Label text="About" style="font-size: 14px; font-weight: 600; color: #1A1A1A; margin-bottom: 8px;" />
+                <ui:VisualElement class="card" style="padding: 12px;">
+                    <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 8px;">
+                        <ui:Label text="App Version" style="font-size: 12px; color: #666666;" />
+                        <ui:Label text="1.0.0" style="font-size: 12px; color: #1A1A1A;" />
+                    </ui:VisualElement>
+                    <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 8px;">
+                        <ui:Label text="PS Number" style="font-size: 12px; color: #666666;" />
+                        <ui:Label text="SIH26041" style="font-size: 12px; color: #1A1A1A;" />
+                    </ui:VisualElement>
+                    <ui:VisualElement style="flex-direction: row; justify-content: space-between;">
+                        <ui:Label text="Organization" style="font-size: 12px; color: #666666;" />
+                        <ui:Label text="Govt. of Jharkhand" style="font-size: 12px; color: #1A1A1A;" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:Button class="btn-danger" name="logout-btn" text="LOG OUT" style="margin-top: 24px;" />
+            <ui:Label text="ARC MineSafetyAr - Demo UI Reference" style="text-align: center; color: #999999; font-size: 10px; margin-top: 16px;" />
+            <ui:VisualElement style="height: 80px;" />
+        </ui:ScrollView>
+        <ui:VisualElement name="bottom-nav" class="bottom-nav">
+            <ui:Button name="tab-home" class="bottom-nav__tab">
+                <ui:Label text="&#x2302;" style="font-size: 18px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Home" />
+            </ui:Button>
+            <ui:Button name="tab-training" class="bottom-nav__tab">
+                <ui:Label text="&#x1F4DA;" style="font-size: 18px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Training" />
+            </ui:Button>
+            <ui:Button name="tab-progress" class="bottom-nav__tab">
+                <ui:Label text="&#x1F4CA;" style="font-size: 18px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Progress" />
+            </ui:Button>
+            <ui:Button name="tab-settings" class="bottom-nav__tab bottom-nav__tab--active">
+                <ui:Label text="&#x2699;" style="font-size: 18px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Settings" />
+            </ui:Button>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
