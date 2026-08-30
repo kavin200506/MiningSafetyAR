@@ -1,0 +1,36 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Styles/Theme.uss" />
+    <Style src="project://database/Assets/UI/Styles/Reset.uss" />
+    <Style src="project://database/Assets/UI/Styles/Components.uss" />
+    <Style src="project://database/Assets/UI/Styles/Header.uss" />
+    <Style src="project://database/Assets/UI/Styles/Forms.uss" />
+    <Style src="project://database/Assets/UI/Styles/Tables.uss" />
+    <Style src="project://database/Assets/UI/Styles/Icons.uss" />
+    <ui:VisualElement class="page-container">
+        <ui:VisualElement class="header">
+            <ui:Button class="header__back-btn" name="back-btn">
+                <ui:VisualElement class="icon-back" style="width: 20px; height: 20px;" />
+            </ui:Button>
+            <ui:Label class="header__title" text="Assessment" />
+            <ui:Label class="question-counter" name="question-counter" text="1/5" style="width: 40px; text-align: center; font-size: 12px; color: #666666;" />
+        </ui:VisualElement>
+        <ui:VisualElement class="quiz__progress-track" name="quiz-track" style="height: 3px; background-color: #FFE0B2;">
+            <ui:VisualElement class="progress-fill" name="quiz-fill" style="height: 100%; background-color: #FF6D00; width: 0%;" />
+        </ui:VisualElement>
+        <ui:ScrollView class="scroll-area">
+            <ui:VisualElement class="card quiz-card" name="quiz-card" style="margin: 16px;">
+                <ui:Label text="Question 1" class="quiz-card__label" style="font-size: 11px; color: #FF6D00; font-weight: 600;" />
+                <ui:Label class="quiz-card__question" name="question-text" text="" style="font-size: 14px; color: #1A1A1A; margin-top: 4px;" />
+            </ui:VisualElement>
+            <ui:VisualElement class="options-list" name="options-list" style="margin: 0 16px;" />
+            <ui:VisualElement class="feedback-banner" name="feedback-banner" style="flex-direction: row; align-items: center; border-radius: 10px; padding: 12px; margin: 12px 16px; display: none;">
+                <ui:Label class="feedback-banner__icon" name="feedback-icon" text="" style="font-size: 16px; margin-right: 8px;" />
+                <ui:Label class="feedback-banner__text" name="feedback-text" text="" style="font-size: 13px; font-weight: 500;" />
+            </ui:VisualElement>
+        </ui:ScrollView>
+        <ui:VisualElement class="quiz__nav" style="flex-direction: row; padding: 12px 16px; border-top-color: #FFE0B2; border-top-width: 1px; background-color: #FFFFFF;">
+            <ui:Button class="btn-primary" name="next-btn" text="Next Question" style="flex: 1;" />
+            <ui:Button class="btn-primary" name="results-btn" text="View Results" style="flex: 1; display: none; background-color: #4CAF50;" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

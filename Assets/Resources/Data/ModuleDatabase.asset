@@ -1,0 +1,135 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 02c02e9c0ed64044495166806f4aae7f, type: 3}
+  m_Name: ModuleDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.Data.ModuleDatabase
+  modules:
+  - id: fire_safety
+    title: Fire & Explosion Response
+    iconEmoji: "\U0001F525"
+    domain: Fire Safety
+    duration: 45 min
+    difficulty: Medium
+    status: 0
+    progress: 0
+    bestScore: 0
+    attempts: 0
+    lastAttempt: 
+    certificateId: 
+    color: '#FF6D00'
+    description: Master fire prevention, P.A.S.S. technique, and evacuation protocols for mining environments.
+    objectives:
+    - Identify fire hazards
+    - Use extinguisher correctly
+    - Execute evacuation
+    competencyScores:
+      hazardRecognition: 85
+      extinguisherUse: 88
+      ppeSelection: 70
+      evacuation: 82
+      emergencyResponse: 80
+  - id: gas_safety
+    title: Gas Leak & Confined Space
+    iconEmoji: "\u2623\uFE0F"
+    domain: Chemical Safety
+    duration: 50 min
+    difficulty: Hard
+    status: 0
+    progress: 0
+    bestScore: 0
+    attempts: 0
+    lastAttempt: 
+    certificateId: 
+    color: '#D32F2F'
+    description: Detect gas leaks, select PPE, and follow confined space entry protocols.
+    objectives:
+    - Detect gas hazards
+    - Select correct PPE
+    - Follow buddy system
+    competencyScores:
+      hazardRecognition: 78
+      extinguisherUse: 60
+      ppeSelection: 85
+      evacuation: 70
+      emergencyResponse: 75
+  - id: machinery_safety
+    title: Machinery Safety
+    iconEmoji: "\u2699\uFE0F"
+    domain: Equipment Safety
+    duration: 40 min
+    difficulty: Medium
+    status: 0
+    progress: 0
+    bestScore: 0
+    attempts: 0
+    lastAttempt: 
+    certificateId: 
+    color: '#1976D2'
+    description: Lockout/Tagout, machine guarding, and safe operation of mining machinery.
+    objectives:
+    - Apply LOTO
+    - Inspect guards
+    - Operate safely
+    competencyScores:
+      hazardRecognition: 60
+      extinguisherUse: 50
+      ppeSelection: 65
+      evacuation: 55
+      emergencyResponse: 60
+  - id: electrical_safety
+    title: Electrical Safety
+    iconEmoji: "\u26A1"
+    domain: Electrical Safety
+    duration: 35 min
+    difficulty: Medium
+    status: 0
+    progress: 0
+    bestScore: 0
+    attempts: 0
+    lastAttempt: 
+    certificateId: 
+    color: '#FBC02D'
+    description: Identify electrical hazards and apply safe work practices.
+    objectives:
+    - Spot electrical risks
+    - Use insulating PPE
+    - Respond to electrocution
+    competencyScores:
+      hazardRecognition: 0
+      extinguisherUse: 0
+      ppeSelection: 0
+      evacuation: 0
+      emergencyResponse: 0
+  - id: heights_safety
+    title: Working at Heights
+    iconEmoji: "\u26F0\uFE0F"
+    domain: Fall Protection
+    duration: 40 min
+    difficulty: Hard
+    status: 3
+    progress: 0
+    bestScore: 0
+    attempts: 0
+    lastAttempt: 
+    certificateId: 
+    color: '#388E3C'
+    description: Fall protection, harness inspection, and scaffold safety.
+    objectives:
+    - Use harness
+    - Inspect anchors
+    - Work on scaffolds
+    competencyScores:
+      hazardRecognition: 0
+      extinguisherUse: 0
+      ppeSelection: 0
+      evacuation: 0
+      emergencyResponse: 0
