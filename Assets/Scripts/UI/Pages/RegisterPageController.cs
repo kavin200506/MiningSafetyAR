@@ -104,9 +104,10 @@ namespace MiningSafetyAR.UI.Pages
 
         void OnFirebaseRegisterSuccess(global::Firebase.Auth.FirebaseUser user)
         {
+            string uid = user != null ? user.UserId : Firebase.FirebaseAuthManager.Instance.CurrentUserId;
             var worker = new WorkerData
             {
-                firebaseUid = user.UserId,
+                firebaseUid = uid,
                 id = workerIdInput != null ? workerIdInput.value.Trim() : "NEW",
                 name = nameInput != null ? nameInput.value.Trim() : "New Worker",
                 organization = orgInput != null ? orgInput.value.Trim() : "",

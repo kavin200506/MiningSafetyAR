@@ -52,15 +52,17 @@ namespace MiningSafetyAR.Firebase.Test
 
         void OnLoginSuccess(FirebaseUser u)
         {
-            Debug.Log($"[Phase0Tester] Login SUCCESS uid={u.UserId} email={u.Email} name={u.DisplayName}");
+            string uid = u != null ? u.UserId : FirebaseAuthManager.Instance.CurrentUserId;
+            string email = u != null ? u.Email : FirebaseAuthManager.Instance.CurrentUserEmail;
+            Debug.Log($"[Phase0Tester] Login SUCCESS uid={uid} email={email}");
             // Firestore write test: save a dummy worker doc
             string json = $"{{\"id\":\"{testWorkerId}\",\"name\":\"{testName}\",\"phase\":\"phase0\",\"ts\":\"{System.DateTime.UtcNow:o}\"}}";
-            FirestoreService.Instance.SaveRaw($"phase0_tests/{u.UserId}", json, (ok, resp) =>
+            FirestoreService.Instance.SaveRaw($"phase0_tests/{uid}", json, (ok, resp) =>
             {
                 Debug.Log($"[Phase0Tester] Firestore WRITE {(ok ? "OK" : "FAIL")} resp={resp?.Substring(0, System.Math.Min(300, resp.Length))}");
                 if (ok)
                 {
-                    FirestoreService.Instance.GetTestDocument("phase0_tests", u.UserId, (ok2, resp2) =>
+                    FirestoreService.Instance.GetTestDocument("phase0_tests", uid, (ok2, resp2) =>
                     {
                         Debug.Log($"[Phase0Tester] Firestore READ {(ok2 ? "OK" : "FAIL")} {resp2?.Substring(0, System.Math.Min(400, resp2.Length))}");
                     });

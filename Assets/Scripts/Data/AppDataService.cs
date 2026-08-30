@@ -92,8 +92,9 @@ namespace MiningSafetyAR.Data
 
         void OnFirebaseLoginSuccess(FirebaseUser user)
         {
-            Debug.Log($"[AppDataService] Login: {user.UserId}");
-            LoadWorkerFromFirestore(user.UserId);
+            string uid = user != null ? user.UserId : Firebase.FirebaseAuthManager.Instance.CurrentUserId;
+            Debug.Log($"[AppDataService] Login: {uid}");
+            if (!string.IsNullOrEmpty(uid)) LoadWorkerFromFirestore(uid);
         }
 
         void OnFirebaseLogout()
