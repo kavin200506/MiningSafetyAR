@@ -1,0 +1,323 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2531226e657cac429716dbbae7a8495, type: 3}
+  m_Name: QuestionDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.Data.QuestionDatabase
+  questions:
+  - id: fire_q1
+    moduleId: fire_safety
+    textEN: What does P.A.S.S. stand for?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - Pull, Aim, Squeeze, Sweep
+    - Push, Aim, Squeeze, Sweep
+    - Pull, Aim, Spray, Sweep
+    - Press, Aim, Squeeze, Sweep
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 0
+    competency: extinguisherUse
+  - id: fire_q2
+    moduleId: fire_safety
+    textEN: Safe distance from fire?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - 1m
+    - 2m
+    - 3m
+    - 5m
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 1
+    competency: hazardRecognition
+  - id: fire_q3
+    moduleId: fire_safety
+    textEN: Fire triangle components?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - Heat, Fuel, Oxygen
+    - Heat, Fuel, Water
+    - Fuel, Oxygen, CO2
+    - Heat, Water, Oxygen
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 0
+    competency: hazardRecognition
+  - id: fire_q4
+    moduleId: fire_safety
+    textEN: Aim extinguisher nozzle at?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - Top of flames
+    - Base of fire
+    - Middle of fire
+    - Smoke
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 1
+    competency: extinguisherUse
+  - id: fire_q5
+    moduleId: fire_safety
+    textEN: First step in evacuation?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - Grab belongings
+    - Sound alarm
+    - Run fast
+    - Call family
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 1
+    competency: evacuation
+  - id: gas_q1
+    moduleId: gas_safety
+    textEN: First action on gas leak?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - Enter to check
+    - Evacuate and alert
+    - Open windows only
+    - Ignore odor
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 1
+    competency: hazardRecognition
+  - id: gas_q2
+    moduleId: gas_safety
+    textEN: Correct PPE for gas?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - Gloves only
+    - Respirator
+    - Helmet only
+    - Boots only
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 1
+    competency: ppeSelection
+  - id: gas_q3
+    moduleId: gas_safety
+    textEN: Buddy system means?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - Work alone
+    - Pair and monitor
+    - Only supervisor
+    - One worker watches
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 1
+    competency: emergencyResponse
+  - id: gas_q4
+    moduleId: gas_safety
+    textEN: Odorless gas requires?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - No check
+    - Detector test
+    - Smell test
+    - Visual check
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 1
+    competency: hazardRecognition
+  - id: gas_q5
+    moduleId: gas_safety
+    textEN: Pre-entry test checks?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - Oxygen only
+    - Oxygen, toxic, flammable
+    - Temperature only
+    - Humidity
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 1
+    competency: hazardRecognition
+  - id: mach_q1
+    moduleId: machinery_safety
+    textEN: LOTO stands for?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - Lockout/Tagout
+    - Lock On, Tag Off
+    - Leave On, Turn Off
+    - Lock Tools
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 0
+    competency: hazardRecognition
+  - id: mach_q2
+    moduleId: machinery_safety
+    textEN: When to do LOTO?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - Only at night
+    - Before maintenance
+    - After work
+    - During operation
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 1
+    competency: emergencyResponse
+  - id: mach_q3
+    moduleId: machinery_safety
+    textEN: Machine guards must be?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - Removed
+    - In place and secure
+    - Painted
+    - Oiled
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 1
+    competency: ppeSelection
+  - id: mach_q4
+    moduleId: machinery_safety
+    textEN: Unguarded machine should be?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - Used cautiously
+    - Tagged out
+    - Used quickly
+    - Ignored
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 1
+    competency: emergencyResponse
+  - id: elec_q1
+    moduleId: electrical_safety
+    textEN: Common cause of electrical hazard?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - Wet hands on live wire
+    - Dry wood
+    - Plastic
+    - Glass
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 0
+    competency: hazardRecognition
+  - id: elec_q2
+    moduleId: electrical_safety
+    textEN: Electrical PPE includes?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - Sandals
+    - Insulated gloves
+    - Cotton shirt
+    - Shorts
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 1
+    competency: ppeSelection
+  - id: elec_q3
+    moduleId: electrical_safety
+    textEN: Importance of grounding?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - Looks nice
+    - Prevents shock
+    - Saves power
+    - Faster work
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 1
+    competency: hazardRecognition
+  - id: elec_q4
+    moduleId: electrical_safety
+    textEN: 'Electrocution victim: first step?'
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - Touch them
+    - Cut power
+    - Pour water
+    - Pull with hands
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 1
+    competency: emergencyResponse
+  - id: height_q1
+    moduleId: heights_safety
+    textEN: Fall protection required above?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - 1m
+    - 1.8m
+    - 3m
+    - 5m
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 1
+    competency: hazardRecognition
+  - id: height_q2
+    moduleId: heights_safety
+    textEN: Harness inspection checks?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - Color only
+    - Webbing, stitching, hardware
+    - Price
+    - Brand
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 1
+    competency: ppeSelection
+  - id: height_q3
+    moduleId: heights_safety
+    textEN: Anchor point must support?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - 100kg
+    - 5000kg per worker
+    - 50kg
+    - 1000kg
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 1
+    competency: hazardRecognition
+  - id: height_q4
+    moduleId: heights_safety
+    textEN: Scaffold safety requires?
+    textHI: 
+    textSAT: 
+    optionsEN:
+    - Loose boards
+    - Guardrails and secure planks
+    - No guardrails
+    - Single plank
+    optionsHI: []
+    optionsSAT: []
+    correctIndex: 1
+    competency: evacuation

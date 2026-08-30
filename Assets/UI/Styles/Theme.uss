@@ -1,0 +1,84 @@
+/* ========================================
+   THEME.uss — MiningSafetyAR Light Theme
+   White bg, orange accent (#FF6D00)
+   ======================================== */
+
+:root {
+    /* Backgrounds — 65/35 ratio: warm white base + orange accents */
+    --bg-primary: #FFFFFF;
+    --bg-secondary: #FFF8F0;
+    --bg-card: #FFFFFF;
+    --bg-card-accent: #FFF3E0;
+    --bg-input: #FFF5EB;
+    --bg-input-focus: #FFFFFF;
+
+    /* Accent Colors — 35% visual weight */
+    --accent: #FF6D00;
+    --accent-light: #FF9E40;
+    --accent-dark: #E65100;
+    --accent-soft: #FFF3E0;
+    --accent-muted: #FFCC80;
+
+    /* Semantic Colors */
+    --success: #4CAF50;
+    --danger: #F44336;
+    --warning: #FFC107;
+
+    /* Text Colors */
+    --text-primary: #1A1A1A;
+    --text-secondary: #666666;
+    --text-muted: #999999;
+    --text-disabled: #CCCCCC;
+
+    /* Border Colors — more orange presence */
+    --border: #E0E0E0;
+    --border-light: #FFE0B2;
+    --border-accent: #FF6D004D;
+    --border-accent-strong: #FF6D00;
+
+    /* Shadows — warm */
+    --shadow-card: 0 1px 4px rgba(255, 109, 0, 0.08);
+    --shadow-accent: 0 2px 8px rgba(255, 109, 0, 0.15);
+    --shadow-elevated: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+    /* Typography — web font string removed for UI Toolkit (use default Unity font) */
+    /* --font-family: "Inter", -apple-system, sans-serif; */
+    --font-size-xs: 10px;
+    --font-size-sm: 11px;
+    --font-size-base: 13px;
+    --font-size-md: 14px;
+    --font-size-lg: 16px;
+    --font-size-xl: 18px;
+    --font-size-2xl: 22px;
+    --font-size-3xl: 36px;
+
+    --font-weight-regular: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    --font-weight-extrabold: 800;
+
+    /* Spacing */
+    --space-xs: 2px;
+    --space-sm: 4px;
+    --space-md: 8px;
+    --space-lg: 12px;
+    --space-xl: 16px;
+    --space-2xl: 20px;
+    --space-3xl: 24px;
+    --space-4xl: 32px;
+
+    /* Border Radius */
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 10px;
+    --radius-xl: 12px;
+    --radius-2xl: 14px;
+    --radius-full: 9999px;
+
+    /* Layout */
+    --max-width: 430px;
+    --header-height: 56px;
+    --bottom-nav-height: 64px;
+    --safe-area-bottom: 0px;
+}

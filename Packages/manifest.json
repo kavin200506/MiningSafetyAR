@@ -13,7 +13,7 @@
     "com.unity.timeline": "1.8.13",
     "com.unity.ugui": "2.0.0",
     "com.unity.visualscripting": "1.9.12",
-    "com.unity.xr-content.xr-sim-environments": "file:../ContentPackages/com.unity.xr-content.xr-sim-environments-2.0.1.tgz",
+    "com.unity.xr-content.xr-sim-environments": "file:../ContentPackages/com.unity.xr-content.xr-sim-environments-2.1.1.tgz",
     "com.unity.xr.arcore": "6.3.5",
     "com.unity.xr.arfoundation": "6.3.5",
     "com.unity.xr.arkit": "6.3.5",
@@ -50,6 +50,17 @@
     "com.unity.modules.video": "1.0.0",
     "com.unity.modules.vr": "1.0.0",
     "com.unity.modules.wind": "1.0.0",
-    "com.unity.modules.xr": "1.0.0"
-  }
+    "com.unity.modules.xr": "1.0.0",
+    "com.ivanmurzak.unity.mcp": "0.90.0"
+  },
+  "scopedRegistries": [
+    {
+      "name": "package.openupm.com",
+      "url": "https://package.openupm.com",
+      "scopes": [
+        "com.ivanmurzak",
+        "extensions.unity"
+      ]
+    }
+  ]
 }

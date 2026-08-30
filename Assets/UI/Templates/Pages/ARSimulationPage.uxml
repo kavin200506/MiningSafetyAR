@@ -1,0 +1,31 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Styles/Theme.uss" />
+    <Style src="project://database/Assets/UI/Styles/Reset.uss" />
+    <Style src="project://database/Assets/UI/Styles/Components.uss" />
+    <Style src="project://database/Assets/UI/Styles/Animations.uss" />
+    <Style src="project://database/Assets/UI/Styles/Icons.uss" />
+    <ui:VisualElement class="page-container" style="background-color: #1A1A1A;">
+        <ui:VisualElement class="ar__hud" style="flex-direction: row; justify-content: space-between; padding: 12px 16px;">
+            <ui:VisualElement class="ar__score-pill" style="flex-direction: row; background-color: rgba(255,255,255,0.15); border-radius: 20px; padding: 6px 12px; align-items: center;">
+                <ui:VisualElement class="icon-trophy" style="width: 14px; height: 14px; margin-right: 6px;" />
+                <ui:Label class="ar__score-value" name="score-value" text="50" style="color: #FFFFFF; font-weight: 700;" />
+            </ui:VisualElement>
+            <ui:VisualElement class="ar__timer-pill" name="timer-pill" style="flex-direction: row; background-color: rgba(255,255,255,0.15); border-radius: 20px; padding: 6px 12px; align-items: center;">
+                <ui:Label text="⏱" style="font-size: 14px; margin-right: 6px; color: #FFFFFF;" />
+                <ui:Label class="ar__timer-value timer-green" name="timer-value" text="120s" style="color: #4CAF50; font-weight: 700;" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement class="ar__scene" name="ar-scene" style="flex: 1; align-items: center; justify-content: center; background-color: #2A2A2A; margin: 12px; border-radius: 12px;">
+            <ui:VisualElement class="ar__scan-line" name="scan-line" style="position: absolute; width: 90%; height: 2px; background-color: #FF6D00; display: none;" />
+            <ui:VisualElement class="ar__phase-content" name="phase-content" style="align-items: center; padding: 16px;">
+                <ui:VisualElement class="ar__phase-emoji" name="phase-emoji" style="width: 48px; height: 48px; margin-bottom: 12px;" />
+                <ui:Label class="ar__phase-instruction" name="phase-instruction" text="" style="font-size: 14px; color: #FFFFFF; text-align: center;" />
+                <ui:VisualElement class="ar__phase-visual" name="phase-visual" style="margin-top: 16px;" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement class="ar__phase-dots" name="phase-dots" style="flex-direction: row; justify-content: center; margin: 12px 0;" />
+        <ui:VisualElement class="ar__instruction-bar" name="instruction-bar" style="background-color: rgba(255,109,0,0.15); border-radius: 8px; padding: 12px; margin: 0 16px 16px 16px; align-items: center;">
+            <ui:Label class="ar__instruction-text" name="instruction-text" text="Scanning environment..." style="font-size: 13px; color: #FFFFFF; text-align: center;" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

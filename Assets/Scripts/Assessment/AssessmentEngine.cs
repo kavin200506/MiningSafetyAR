@@ -101,6 +101,11 @@ namespace MiningSafetyAR.Assessment
             {
                 LocalScoreManager.Instance.SaveResult(result);
             }
+            // Also save to Firestore via AppDataService
+            if (Data.AppDataService.Instance != null)
+            {
+                Data.AppDataService.Instance.SaveAttempt(activeModuleName, (int)percentage, passed);
+            }
 
             Debug.Log($"[AssessmentEngine] Quiz complete: {correctAnswersCount}/{total} ({percentage}%). Passed: {passed}");
             OnQuizCompleted?.Invoke(result);

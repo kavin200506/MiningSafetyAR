@@ -1,0 +1,83 @@
+﻿/* Outer TextField container â€” no padding (inner handles it to avoid 24px clipping) */
+.input-field {
+    background-color: #FFFFFF;
+    border-color: #FFCC80;
+    border-width: 2px;
+    border-radius: var(--radius-md);
+    height: 48px;
+    padding: 0;
+    margin: 0;
+    color: #1A1A1A;
+    font-size: 14px;
+}
+
+/* Inner text rendering box â€” padding moved here for vertical centering */
+.input-field #unity-text-input,
+.input-field .unity-text-field__input,
+.input-field .unity-base-text-field__input,
+TextField #unity-text-input,
+TextField .unity-base-text-field__input,
+TextField .unity-text-field__input {
+    background-color: transparent;
+    border-width: 0;
+    color: #1A1A1A;
+    font-size: 14px;
+    padding: 10px 14px;
+    height: 100%;
+}
+
+.input-field .unity-base-text-field__input--placeholder,
+TextField .unity-base-text-field__input--placeholder {
+    color: #999999;
+}
+
+.input-field Label {
+    color: #1A1A1A;
+}
+
+TextField {
+    color: #1A1A1A;
+}
+
+.input-field:focus {
+    border-color: var(--accent);
+    background-color: var(--bg-input-focus);
+    border-width: 2px;
+}
+
+.form-group {
+    margin-bottom: var(--space-xl);
+}
+
+.form-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-sm);
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    width: 48px;
+    height: 28px;
+    border-radius: 14px;
+    background-color: var(--border);
+    padding: 2px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.toggle-switch--on {
+    background-color: var(--accent);
+}
+
+.toggle-switch__knob {
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+    background-color: #FFFFFF;
+    transition: translate 0.2s ease;
+}
+
+.toggle-switch--on .toggle-switch__knob {
+    translate: 20px 0;
+}

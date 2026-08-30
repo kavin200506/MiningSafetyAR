@@ -1,0 +1,82 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Styles/Theme.uss" />
+    <Style src="project://database/Assets/UI/Styles/Reset.uss" />
+    <Style src="project://database/Assets/UI/Styles/Components.uss" />
+    <Style src="project://database/Assets/UI/Styles/Tables.uss" />
+    <Style src="project://database/Assets/UI/Styles/BottomNav.uss" />
+    <Style src="project://database/Assets/UI/Styles/Icons.uss" />
+    <ui:VisualElement class="page-container">
+        <ui:ScrollView class="scroll-area">
+            <ui:VisualElement class="results__header" name="results-header" style="align-items: center; padding: 16px;">
+                <ui:VisualElement class="results__icon" name="result-icon" style="width: 48px; height: 48px;" />
+                <ui:Label class="results__title" name="result-title" text="" style="font-size: 18px; font-weight: 700; color: #1A1A1A; margin-top: 8px;" />
+                <ui:Label class="results__subtitle" name="result-subtitle" text="" style="font-size: 12px; color: #666666; text-align: center; margin-top: 4px;" />
+            </ui:VisualElement>
+            <ui:VisualElement class="card" name="score-card" style="margin: 0 16px;">
+                <ui:VisualElement class="score-row" style="flex-direction: row; justify-content: space-between; margin-bottom: 8px;">
+                    <ui:Label text="Simulation Score" style="font-size: 13px; color: #666666;" />
+                    <ui:Label name="sim-score" text="80/100" style="font-size: 13px; font-weight: 600; color: #1A1A1A;" />
+                </ui:VisualElement>
+                <ui:VisualElement class="divider" style="height: 1px; background-color: #FFE0B2;" />
+                <ui:VisualElement class="score-row" style="flex-direction: row; justify-content: space-between; margin: 8px 0;">
+                    <ui:Label text="MCQ Score" style="font-size: 13px; color: #666666;" />
+                    <ui:Label name="mcq-score" text="80/100" style="font-size: 13px; font-weight: 600; color: #1A1A1A;" />
+                </ui:VisualElement>
+                <ui:VisualElement class="divider" style="height: 1px; background-color: #FFE0B2;" />
+                <ui:VisualElement class="score-row" style="flex-direction: row; justify-content: space-between; margin: 8px 0;">
+                    <ui:Label text="Questions Correct" style="font-size: 13px; color: #666666;" />
+                    <ui:Label name="correct-count" text="4/5" style="font-size: 13px; font-weight: 600; color: #1A1A1A;" />
+                </ui:VisualElement>
+                <ui:VisualElement class="divider" style="height: 1px; background-color: #FFE0B2;" />
+                <ui:VisualElement class="score-row score-row--final" style="flex-direction: row; justify-content: space-between; margin-top: 8px; align-items: center;">
+                    <ui:Label text="Final Score" style="font-size: 14px; font-weight: 600; color: #1A1A1A;" />
+                    <ui:Label name="final-score" text="80" style="font-size: 22px; font-weight: 800; color: #FF6D00;" />
+                </ui:VisualElement>
+                <ui:Label class="badge" name="result-badge" text="" style="align-self: center; margin-top: 12px;" />
+            </ui:VisualElement>
+            <ui:VisualElement style="margin: 20px 16px 0 16px;">
+                <ui:Label text="Competency Breakdown" style="font-size: 14px; font-weight: 600; color: #1A1A1A; margin-bottom: 8px;" />
+                <ui:VisualElement name="competency-bars" />
+            </ui:VisualElement>
+            <ui:VisualElement class="card" name="attempt-info" style="margin: 16px;">
+                <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 8px;">
+                    <ui:Label text="Module" style="font-size: 12px; color: #999999;" />
+                    <ui:Label name="module-name" text="" style="font-size: 12px; font-weight: 600; color: #1A1A1A;" />
+                </ui:VisualElement>
+                <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 8px;">
+                    <ui:Label text="Attempt #" style="font-size: 12px; color: #999999;" />
+                    <ui:Label name="attempt-num" text="" style="font-size: 12px; color: #1A1A1A;" />
+                </ui:VisualElement>
+                <ui:VisualElement style="flex-direction: row; justify-content: space-between;">
+                    <ui:Label text="Personal Best" style="font-size: 12px; color: #999999;" />
+                    <ui:Label name="personal-best" text="" style="font-size: 12px; color: #FF6D00;" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement style="margin: 24px 16px 0 16px;">
+                <ui:Button class="btn-primary" name="cert-btn" text="VIEW CERTIFICATE" style="display: none;" />
+                <ui:Button class="btn-primary" name="retry-btn" text="TRY AGAIN" style="background-color: #FFF3E0; color: #FF6D00; border-color: #FF6D00; border-width: 1px;" />
+                <ui:Button class="btn-secondary" name="module-btn" text="BACK TO MODULE" style="margin-top: 8px;" />
+                <ui:Button class="btn-secondary" name="dashboard-btn" text="BACK TO DASHBOARD" style="margin-top: 8px;" />
+            </ui:VisualElement>
+            <ui:VisualElement style="height: 80px;" />
+        </ui:ScrollView>
+        <ui:VisualElement name="bottom-nav" class="bottom-nav">
+            <ui:Button name="tab-home" class="bottom-nav__tab">
+                <ui:VisualElement class="icon-home" style="margin-bottom: 2px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Home" />
+            </ui:Button>
+            <ui:Button name="tab-training" class="bottom-nav__tab">
+                <ui:VisualElement class="icon-training" style="margin-bottom: 2px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Training" />
+            </ui:Button>
+            <ui:Button name="tab-progress" class="bottom-nav__tab">
+                <ui:VisualElement class="icon-progress" style="margin-bottom: 2px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Progress" />
+            </ui:Button>
+            <ui:Button name="tab-settings" class="bottom-nav__tab">
+                <ui:VisualElement class="icon-settings" style="margin-bottom: 2px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Settings" />
+            </ui:Button>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

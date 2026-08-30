@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2134c20716795645bc3dcd3dc75a739, type: 3}
+  m_Name: CertificateDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.Data.CertificateDatabase
+  certificates:
+  - id: JH-FIRE-001928
+    workerName: Ramesh Kumar
+    workerId: JH10293
+    moduleId: fire_safety
+    moduleTitle: Fire & Explosion Response
+    score: 85
+    issuedDate: 2026-08-26
+    expiryDate: 2027-08-26
+    organization: Jharkhand Steel Works
+    status: valid
+  - id: JH-GAS-002156
+    workerName: Ramesh Kumar
+    workerId: JH10293
+    moduleId: gas_safety
+    moduleTitle: Gas Leak & Confined Space
+    score: 72
+    issuedDate: 2026-08-28
+    expiryDate: 2027-08-28
+    organization: Jharkhand Steel Works
+    status: valid
