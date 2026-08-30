@@ -330,6 +330,63 @@ MonoBehaviour:
   m_EnvironmentDepthMode: 1
   m_EnvironmentDepthTemporalSmoothing: 1
   m_OcclusionPreferenceMode: 0
+--- !u!1001 &245376270
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 243249108357717907, guid: ad8313ea031ae4e9493b036409838973, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 243249108357717907, guid: ad8313ea031ae4e9493b036409838973, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 243249108357717907, guid: ad8313ea031ae4e9493b036409838973, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 243249108357717907, guid: ad8313ea031ae4e9493b036409838973, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 243249108357717907, guid: ad8313ea031ae4e9493b036409838973, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 243249108357717907, guid: ad8313ea031ae4e9493b036409838973, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 243249108357717907, guid: ad8313ea031ae4e9493b036409838973, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 243249108357717907, guid: ad8313ea031ae4e9493b036409838973, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 243249108357717907, guid: ad8313ea031ae4e9493b036409838973, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 243249108357717907, guid: ad8313ea031ae4e9493b036409838973, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8329236656153256505, guid: ad8313ea031ae4e9493b036409838973, type: 3}
+      propertyPath: m_Name
+      value: GroundFireParticles
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: ad8313ea031ae4e9493b036409838973, type: 3}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -491,7 +548,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 011b557cc081841658c2a90218bfeaa4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.AR.ARPlacementManager
-  defaultPlacementPrefab: {fileID: 8248031018425287066, guid: 7efcb4817852e487b9d403e51925e5a9, type: 3}
+  defaultPlacementPrefab: {fileID: 8329236656153256505, guid: ad8313ea031ae4e9493b036409838973, type: 3}
   placementIndicator: {fileID: 871263447}
 --- !u!114 &773190231
 MonoBehaviour:
@@ -525,7 +582,7 @@ MonoBehaviour:
   <trackablesChanged>k__BackingField:
     m_PersistentCalls:
       m_Calls: []
-  m_RaycastPrefab: {fileID: 0}
+  m_RaycastPrefab: {fileID: 8329236656153256505, guid: ad8313ea031ae4e9493b036409838973, type: 3}
 --- !u!114 &773190233
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -893,3 +950,4 @@ SceneRoots:
   - {fileID: 773190234}
   - {fileID: 1964602102}
   - {fileID: 871263446}
+  - {fileID: 245376270}

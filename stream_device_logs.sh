@@ -1,7 +1,7 @@
 #!/bin/bash
 # Stream live Unity device logs into device_logs.txt, keeping only the last MAX_LINES lines.
 
-MAX_LINES=500
+MAX_LINES=1500
 LOG_FILE="device_logs.txt"
 
 echo "Streaming Unity device logs to $LOG_FILE (keeping last $MAX_LINES lines)..."
