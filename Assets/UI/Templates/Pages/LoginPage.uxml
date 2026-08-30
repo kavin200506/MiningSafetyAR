@@ -1,0 +1,40 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Styles/Theme.uss?fileID=7433441132597879392&amp;guid=9c058c37ebd69534dae984e55ac8de84&amp;type=3#Theme"/>
+    <Style src="project://database/Assets/UI/Styles/Reset.uss?fileID=7433441132597879392&amp;guid=2221f5ca94566ea48871403dc278208b&amp;type=3#Reset"/>
+    <Style src="project://database/Assets/UI/Styles/Components.uss?fileID=7433441132597879392&amp;guid=95ed0fa63ed8f1b40bbf80091559f46b&amp;type=3#Components"/>
+    <Style src="project://database/Assets/UI/Styles/Forms.uss?fileID=7433441132597879392&amp;guid=573fb74b49821d54f8f03d56111b380e&amp;type=3#Forms"/>
+    <Style src="project://database/Assets/UI/Styles/Icons.uss?fileID=7433441132597879392&amp;guid=27bbf8a071ea19e42b8b10e5dd4bf912&amp;type=3#Icons"/>
+    <ui:VisualElement class="page-container" style="flex-grow: 1; background-color: transparent;">
+        <ui:VisualElement name="background-image-container" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; -unity-background-scale-mode: scale-and-crop; background-image: url(&quot;project://database/Assets/UI/Sprites/Login_BG.png?fileID=2800000&amp;guid=58cef1ed9c0a4f64ca6d0034e049e4e1&amp;type=3#Login_BG&quot;);"/>
+        <ui:ScrollView style="flex: 1; width: 100%;">
+            <ui:VisualElement class="login" style="flex: 1; align-items: center; justify-content: center; padding: 40px 24px; min-height: 900px;">
+                <ui:VisualElement name="app-logo" style="width: 125px; height: 76px; border-radius: 20px; align-items: center; justify-content: center; margin-bottom: 16px; background-color: transparent; -unity-background-scale-mode: scale-to-fit; background-image: url(&quot;project://database/Assets/UI/Sprites/AR_Logo.png?fileID=2800000&amp;guid=e2e5e39cb631c0f44b6438f78142e8d0&amp;type=3#AR_Logo&quot;); font-size: 15px;"/>
+                <ui:Label text="ARC" style="font-size: 36px; font-weight: 800; color: rgb(26, 26, 26); letter-spacing: 6px; margin-bottom: 4px; -unity-font-style: bold;"/>
+                <ui:Label text="MineSafetyAr" style="font-size: 14px; font-weight: 600; color: rgb(255, 109, 0); letter-spacing: 2px; margin-bottom: 8px; -unity-font-style: bold;"/>
+                <ui:Label text="AR-Based Industrial Safety Training" style="font-size: 13px; color: rgb(153, 153, 153); margin-bottom: 24px; -unity-font-style: bold;"/>
+                <ui:VisualElement class="card" style="width: 100%; max-width: 400px; padding: 32px; background-color: rgb(255, 255, 255); border-radius: 24px; border-left-width: 0; margin-bottom: 32px;">
+                    <ui:Label text="Welcome Back!" style="font-size: 24px; font-weight: 800; color: rgb(26, 26, 26); text-align: center; margin-bottom: 8px; -unity-font-style: bold; -unity-text-align: upper-center; height: 28px; width: 257px;"/>
+                    <ui:Label text="Login to continue your training" style="font-size: 13px; color: rgb(102, 102, 102); text-align: center; margin-bottom: 32px; height: 4px; width: 236px; -unity-text-align: upper-center; -unity-font-style: bold;"/>
+                    <ui:VisualElement class="form-group" style="width: 100%; margin-bottom: 16px;">
+                        <ui:TextField name="worker-id" value="Username or Email" class="input-field" style="height: 48px; border-radius: 8px; border-color: rgb(255, 158, 64);"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="form-group" style="width: 100%; margin-bottom: 12px;">
+                        <ui:VisualElement class="input-password" style="flex-direction: row; align-items: center; width: 100%;">
+                            <ui:TextField name="pin" is-password-field="true" value="Password" class="input-field" style="flex: 1; height: 48px; border-radius: 8px; border-color: rgb(255, 209, 166);"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:Label text="Forgot Password?" style="font-size: 12px; font-weight: 600; color: rgb(255, 109, 0); text-align: right; margin-bottom: 24px; height: 7px; width: 237px; -unity-font-style: bold; -unity-text-align: upper-right;"/>
+                    <ui:Button name="login-btn" text="LOGIN" class="btn-primary" style="width: 100%; height: 48px; border-radius: 12px; margin-bottom: 24px; border-left-width: 0; -unity-font-style: bold;"/>
+                    <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 24px; -unity-font-style: bold;">
+                        <ui:VisualElement style="flex: 1; height: 1px; background-color: rgb(224, 224, 224);"/>
+                        <ui:Label text="OR" style="font-size: 12px; color: rgb(153, 153, 153); margin-left: 16px; margin-right: 16px; -unity-font-style: bold;"/>
+                        <ui:VisualElement style="flex: 1; height: 1px; background-color: rgb(224, 224, 224);"/>
+                    </ui:VisualElement>
+                    <ui:Button name="demo-btn" text="Continue as Guest (Explore)" style="width: 100%; height: 48px; border-radius: 12px; background-color: transparent; border-width: 1px; border-color: rgb(255, 109, 0); color: rgb(255, 109, 0); font-weight: 600; font-size: 14px; -unity-font-style: bold;"/>
+                </ui:VisualElement>
+                <ui:Label text="Don&apos;t have an account? Sign Up" style="font-size: 12px; color: rgb(102, 102, 102); text-align: center; margin-bottom: 32px; height: 2px; width: 283px; -unity-text-align: upper-center; -unity-font-style: bold;"/>
+                <ui:VisualElement name="bottom-graphics" style="width: 100%; height: 200px; background-color: transparent; -unity-background-scale-mode: scale-to-fit; background-image: url(&quot;project://database/Assets/UI/Sprites/Splash_Icons%201.png?fileID=2800000&amp;guid=13546ecbe8775e542b9425e04c7da465&amp;type=3#Splash_Icons 1&quot;); -unity-background-image-tint-color: rgba(255, 255, 255, 0.784);"/>
+            </ui:VisualElement>
+        </ui:ScrollView>
+    </ui:VisualElement>
+</ui:UXML>

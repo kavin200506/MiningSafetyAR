@@ -1,0 +1,22 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Styles/Theme.uss?fileID=7433441132597879392&amp;guid=9c058c37ebd69534dae984e55ac8de84&amp;type=3#Theme"/>
+    <Style src="project://database/Assets/UI/Styles/Reset.uss?fileID=7433441132597879392&amp;guid=2221f5ca94566ea48871403dc278208b&amp;type=3#Reset"/>
+    <Style src="project://database/Assets/UI/Styles/Components.uss?fileID=7433441132597879392&amp;guid=95ed0fa63ed8f1b40bbf80091559f46b&amp;type=3#Components"/>
+    <Style src="project://database/Assets/UI/Styles/Animations.uss?fileID=7433441132597879392&amp;guid=cd6e8d02f125b714cb01e3e2d0813209&amp;type=3#Animations"/>
+    <Style src="project://database/Assets/UI/Styles/Icons.uss?fileID=7433441132597879392&amp;guid=27bbf8a071ea19e42b8b10e5dd4bf912&amp;type=3#Icons"/>
+    <ui:VisualElement class="page-container" style="flex-grow: 1; background-color: transparent; background-image: url(&quot;project://database/Assets/UI/Sprites/SplashBackground.png?fileID=2800000&amp;guid=33db2bd11479eea45bbaf36abc8426fc&amp;type=3#SplashBackground&quot;);">
+        <ui:VisualElement class="splash" style="flex: 1; align-items: center; justify-content: center; padding: 40px 24px; background-color: transparent;">
+            <ui:VisualElement name="app-logo" class="splash__logo-box" style="width: 85px; height: 89px; border-radius: 20px; background-color: transparent; align-items: center; justify-content: center; margin-bottom: 16px; background-image: url(&quot;project://database/Assets/UI/Sprites/AR_Logo.png?fileID=2800000&amp;guid=e2e5e39cb631c0f44b6438f78142e8d0&amp;type=3#AR_Logo&quot;); background-size: 160% 100%; font-size: 15px;"/>
+            <ui:Label text="ARC" class="splash__title" style="font-size: 36px; font-weight: 800; color: rgb(26, 26, 26); letter-spacing: 6px; margin-bottom: 4px; -unity-font-style: bold;"/>
+            <ui:Label text="MineSafetyAr" class="splash__subtitle" style="font-size: 14px; font-weight: 600; color: rgb(255, 109, 0); letter-spacing: 2px; margin-bottom: 8px; -unity-font-style: bold;"/>
+            <ui:Label text="AR-Based Industrial Safety Training" class="splash__desc" style="font-size: 13px; color: rgb(153, 153, 153); margin-bottom: 40px; -unity-font-style: bold;"/>
+            <ui:VisualElement class="splash__progress-track" style="width: 200px; height: 3px; background-color: rgb(224, 224, 224); border-radius: 2px;">
+                <ui:VisualElement name="progress-fill" class="progress-fill" style="height: 100%; background-color: rgb(255, 109, 0); width: 0%; border-radius: 2px;"/>
+            </ui:VisualElement>
+            <ui:Label name="status" text="Loading..." class="splash__status" style="font-size: 11px; color: rgb(204, 204, 204); margin-top: 8px; -unity-font-style: bold;"/>
+            <ui:VisualElement style="flex: 1; width: 389px; justify-content: flex-end; align-items: center; padding-bottom: 20px; background-image: url(&quot;project://database/Assets/UI/Sprites/Splash_Icons%201.png?fileID=2800000&amp;guid=13546ecbe8775e542b9425e04c7da465&amp;type=3#Splash_Icons 1&quot;); background-size: 100% 50%; -unity-background-image-tint-color: rgba(255, 255, 255, 0.784);"/>
+            <ui:Label text="Powered by Government of Jharkhand" class="splash__footer" style="font-size: 11px; color: rgb(153, 153, 153); text-align: center;"/>
+            <ui:Label text="Department of Higher &amp; Technical Education" class="splash__footer-sub" style="font-size: 10px; color: rgb(204, 204, 204); text-align: center;"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
