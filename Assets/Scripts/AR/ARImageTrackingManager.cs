@@ -84,19 +84,16 @@ namespace MiningSafetyAR.AR
 
         private void OnTrackedImagesChanged(ARTrackablesChangedEventArgs<ARTrackedImage> eventArgs)
         {
-            // Process newly detected tracked images
             foreach (var trackedImage in eventArgs.added)
             {
                 UpdateTrackedImage(trackedImage);
             }
 
-            // Process updated tracked images
             foreach (var trackedImage in eventArgs.updated)
             {
                 UpdateTrackedImage(trackedImage);
             }
 
-            // Process removed tracked images
             foreach (var removedEntry in eventArgs.removed)
             {
                 ARTrackedImage trackedImage = removedEntry.Value;
@@ -176,34 +173,15 @@ namespace MiningSafetyAR.AR
             }
             else
             {
-                // Fallback primitive 3D object if prefab is not assigned in Inspector
-                Debug.LogWarning($"[WARN] [ARImageTrackingManager] Prefab for marker '{imageName}' was unassigned! Generating prominent 3D safety visual object.");
-                
-                PrimitiveType primType = string.Equals(imageName, fireExtinguisherMarkerName, StringComparison.OrdinalIgnoreCase) ? 
-                    PrimitiveType.Cylinder : PrimitiveType.Cube;
-
-                newObj = GameObject.CreatePrimitive(primType);
-                newObj.name = $"{imageName}_3DMarkerVisual";
-                newObj.transform.localScale = new Vector3(0.35f, 0.35f, 0.35f);
+                Debug.LogWarning($"[WARN] [ARImageTrackingManager] Prefab for marker '{imageName}' was unassigned! Creating 3D marker container.");
+                newObj = new GameObject($"{imageName}_3DMarkerVisual");
                 newObj.transform.SetPositionAndRotation(position, rotation);
+            }
 
-                MeshRenderer mr = newObj.GetComponent<MeshRenderer>();
-                if (mr != null)
-                {
-                    Shader defaultShader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
-                    Material mat = defaultShader != null ? new Material(defaultShader) : new Material(Shader.Find("Sprites/Default"));
-
-                    if (string.Equals(imageName, fireExtinguisherMarkerName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        mat.color = new Color(1.0f, 0.15f, 0.15f, 1.0f); // Bright Safety Red
-                    }
-                    else
-                    {
-                        mat.color = new Color(0.0f, 1.0f, 0.4f, 1.0f);  // Bright Emerald Green
-                    }
-
-                    mr.sharedMaterial = mat;
-                }
+            if (string.Equals(imageName, fireExtinguisherMarkerName, StringComparison.OrdinalIgnoreCase))
+            {
+                FireExtinguisherModelLoader loader = newObj.GetComponent<FireExtinguisherModelLoader>() ?? newObj.AddComponent<FireExtinguisherModelLoader>();
+                _ = loader.Load3DModelAsync();
             }
 
             if (newObj != null)
@@ -212,6 +190,28 @@ namespace MiningSafetyAR.AR
             }
 
             return newObj;
+        }
+
+        /// <summary>
+        /// Simulates 2D image marker tracking in Unity Editor Play Mode for rapid testing without deploying to mobile.
+        /// </summary>
+        public GameObject SimulateMarkerTracked(string markerName, Vector3 position = default, Quaternion rotation = default)
+        {
+            if (position == default)
+            {
+                Camera cam = Camera.main ?? FindFirstObjectByType<Camera>();
+                position = cam != null ? cam.transform.position + cam.transform.forward * 1.2f : new Vector3(0, 0, 1.2f);
+                rotation = Quaternion.identity;
+            }
+
+            GameObject obj = GetOrSpawnObjectForMarker(markerName, position, rotation);
+            if (obj != null)
+            {
+                obj.transform.SetPositionAndRotation(position, rotation);
+                if (!obj.activeSelf) obj.SetActive(true);
+                Debug.Log($"[EDITOR_SIM] Simulated 2D Marker '{markerName}' tracked at {position}");
+            }
+            return obj;
         }
 
         public void ClearAllMarkerObjects()

@@ -14,6 +14,8 @@ namespace MiningSafetyAR.AR
     /// Implements Unity's official AR Foundation 6.x architecture (arfoundation-samples pattern)
     /// utilizing InputAction("<Pointer>/press"), EnhancedTouch, ARRaycastManager surface raycasting,
     /// and ARAnchor spatial locking.
+    /// Spawns ONLY the Fire Hazard on floor plane taps. Fire Extinguisher 3D model is reserved strictly for 2D Image Tracking.
+    /// Includes instant Editor Play Mode simulation (Mouse click raycasting & New Input System Hotkeys 'F', 'E', 'C').
     /// </summary>
     [RequireComponent(typeof(ARRaycastManager))]
     [RequireComponent(typeof(ARPlaneManager))]
@@ -92,6 +94,12 @@ namespace MiningSafetyAR.AR
             planeManager = GetComponent<ARPlaneManager>();
             occlusionManager = GetComponent<AROcclusionManager>() ?? FindFirstObjectByType<AROcclusionManager>();
 
+            if (FindFirstObjectByType<ARStepCounterTracker>() == null)
+            {
+                gameObject.AddComponent<ARStepCounterTracker>();
+                Debug.Log("[ARPlacementManager] Auto-attached ARStepCounterTracker component to AR Placement Manager.");
+            }
+
             // Setup Unity Official AR Foundation InputAction Pointer Press Architecture
             pressAction = new InputAction("touch", binding: "<Pointer>/press");
             pressAction.started += OnPointerPressBegan;
@@ -138,6 +146,19 @@ namespace MiningSafetyAR.AR
             }
         }
 
+        public enum PlacementTargetMode
+        {
+            GroundFireHazard
+        }
+
+        [Header("Placement Target Configuration")]
+        [SerializeField] private PlacementTargetMode placementMode = PlacementTargetMode.GroundFireHazard;
+        public PlacementTargetMode ActivePlacementMode
+        {
+            get => placementMode;
+            set => placementMode = value;
+        }
+
         private void OnPlanesChanged(ARTrackablesChangedEventArgs<ARPlane> eventArgs)
         {
             if (eventArgs.added.Count > 0)
@@ -154,7 +175,7 @@ namespace MiningSafetyAR.AR
         }
 
         /// <summary>
-        /// Uses only the new Input System (EnhancedTouch + Pointer) intentionally — mixing with legacy Input class caused Android build/runtime issues in reference implementations.
+        /// Uses input handling for touch & mouse pointer events with fallback to Editor simulation.
         /// </summary>
         private void CheckTouchInput()
         {
@@ -183,7 +204,7 @@ namespace MiningSafetyAR.AR
 
                 if (tapDetected)
                 {
-                    Debug.Log($"[DIAG] [ARPlacementManager] New Input System Tap Detected at {tapPosition}! HasDetectedPlane={HasDetectedPlane}, TotalTrackedPlanes={(planeManager != null ? planeManager.trackables.count : 0)}");
+                    Debug.Log($"[DIAG] [ARPlacementManager] Tap Detected at {tapPosition}! HasDetectedPlane={HasDetectedPlane}");
 
                     // 1. Try direct tap position raycast
                     bool placed = PerformPlacementRaycast(tapPosition);
@@ -216,7 +237,7 @@ namespace MiningSafetyAR.AR
                 if (context.control.device is Pointer pointerDevice)
                 {
                     Vector2 tapPosition = pointerDevice.position.ReadValue();
-                    Debug.Log($"[DIAG] [ARPlacementManager] Pointer Press Began at {tapPosition}! HasDetectedPlane={HasDetectedPlane}, TotalTrackedPlanes={(planeManager != null ? planeManager.trackables.count : 0)}");
+                    Debug.Log($"[DIAG] [ARPlacementManager] Pointer Press Began at {tapPosition}!");
 
                     bool placed = PerformPlacementRaycast(tapPosition);
                     if (!placed)
@@ -243,6 +264,36 @@ namespace MiningSafetyAR.AR
         {
             UpdatePlacementIndicator();
             CheckTouchInput();
+
+#if UNITY_EDITOR
+            // Unity New Input System Editor Keyboard Hotkeys for Instant Testing:
+            // [F] -> Ignite Fire Hazard at Mouse Position
+            // [E] -> Simulate Scanning 2D Marker & Load 3D Fire Extinguisher Model
+            // [C] -> Clear All Objects
+            if (Keyboard.current != null)
+            {
+                if (Keyboard.current.fKey.wasPressedThisFrame)
+                {
+                    Vector2 mousePos = Pointer.current != null ? Pointer.current.position.ReadValue() : Vector2.zero;
+                    Debug.Log($"[EDITOR_HOTKEY] 'F' key pressed — Igniting Fire Hazard at mouse position {mousePos}");
+                    PerformPlacementRaycast(mousePos);
+                }
+                if (Keyboard.current.eKey.wasPressedThisFrame)
+                {
+                    Debug.Log("[EDITOR_HOTKEY] 'E' key pressed — Simulating 2D FireExtinguisherMarker tracking in Editor!");
+                    if (ARImageTrackingManager.Instance != null)
+                    {
+                        ARImageTrackingManager.Instance.SimulateMarkerTracked("FireExtinguisherMarker");
+                    }
+                }
+                if (Keyboard.current.cKey.wasPressedThisFrame)
+                {
+                    Debug.Log("[EDITOR_HOTKEY] 'C' key pressed — Clearing all spawned objects.");
+                    ClearSpawnedObject();
+                    if (ARImageTrackingManager.Instance != null) ARImageTrackingManager.Instance.ClearAllMarkerObjects();
+                }
+            }
+#endif
 
             if (hasFirstPlacementOccurred && !isPlacementLocked)
             {
@@ -278,7 +329,6 @@ namespace MiningSafetyAR.AR
                 {
                     Pose hitPose = hits[0].pose;
                     placementIndicator.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
-                    // Keep green reticle transparent/hidden per request, while keeping brown plane detection active
                     if (placementIndicator.activeSelf) placementIndicator.SetActive(false);
                 }
                 else
@@ -306,7 +356,7 @@ namespace MiningSafetyAR.AR
                 bool hitSuccess = false;
                 string hitTypeString = "";
 
-                // Tier 1: Real AR Plane Surface (Matching reference project ARPlaceCube.cs: TrackableType.AllTypes)
+                // Tier 1: Real AR Plane Surface
                 TrackableType planeTypes = TrackableType.AllTypes | TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds | TrackableType.Planes;
                 if (raycastManager != null && raycastManager.Raycast(touchPosition, hits, planeTypes) && hits.Count > 0)
                 {
@@ -315,7 +365,7 @@ namespace MiningSafetyAR.AR
                     hitTypeString = "Plane Surface";
                     Debug.Log($"[DIAG] [ARPlacementManager] Tier 1 Hit: Plane Surface at pose {hitPose.position}, hitDistance={hits[0].distance:F2}m");
                 }
-                // Tier 2: Environment Depth Map (if hardware depth is available)
+                // Tier 2: Environment Depth Map
                 else if (occlusionManager != null && 
                          occlusionManager.enabled && 
                          occlusionManager.descriptor != null && 
@@ -349,9 +399,31 @@ namespace MiningSafetyAR.AR
                     }
                 }
 
+#if UNITY_EDITOR
+                // Tier 4: Unity Editor Play Mode Virtual Floor Raycast Fallback (Simulated Floor at y = -0.5m)
                 if (!hitSuccess)
                 {
-                    Debug.LogWarning($"[WARN] [ARPlacementManager] ALL 3 hit-test tiers failed for touchPosition={touchPosition}. Active planes count={(planeManager != null ? planeManager.trackables.count : 0)}");
+                    Camera cam = Camera.main ?? FindFirstObjectByType<Camera>();
+                    if (cam != null)
+                    {
+                        Ray ray = cam.ScreenPointToRay(touchPosition);
+                        Plane groundPlane = new Plane(Vector3.up, new Vector3(0, -0.5f, 0));
+                        if (groundPlane.Raycast(ray, out float enterDistance))
+                        {
+                            hitPose = new Pose(ray.GetPoint(enterDistance), Quaternion.identity);
+                            hitSuccess = true;
+                            hitTypeString = "Unity Editor Simulated Ground Plane";
+                            Debug.Log($"[EDITOR_SIM] Mouse Raycast intersected virtual Editor floor plane at {hitPose.position}");
+                        }
+                    }
+                }
+#endif
+
+                if (!hitSuccess)
+                {
+                    int planesCount = planeManager != null ? planeManager.trackables.count : 0;
+                    lastPlacementErrorLog = $"Raycast tap missed plane! Active planes count: {planesCount}";
+                    Debug.LogWarning($"[FAIL_DIAG] [ARPlacementManager] {lastPlacementErrorLog}");
                     return false;
                 }
 
@@ -366,47 +438,30 @@ namespace MiningSafetyAR.AR
                 float camDist = mainCamera != null ? Vector3.Distance(mainCamera.transform.position, hitPose.position) : -1f;
                 Debug.Log($"[DIAG] [ARPlacementManager] Final HitPose position={hitPose.position}, Distance from Camera={(camDist >= 0 ? camDist.ToString("F2") + "m" : "N/A")}");
 
-                GameObject targetPrefab = prefabToSpawn != null ? prefabToSpawn : defaultPlacementPrefab;
+                GameObject targetPrefab = prefabToSpawn;
+                if (targetPrefab == null)
+                {
+                    targetPrefab = defaultPlacementPrefab; // VFX_Fire_Floor_01_Simple
+                }
 
+                Quaternion spawnRotation = Quaternion.Euler(0, mainCamera != null ? mainCamera.transform.eulerAngles.y : hitPose.rotation.eulerAngles.y, 0);
+
+                if (targetPrefab == null)
+                {
+                    lastPlacementErrorLog = "Placement prefab target is NULL! Check Inspector assignment in ARPlacementManager.";
+                    Debug.LogError($"[FAIL_DIAG] [ARPlacementManager] {lastPlacementErrorLog}");
+                    return false;
+                }
+
+                // 1. Spawn/Position Fire Hazard on floor tap
                 if (spawnedObject == null)
                 {
-                    if (targetPrefab != null)
+                    spawnedObject = Instantiate(targetPrefab, hitPose.position, spawnRotation);
+                    if (Application.isPlaying && !Application.isEditor)
                     {
-                        spawnedObject = Instantiate(targetPrefab, hitPose.position, hitPose.rotation);
-                        Debug.Log($"[DIAG] [ARPlacementManager] Instantiated targetPrefab asset '{targetPrefab.name}' at {hitPose.position}");
+                        spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
                     }
-                    else
-                    {
-                        Debug.LogWarning("[WARN] [ARPlacementManager] defaultPlacementPrefab was null! Generating fallback 3D safety orange primitive cube.");
-                        spawnedObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                        spawnedObject.name = "Safety Equipment (Cube)";
-                        spawnedObject.transform.localScale = new Vector3(0.25f, 0.25f, 0.25f);
-                        spawnedObject.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
-
-                        MeshRenderer mr = spawnedObject.GetComponent<MeshRenderer>();
-                        if (mr != null)
-                        {
-                            Material mat = GraphicsSettings.currentRenderPipeline != null ? 
-                                new Material(GraphicsSettings.currentRenderPipeline.defaultMaterial) : 
-                                new Material(Shader.Find("Sprites/Default"));
-                            mat.color = new Color(1.0f, 0.4f, 0.0f); // Safety Orange
-                            mr.sharedMaterial = mat;
-                        }
-                    }
-
-                    spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
-                    Debug.Log($"[INFO] [ARPlacementManager] Successfully spawned and anchored 3D object via {hitTypeString} at {hitPose.position}");
-
-                    GroundFireController fireController = spawnedObject.GetComponent<GroundFireController>() ?? spawnedObject.GetComponentInChildren<GroundFireController>();
-                    if (fireController != null)
-                    {
-                        fireController.IgniteFire();
-                        Debug.Log($"[FIRE_DIAG] [ARPlacementManager] Triggered IgniteFire on newly spawned object '{spawnedObject.name}'");
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"[FIRE_DIAG] [ARPlacementManager] Spawned object '{spawnedObject.name}' does NOT have GroundFireController attached!");
-                    }
+                    Debug.Log($"[INFO] [ARPlacementManager] Successfully spawned Fire hazard '{targetPrefab.name}' via {hitTypeString} at {hitPose.position}");
                 }
                 else
                 {
@@ -414,26 +469,33 @@ namespace MiningSafetyAR.AR
                     {
                         DestroyImmediate(spawnedAnchor);
                     }
-                    spawnedObject.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
-                    spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
-                    Debug.Log($"[INFO] [ARPlacementManager] Repositioned and re-anchored 3D object via {hitTypeString} to {hitPose.position}");
-
-                    GroundFireController fireController = spawnedObject.GetComponent<GroundFireController>() ?? spawnedObject.GetComponentInChildren<GroundFireController>();
-                    if (fireController != null)
+                    spawnedObject.transform.SetPositionAndRotation(hitPose.position, spawnRotation);
+                    if (Application.isPlaying && !Application.isEditor)
                     {
-                        fireController.IgniteFire();
-                        Debug.Log($"[FIRE_DIAG] [ARPlacementManager] Triggered IgniteFire on repositioned object '{spawnedObject.name}'");
+                        spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
                     }
+                    Debug.Log($"[INFO] [ARPlacementManager] Repositioned Fire hazard '{spawnedObject.name}' to {hitPose.position}");
                 }
 
-                Renderer spawnedRenderer = spawnedObject != null ? spawnedObject.GetComponent<Renderer>() : null;
-                Debug.Log($"[FIRE_DIAG] [ARPlacementManager] Object state: Name={(spawnedObject != null ? spawnedObject.name : "NULL")}, ActiveInHierarchy={spawnedObject?.activeInHierarchy}, Pos={spawnedObject?.transform.position}, CamDist={camDist:F2}m");
+                // Ignite Fire Hazard
+                GroundFireController fireController = spawnedObject.GetComponent<GroundFireController>() ?? spawnedObject.GetComponentInChildren<GroundFireController>();
+                if (fireController != null)
+                {
+                    fireController.IgniteFire();
+                }
+
+                // Diagnostic Audit of Renderers and Meshes
+                Renderer[] objectRenderers = spawnedObject != null ? spawnedObject.GetComponentsInChildren<Renderer>(true) : null;
+                lastPlacementDiagStatus = $"SUCCESS: Ignited Fire hazard at {hitPose.position}";
+                lastPlacementErrorLog = "";
+                Debug.Log($"[DIAG] [ARPlacementManager] {lastPlacementDiagStatus}");
 
                 OnObjectPlaced?.Invoke(hitPose.position, hitPose.rotation);
                 return true;
             }
             catch (Exception ex)
             {
+                lastPlacementErrorLog = $"Exception during placement: {ex.Message}";
                 Debug.LogError($"[ERROR] [ARPlacementManager] Fatal exception in PerformPlacementRaycast: {ex.Message}\n{ex.StackTrace}");
                 return false;
             }
@@ -470,6 +532,9 @@ namespace MiningSafetyAR.AR
             ResetPlacementTimer();
         }
 
+        private string lastPlacementDiagStatus = "Ready — Tap plane to ignite Fire hazard";
+        private string lastPlacementErrorLog = "";
+
         private void OnGUI()
         {
             if (!showTimerUI) return;
@@ -477,7 +542,7 @@ namespace MiningSafetyAR.AR
             float screenWidth = Screen.width;
             float margin = 30f;
 
-            // --- 1. TOP-RIGHT CORNER: PLACEMENT WINDOW TIMER HUD (DOUBLED SIZE) ---
+            // --- 1. TOP-RIGHT CORNER: PLACEMENT WINDOW TIMER HUD ---
             float topRightWidth = 560f;
             float topRightHeight = 130f;
             Rect topRightBoxRect = new Rect(screenWidth - topRightWidth - margin, margin, topRightWidth, topRightHeight);
@@ -496,26 +561,26 @@ namespace MiningSafetyAR.AR
             if (!hasFirstPlacementOccurred)
             {
                 topRightStyle.normal.textColor = new Color(1.0f, 0.85f, 0.0f); // Amber / Gold
-                timerTitle = "🔥 HAZARD PLACEMENT READY";
-                timerSubtitle = "Tap plane to spawn (3s window)";
+                timerTitle = "🔥 FIRE HAZARD PLACEMENT READY";
+                timerSubtitle = "Tap floor to ignite fire hazard (3s window)";
             }
             else if (!isPlacementLocked)
             {
                 float remainingSec = Mathf.Max(0f, placementWindowDuration - (Time.time - placementStartTime));
                 topRightStyle.normal.textColor = new Color(0.2f, 1.0f, 0.4f); // Vivid Green
                 timerTitle = $"⏱️ PLACEMENT WINDOW: {remainingSec:F1}s";
-                timerSubtitle = "Tap other regions to adjust fire";
+                timerSubtitle = "Tap other floor regions to adjust fire position";
             }
             else
             {
                 topRightStyle.normal.textColor = new Color(1.0f, 0.35f, 0.35f); // Vivid Red
-                timerTitle = "🔒 FIRE PLACEMENT LOCKED";
+                timerTitle = "🔒 PLACEMENT LOCKED";
                 timerSubtitle = "(3s Placement Window Expired)";
             }
 
             GUI.Box(topRightBoxRect, $"{timerTitle}\n<size=22>{timerSubtitle}</size>", topRightStyle);
 
-            // --- 2. TOP-LEFT CORNER: DYNAMIC TRAINING INSTRUCTION & SAFETY HINTS BOX (DOUBLED SIZE) ---
+            // --- 2. TOP-LEFT CORNER: TRAINING INSTRUCTION BOX ---
             float topLeftWidth = 640f;
             float topLeftHeight = 130f;
             Rect topLeftBoxRect = new Rect(margin, margin, topLeftWidth, topLeftHeight);
@@ -534,17 +599,44 @@ namespace MiningSafetyAR.AR
             if (!hasFirstPlacementOccurred)
             {
                 topLeftStyle.normal.textColor = new Color(0.2f, 0.9f, 1.0f); // Bright Cyan
-                hintTitle = "💡 SIMULATION INSTRUCTION";
-                hintContent = "Just tap on plane surface to start the simulation";
+                hintTitle = "💡 SAFETY SIMULATION";
+                hintContent = "Tap floor plane to start emergency fire simulation";
             }
             else
             {
                 topLeftStyle.normal.textColor = new Color(1.0f, 0.85f, 0.0f); // Vivid Gold
-                hintTitle = "💡 SAFETY HINT";
-                hintContent = "Search for fire extinguisher or emergency exit";
+                hintTitle = "🧯 EMERGENCY SAFETY HINT";
+                hintContent = "Scan 2D Fire Extinguisher image to load 3D Fire Extinguisher";
             }
 
+#if UNITY_EDITOR
+            hintContent += "\n<color=#00FF00>[EDITOR SIM: Click Mouse / Key 'F'=Fire, Key 'E'=3D Extinguisher, Key 'C'=Clear]</color>";
+#endif
+
             GUI.Box(topLeftBoxRect, $"<b>{hintTitle}</b>\n<size=22>{hintContent}</size>", topLeftStyle);
+
+            // --- 3. BOTTOM-CENTER: LIVE PLACEMENT DIAGNOSTICS LOG HUD ---
+            float bottomWidth = screenWidth - (margin * 2f);
+            float bottomHeight = 160f;
+            Rect bottomBoxRect = new Rect(margin, Screen.height - bottomHeight - margin, bottomWidth, bottomHeight);
+
+            GUIStyle bottomStyle = new GUIStyle(GUI.skin.box)
+            {
+                fontSize = 22,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.UpperLeft,
+                richText = true
+            };
+
+            int detectedPlanesCount = planeManager != null ? planeManager.trackables.count : 0;
+            string planesStatusStr = detectedPlanesCount > 0 ? $"<color=#00FF00>{detectedPlanesCount} Detected</color>" : "<color=#FFCC00>0 (Scanning floor...)</color>";
+
+            string diagContent = $"<b>🧯 SAFETY AR SIMULATION STATUS:</b>\n" +
+                                 $"• Mode: Fire Hazard Plane Placement | AR Planes: {planesStatusStr}\n" +
+                                 $"• Status: <color=#00E5FF>{lastPlacementDiagStatus}</color>\n" +
+                                 (!string.IsNullOrEmpty(lastPlacementErrorLog) ? $"<color=#FF4444>• ERROR: {lastPlacementErrorLog}</color>" : "<color=#00FF00>• System OK — Tap floor to ignite fire</color>");
+
+            GUI.Box(bottomBoxRect, diagContent, bottomStyle);
         }
     }
 }
