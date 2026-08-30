@@ -31,6 +31,14 @@ namespace MiningSafetyAR.AR
             set => defaultPlacementPrefab = value;
         }
 
+        [Header("Wall Placement Prefab")]
+        [SerializeField] private GameObject wallExtinguisherPrefab;
+        public GameObject WallExtinguisherPrefab
+        {
+            get => wallExtinguisherPrefab;
+            set => wallExtinguisherPrefab = value;
+        }
+
         [Header("Placement Visual Indicator")]
         [SerializeField] private GameObject placementIndicator;
         public GameObject PlacementIndicator
@@ -47,6 +55,10 @@ namespace MiningSafetyAR.AR
         private GameObject spawnedObject;
         private ARAnchor spawnedAnchor;
         public GameObject SpawnedObject => spawnedObject;
+
+        private GameObject spawnedWallObject;
+        private ARAnchor spawnedWallAnchor;
+        public GameObject SpawnedWallObject => spawnedWallObject;
 
         [Header("Placement Window Settings (3 Seconds)")]
         [SerializeField] private float placementWindowDuration = 3.0f;
@@ -148,7 +160,8 @@ namespace MiningSafetyAR.AR
 
         public enum PlacementTargetMode
         {
-            GroundFireHazard
+            GroundFireHazard,
+            WallFireExtinguisher
         }
 
         [Header("Placement Target Configuration")]
@@ -346,24 +359,20 @@ namespace MiningSafetyAR.AR
         {
             try
             {
-                if (isPlacementLocked)
-                {
-                    Debug.LogWarning("[WARN] [ARPlacementManager] Placement tap blocked — 3-second placement window has expired.");
-                    return false;
-                }
-
                 Pose hitPose = default;
                 bool hitSuccess = false;
                 string hitTypeString = "";
+                TrackableId hitTrackableId = TrackableId.invalidId;
 
                 // Tier 1: Real AR Plane Surface
                 TrackableType planeTypes = TrackableType.AllTypes | TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds | TrackableType.Planes;
                 if (raycastManager != null && raycastManager.Raycast(touchPosition, hits, planeTypes) && hits.Count > 0)
                 {
                     hitPose = hits[0].pose;
+                    hitTrackableId = hits[0].trackableId;
                     hitSuccess = true;
                     hitTypeString = "Plane Surface";
-                    Debug.Log($"[DIAG] [ARPlacementManager] Tier 1 Hit: Plane Surface at pose {hitPose.position}, hitDistance={hits[0].distance:F2}m");
+                    Debug.Log($"[DIAG] [ARPlacementManager] Tier 1 Hit: Plane Surface at pose {hitPose.position}, trackableId={hitTrackableId}, hitDistance={hits[0].distance:F2}m");
                 }
                 // Tier 2: Environment Depth Map
                 else if (occlusionManager != null && 
@@ -427,69 +436,153 @@ namespace MiningSafetyAR.AR
                     return false;
                 }
 
-                if (!hasFirstPlacementOccurred)
+                // --- 2. Surface Alignment & Mode Determination (Requirements 2 & 3) ---
+                ARPlane hitPlane = null;
+                if (planeManager != null)
                 {
-                    hasFirstPlacementOccurred = true;
-                    placementStartTime = Time.time;
-                    Debug.Log($"[INFO] [ARPlacementManager] First surface placement registered! 3-second placement window started at Time={placementStartTime:F2}s");
+                    if (hitTrackableId != TrackableId.invalidId)
+                    {
+                        hitPlane = planeManager.GetPlane(hitTrackableId);
+                        if (hitPlane == null)
+                        {
+                            Debug.LogWarning($"[WARN] [ARPlacementManager] Raycast hit trackable ID '{hitTrackableId}' but GetPlane() returned null.");
+                        }
+                    }
+                    else if (hitTypeString == "Plane Surface")
+                    {
+                        Debug.LogWarning("[WARN] [ARPlacementManager] Raycast hit plane surface but trackableId is invalid.");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("[WARN] [ARPlacementManager] ARPlaneManager is not assigned or unavailable.");
+                }
+
+                PlaneAlignment alignment = hitPlane != null ? hitPlane.alignment : PlaneAlignment.None;
+                bool isHorizontalPlane = (alignment == PlaneAlignment.HorizontalUp || alignment == PlaneAlignment.HorizontalDown);
+                bool isVerticalPlane = (alignment == PlaneAlignment.Vertical);
+
+                if (hitPlane != null && !isHorizontalPlane && !isVerticalPlane)
+                {
+                    Debug.LogWarning($"[WARN] [ARPlacementManager] Hit plane '{hitPlane.trackableId}' has unsupported alignment '{alignment}'.");
+                }
+
+                // Determine whether target is Wall Extinguisher vs Ground Hazard
+                bool isWallPlacement = (hitPlane != null && isVerticalPlane) || (hitPlane == null && placementMode == PlacementTargetMode.WallFireExtinguisher);
+
+                // Requirement 6: Apply 3-second placement lockout ONLY to Ground Fire Hazard
+                if (!isWallPlacement && isPlacementLocked)
+                {
+                    Debug.LogWarning("[WARN] [ARPlacementManager] Ground fire hazard placement tap blocked — 3-second placement window has expired.");
+                    return false;
                 }
 
                 Camera mainCamera = Camera.main ?? FindFirstObjectByType<Camera>();
                 float camDist = mainCamera != null ? Vector3.Distance(mainCamera.transform.position, hitPose.position) : -1f;
-                Debug.Log($"[DIAG] [ARPlacementManager] Final HitPose position={hitPose.position}, Distance from Camera={(camDist >= 0 ? camDist.ToString("F2") + "m" : "N/A")}");
+                Debug.Log($"[DIAG] [ARPlacementManager] Final HitPose position={hitPose.position}, isWallPlacement={isWallPlacement}, Alignment={alignment}, Distance from Camera={(camDist >= 0 ? camDist.ToString("F2") + "m" : "N/A")}");
 
+                // --- 3. Prefab Selection & Validation (Requirements 3 & 7) ---
                 GameObject targetPrefab = prefabToSpawn;
                 if (targetPrefab == null)
                 {
-                    targetPrefab = defaultPlacementPrefab; // VFX_Fire_Floor_01_Simple
+                    targetPrefab = isWallPlacement ? wallExtinguisherPrefab : defaultPlacementPrefab;
                 }
-
-                Quaternion spawnRotation = Quaternion.Euler(0, mainCamera != null ? mainCamera.transform.eulerAngles.y : hitPose.rotation.eulerAngles.y, 0);
 
                 if (targetPrefab == null)
                 {
-                    lastPlacementErrorLog = "Placement prefab target is NULL! Check Inspector assignment in ARPlacementManager.";
-                    Debug.LogError($"[FAIL_DIAG] [ARPlacementManager] {lastPlacementErrorLog}");
+                    lastPlacementErrorLog = isWallPlacement
+                        ? "Wall Fire Extinguisher prefab is not assigned in Inspector (ARPlacementManager.wallExtinguisherPrefab)!"
+                        : "Ground Fire Hazard prefab is not assigned in Inspector (ARPlacementManager.defaultPlacementPrefab)!";
+                    Debug.LogError($"[ERROR] [ARPlacementManager] {lastPlacementErrorLog}");
                     return false;
                 }
 
-                // 1. Spawn/Position Fire Hazard on floor tap
-                if (spawnedObject == null)
+                // --- 4. Rotation Calculation (Requirement 4) ---
+                Quaternion spawnRotation;
+                if (isWallPlacement)
                 {
-                    spawnedObject = Instantiate(targetPrefab, hitPose.position, spawnRotation);
-                    if (Application.isPlaying && !Application.isEditor)
-                    {
-                        spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
-                    }
-                    Debug.Log($"[INFO] [ARPlacementManager] Successfully spawned Fire hazard '{targetPrefab.name}' via {hitTypeString} at {hitPose.position}");
+                    // Wall Fire Extinguisher: Orient relative to the vertical wall surface normal
+                    spawnRotation = hitPose.rotation;
                 }
                 else
                 {
-                    if (spawnedAnchor != null)
-                    {
-                        DestroyImmediate(spawnedAnchor);
-                    }
-                    spawnedObject.transform.SetPositionAndRotation(hitPose.position, spawnRotation);
-                    if (Application.isPlaying && !Application.isEditor)
-                    {
-                        spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
-                    }
-                    Debug.Log($"[INFO] [ARPlacementManager] Repositioned Fire hazard '{spawnedObject.name}' to {hitPose.position}");
+                    // Ground Fire Hazard: Lay flat on horizontal floor facing camera
+                    spawnRotation = Quaternion.Euler(0, mainCamera != null ? mainCamera.transform.eulerAngles.y : hitPose.rotation.eulerAngles.y, 0);
                 }
 
-                // Ignite Fire Hazard
-                GroundFireController fireController = spawnedObject.GetComponent<GroundFireController>() ?? spawnedObject.GetComponentInChildren<GroundFireController>();
-                if (fireController != null)
+                // --- 5. Spawning & Positioning ---
+                if (isWallPlacement)
                 {
-                    fireController.IgniteFire();
+                    if (spawnedWallObject == null)
+                    {
+                        spawnedWallObject = Instantiate(targetPrefab, hitPose.position, spawnRotation);
+                        if (Application.isPlaying && !Application.isEditor)
+                        {
+                            spawnedWallAnchor = spawnedWallObject.AddComponent<ARAnchor>();
+                        }
+                        Debug.Log($"[INFO] [ARPlacementManager] Successfully spawned Wall Extinguisher '{targetPrefab.name}' on vertical wall plane at {hitPose.position}");
+                    }
+                    else
+                    {
+                        if (spawnedWallAnchor != null)
+                        {
+                            DestroyImmediate(spawnedWallAnchor);
+                        }
+                        spawnedWallObject.transform.SetPositionAndRotation(hitPose.position, spawnRotation);
+                        if (Application.isPlaying && !Application.isEditor)
+                        {
+                            spawnedWallAnchor = spawnedWallObject.AddComponent<ARAnchor>();
+                        }
+                        Debug.Log($"[INFO] [ARPlacementManager] Repositioned Wall Extinguisher '{spawnedWallObject.name}' to {hitPose.position}");
+                    }
+
+                    lastPlacementDiagStatus = $"SUCCESS: Placed Wall Extinguisher on vertical wall at {hitPose.position}";
+                    lastPlacementErrorLog = "";
+                }
+                else
+                {
+                    if (!hasFirstPlacementOccurred)
+                    {
+                        hasFirstPlacementOccurred = true;
+                        placementStartTime = Time.time;
+                        Debug.Log($"[INFO] [ARPlacementManager] First ground placement registered! 3-second placement window started at Time={placementStartTime:F2}s");
+                    }
+
+                    if (spawnedObject == null)
+                    {
+                        spawnedObject = Instantiate(targetPrefab, hitPose.position, spawnRotation);
+                        if (Application.isPlaying && !Application.isEditor)
+                        {
+                            spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
+                        }
+                        Debug.Log($"[INFO] [ARPlacementManager] Successfully spawned Ground Fire Hazard '{targetPrefab.name}' via {hitTypeString} at {hitPose.position}");
+                    }
+                    else
+                    {
+                        if (spawnedAnchor != null)
+                        {
+                            DestroyImmediate(spawnedAnchor);
+                        }
+                        spawnedObject.transform.SetPositionAndRotation(hitPose.position, spawnRotation);
+                        if (Application.isPlaying && !Application.isEditor)
+                        {
+                            spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
+                        }
+                        Debug.Log($"[INFO] [ARPlacementManager] Repositioned Ground Fire Hazard '{spawnedObject.name}' to {hitPose.position}");
+                    }
+
+                    // Ignite Fire Hazard
+                    GroundFireController fireController = spawnedObject.GetComponent<GroundFireController>() ?? spawnedObject.GetComponentInChildren<GroundFireController>();
+                    if (fireController != null)
+                    {
+                        fireController.IgniteFire();
+                    }
+
+                    lastPlacementDiagStatus = $"SUCCESS: Ignited Ground Fire hazard at {hitPose.position}";
+                    lastPlacementErrorLog = "";
                 }
 
-                // Diagnostic Audit of Renderers and Meshes
-                Renderer[] objectRenderers = spawnedObject != null ? spawnedObject.GetComponentsInChildren<Renderer>(true) : null;
-                lastPlacementDiagStatus = $"SUCCESS: Ignited Fire hazard at {hitPose.position}";
-                lastPlacementErrorLog = "";
                 Debug.Log($"[DIAG] [ARPlacementManager] {lastPlacementDiagStatus}");
-
                 OnObjectPlaced?.Invoke(hitPose.position, hitPose.rotation);
                 return true;
             }
@@ -524,10 +617,17 @@ namespace MiningSafetyAR.AR
         {
             if (spawnedObject != null)
             {
-                Debug.Log($"[INFO] [ARPlacementManager] Destroying spawned object '{spawnedObject.name}'");
+                Debug.Log($"[INFO] [ARPlacementManager] Destroying spawned ground hazard '{spawnedObject.name}'");
                 Destroy(spawnedObject);
                 spawnedObject = null;
                 spawnedAnchor = null;
+            }
+            if (spawnedWallObject != null)
+            {
+                Debug.Log($"[INFO] [ARPlacementManager] Destroying spawned wall extinguisher '{spawnedWallObject.name}'");
+                Destroy(spawnedWallObject);
+                spawnedWallObject = null;
+                spawnedWallAnchor = null;
             }
             ResetPlacementTimer();
         }

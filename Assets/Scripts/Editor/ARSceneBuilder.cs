@@ -213,12 +213,18 @@ namespace MiningSafetyAR.Editor
                 Debug.Log("[ARSceneBuilder] Assigned Placement Indicator to ARPlacementManager.");
             }
 
-            // 7. Ensure Placement Equipment Prefab exists and is assigned
+            // 7. Ensure Placement Equipment Prefabs exist and are assigned
             GameObject placementPrefab = EnsureSamplePlacementPrefab();
             if (placementPrefab != null)
             {
                 placementManager.DefaultPlacementPrefab = placementPrefab;
-                Debug.Log($"[ARSceneBuilder] Assigned '{placementPrefab.name}' as placement prefab to ARPlacementManager.");
+                Debug.Log($"[ARSceneBuilder] Assigned '{placementPrefab.name}' as ground placement prefab to ARPlacementManager.");
+            }
+
+            if (extPrefab != null && placementManager.WallExtinguisherPrefab == null)
+            {
+                placementManager.WallExtinguisherPrefab = extPrefab;
+                Debug.Log($"[ARSceneBuilder] Assigned '{extPrefab.name}' as wall extinguisher prefab to ARPlacementManager.");
             }
 
             // 8. Setup Managers GameObject
