@@ -39,6 +39,8 @@ Thumbs.db
 # Log files
 device_logs.txt
 device_logs.txt.tmp
+extinguisher_logs.txt
+extinguisher_logs.txt.tmp
 MiningSafetyAR_AllCodeSummary.txt
 
 # XR Temp
