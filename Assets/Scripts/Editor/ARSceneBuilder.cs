@@ -24,6 +24,40 @@ namespace MiningSafetyAR.Editor
 {
     public class ARSceneBuilder : EditorWindow
     {
+        [InitializeOnLoadMethod]
+        public static void ForceIncludeURPLitShader()
+        {
+            Shader urpLit = Shader.Find("Universal Render Pipeline/Lit");
+            if (urpLit == null) return;
+
+            Object graphicsSettings = AssetDatabase.LoadAssetAtPath<Object>("ProjectSettings/GraphicsSettings.asset");
+            if (graphicsSettings != null)
+            {
+                SerializedObject serializedSettings = new SerializedObject(graphicsSettings);
+                SerializedProperty arrayProp = serializedSettings.FindProperty("m_AlwaysIncludedShaders");
+                if (arrayProp != null)
+                {
+                    bool exists = false;
+                    for (int i = 0; i < arrayProp.arraySize; i++)
+                    {
+                        if (arrayProp.GetArrayElementAtIndex(i).objectReferenceValue == urpLit)
+                        {
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists)
+                    {
+                        arrayProp.InsertArrayElementAtIndex(arrayProp.arraySize);
+                        arrayProp.GetArrayElementAtIndex(arrayProp.arraySize - 1).objectReferenceValue = urpLit;
+                        serializedSettings.ApplyModifiedProperties();
+                        AssetDatabase.SaveAssets();
+                        Debug.Log("[ARSceneBuilder] Successfully added 'Universal Render Pipeline/Lit' shader to Always Included Shaders in Graphics Settings!");
+                    }
+                }
+            }
+        }
+
         [MenuItem("Mining Safety AR/Setup Core AR Scene")]
         public static void SetupARScene()
         {
@@ -570,7 +604,7 @@ namespace MiningSafetyAR.Editor
             }
             if (reticleMat != null)
             {
-                reticleMat.color = new Color(0.0f, 1.0f, 0.5f, 0.7f); // Bright Emerald Green Reticle
+                reticleMat.color = new Color(0.0f, 0.0f, 0.0f, 0.0f); // Fully Transparent Reticle (Hidden per user request)
                 reticleMat.SetFloat("_Surface", 1f);
                 reticleMat.SetFloat("_Blend", 0f);
                 reticleMat.SetOverrideTag("RenderType", "Transparent");
@@ -609,10 +643,16 @@ namespace MiningSafetyAR.Editor
 
         private static GameObject EnsureSamplePlacementPrefab()
         {
+            GameObject firePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Vefects/Free Fire VFX URP/Particles/VFX_Fire_Floor_01_Simple.prefab");
+            if (firePrefab != null)
+            {
+                Debug.Log("[ARSceneBuilder] Loaded and assigned Vefects VFX_Fire_Floor_01_Simple.prefab as default placement object.");
+                return firePrefab;
+            }
+
             GameObject dogPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Dog/DogPrefab_Parent.prefab");
             if (dogPrefab != null)
             {
-                Debug.Log("[ARSceneBuilder] Loaded and assigned DogPrefab_Parent.prefab as the default placement object.");
                 return dogPrefab;
             }
 
@@ -662,43 +702,31 @@ namespace MiningSafetyAR.Editor
         {
             string folderPath = "Assets/Prefabs";
             string prefabPath = "Assets/Prefabs/FireExtinguisherModel.prefab";
-            string materialPath = "Assets/Prefabs/FireExtinguisherMaterial.mat";
+            string resourcesFolderPath = "Assets/Resources";
+            string resourcesPrefabPath = "Assets/Resources/FireExtinguisherModel.prefab";
 
             if (!Directory.Exists(folderPath))
             {
                 Directory.CreateDirectory(folderPath);
-                AssetDatabase.Refresh();
             }
-
-            Material mat = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
-            if (mat == null)
+            if (!Directory.Exists(resourcesFolderPath))
             {
-                Shader defaultShader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-                if (defaultShader != null)
-                {
-                    mat = new Material(defaultShader);
-                    mat.color = new Color(1.0f, 0.15f, 0.15f); // Vivid Safety Red
-                    AssetDatabase.CreateAsset(mat, materialPath);
-                }
+                Directory.CreateDirectory(resourcesFolderPath);
             }
+            AssetDatabase.Refresh();
 
-            GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-            if (existingPrefab != null) return existingPrefab;
-
-            GameObject tempCylinder = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            tempCylinder.name = "Fire Extinguisher 3D";
-            tempCylinder.transform.localScale = new Vector3(0.35f, 0.35f, 0.35f);
-
-            MeshRenderer mr = tempCylinder.GetComponent<MeshRenderer>();
-            if (mr != null && mat != null)
+            // Create temporary container object and attach FireExtinguisherModelLoader
+            GameObject tempContainer = new GameObject("FireExtinguisherModel");
+            if (tempContainer.GetComponent<FireExtinguisherModelLoader>() == null)
             {
-                mr.sharedMaterial = mat;
+                tempContainer.AddComponent<FireExtinguisherModelLoader>();
             }
 
-            GameObject savedPrefab = PrefabUtility.SaveAsPrefabAsset(tempCylinder, prefabPath);
-            Object.DestroyImmediate(tempCylinder);
+            GameObject savedPrefab = PrefabUtility.SaveAsPrefabAsset(tempContainer, prefabPath);
+            PrefabUtility.SaveAsPrefabAsset(tempContainer, resourcesPrefabPath);
+            Object.DestroyImmediate(tempContainer);
 
-            Debug.Log($"[ARSceneBuilder] Auto-created FireExtinguisherModel prefab at {prefabPath}");
+            Debug.Log($"[ARSceneBuilder] Configured 3D glTF container FireExtinguisherModel prefab at {prefabPath} and {resourcesPrefabPath}");
             return savedPrefab;
         }
 
@@ -744,6 +772,169 @@ namespace MiningSafetyAR.Editor
 
             Debug.Log($"[ARSceneBuilder] Auto-created ExitSignModel prefab at {prefabPath}");
             return savedPrefab;
+        }
+
+        [MenuItem("Mining Safety AR/Add Vefects Fire VFX to Scene")]
+        public static void AddGroundFireParticlesToScene()
+        {
+            string vefectsPrefabPath = "Assets/Vefects/Free Fire VFX URP/Particles/VFX_Fire_Floor_01_Simple.prefab";
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(vefectsPrefabPath);
+            if (prefab != null)
+            {
+                GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                instance.name = "VFX_Fire_Floor_01_Simple";
+                instance.transform.position = new Vector3(0, 0, 1.5f);
+
+                GroundFireController controller = instance.GetComponent<GroundFireController>();
+                if (controller == null)
+                {
+                    controller = instance.AddComponent<GroundFireController>();
+                }
+
+                Undo.RegisterCreatedObjectUndo(instance, "Add Vefects Fire VFX to Scene");
+                Selection.activeGameObject = instance;
+                Debug.Log("[ARSceneBuilder] Added Vefects VFX_Fire_Floor_01_Simple to active Scene Hierarchy!");
+            }
+        }
+
+        [MenuItem("Mining Safety AR/Set Default AR Placement Prefab to Vefects Fire")]
+        public static void SetDefaultPlacementToGroundFire()
+        {
+            string vefectsPrefabPath = "Assets/Vefects/Free Fire VFX URP/Particles/VFX_Fire_Floor_01_Simple.prefab";
+            GameObject firePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(vefectsPrefabPath);
+            int updatedCount = 0;
+            
+            ARPlacementManager placementManager = Object.FindFirstObjectByType<ARPlacementManager>();
+            if (placementManager != null)
+            {
+                if (firePrefab != null) placementManager.DefaultPlacementPrefab = firePrefab;
+                placementManager.ActivePlacementMode = ARPlacementManager.PlacementTargetMode.GroundFireHazard;
+                EditorUtility.SetDirty(placementManager);
+                updatedCount++;
+            }
+
+            ARRaycastManager raycastManager = Object.FindFirstObjectByType<ARRaycastManager>();
+            if (raycastManager != null && firePrefab != null)
+            {
+                raycastManager.raycastPrefab = firePrefab;
+                EditorUtility.SetDirty(raycastManager);
+                updatedCount++;
+            }
+
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+            AssetDatabase.SaveAssets();
+
+            string msg = $"Successfully set Ground Fire Hazard ('VFX_Fire_Floor_01_Simple.prefab') as the active AR placement target on plane tap in scene '{UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}'!";
+            Debug.Log($"[ARSceneBuilder] {msg}");
+            EditorUtility.DisplayDialog("Mining Safety AR — Placement Mode", msg, "OK");
+        }
+
+        [MenuItem("Mining Safety AR/Set Default AR Placement Prefab to 3D Fire Extinguisher (Testing)")]
+        public static void SetDefaultPlacementToFireExtinguisherTesting()
+        {
+            string extPrefabPath = "Assets/Prefabs/FireExtinguisherModel.prefab";
+            GameObject extPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(extPrefabPath);
+            int updatedCount = 0;
+
+            ARPlacementManager placementManager = Object.FindFirstObjectByType<ARPlacementManager>();
+            if (placementManager != null && extPrefab != null)
+            {
+                placementManager.DefaultPlacementPrefab = extPrefab;
+                EditorUtility.SetDirty(placementManager);
+                updatedCount++;
+            }
+
+            ARRaycastManager raycastManager = Object.FindFirstObjectByType<ARRaycastManager>();
+            if (raycastManager != null && extPrefab != null)
+            {
+                raycastManager.raycastPrefab = extPrefab;
+                EditorUtility.SetDirty(raycastManager);
+                updatedCount++;
+            }
+
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+            AssetDatabase.SaveAssets();
+
+            string msg = $"Successfully set 3D Fire Extinguisher model ('FireExtinguisherModel.prefab') as active AR placement target for testing in scene '{UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}'!";
+            Debug.Log($"[ARSceneBuilder] {msg}");
+            EditorUtility.DisplayDialog("Mining Safety AR — Placement Mode (Testing)", msg, "OK");
+        }
+
+        [MenuItem("Mining Safety AR/Optimize Vefects Fire VFX for Mobile (ASTC & View Alignment)")]
+        public static void OptimizeVefectsFireVFXForMobile()
+        {
+            int updatedTexturesCount = 0;
+            int updatedParticleRenderersCount = 0;
+
+            // 1. Optimize Texture Importers under Assets/Vefects
+            string[] textureGuids = AssetDatabase.FindAssets("t:Texture", new string[] { "Assets/Vefects" });
+            foreach (string guid in textureGuids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+                if (importer != null)
+                {
+                    bool modified = false;
+
+                    if (importer.maxTextureSize > 512)
+                    {
+                        importer.maxTextureSize = 512;
+                        modified = true;
+                    }
+
+                    // Android Platform Override: ASTC_6x6 & Max Size 512
+                    TextureImporterPlatformSettings androidSettings = importer.GetPlatformTextureSettings("Android");
+                    if (!androidSettings.overridden || androidSettings.maxTextureSize > 512 || androidSettings.format != TextureImporterFormat.ASTC_6x6)
+                    {
+                        androidSettings.overridden = true;
+                        androidSettings.maxTextureSize = 512;
+                        androidSettings.format = TextureImporterFormat.ASTC_6x6;
+                        importer.SetPlatformTextureSettings(androidSettings);
+                        modified = true;
+                    }
+
+                    if (modified)
+                    {
+                        importer.SaveAndReimport();
+                        updatedTexturesCount++;
+                        Debug.Log($"[ARSceneBuilder] Configured Android ASTC_6x6 & MaxSize 512 on Vefects texture: {path}");
+                    }
+                }
+            }
+
+            // 2. Set ParticleSystemRenderer Render Alignment to View (Billboard Camera Facing)
+            string[] prefabGuids = AssetDatabase.FindAssets("t:Prefab", new string[] { "Assets/Vefects" });
+            foreach (string guid in prefabGuids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab != null)
+                {
+                    ParticleSystemRenderer[] renderers = prefab.GetComponentsInChildren<ParticleSystemRenderer>(true);
+                    bool modified = false;
+                    foreach (var psr in renderers)
+                    {
+                        if (psr != null && psr.alignment != ParticleSystemRenderSpace.View)
+                        {
+                            psr.alignment = ParticleSystemRenderSpace.View; // Billboard View Alignment
+                            EditorUtility.SetDirty(psr);
+                            updatedParticleRenderersCount++;
+                            modified = true;
+                        }
+                    }
+                    if (modified)
+                    {
+                        EditorUtility.SetDirty(prefab);
+                    }
+                }
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            string msg = $"Successfully optimized {updatedTexturesCount} Vefects textures (ASTC 6x6 / 512 Max Size) and {updatedParticleRenderersCount} ParticleSystemRenderers (View Alignment) for Mobile Android!";
+            Debug.Log($"[ARSceneBuilder] {msg}");
+            EditorUtility.DisplayDialog("Vefects Mobile Optimization Complete", msg, "OK");
         }
     }
 }
