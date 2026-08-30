@@ -9,50 +9,20 @@ EditorBuildSettings:
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
   - enabled: 1
-    path: Assets/Scenes/UI_Splash.unity
-    guid: 3172af54013330d4cad80da03d0b0496
+    path: Assets/UI/Scenes/Splash.unity
+    guid: aeabae02ea0795d4dbd2fbb271f76d16
   - enabled: 1
-    path: Assets/Scenes/UI_Login.unity
-    guid: 92199b08995d2854a9efea53eedbd4c6
+    path: Assets/UI/Scenes/Language.unity
+    guid: 0ec6b9f050c77414e8b0be4a8d38b518
   - enabled: 1
-    path: Assets/Scenes/UI_Register.unity
-    guid: 62b5da4bfee9b0646979edbb8f4f2977
+    path: Assets/UI/Scenes/Login.unity
+    guid: a052c5a2ef377cb4691e0d20b3c092d0
   - enabled: 1
-    path: Assets/Scenes/UI_Dashboard.unity
-    guid: 3235057e022d5184a8015f7ada26846a
+    path: Assets/UI/Scenes/MainMenu.unity
+    guid: 1af068105b1d0bb40a3e72689b694111
   - enabled: 1
     path: Assets/Scenes/AR Plane Detection Placement.unity
     guid: ade38218321fa40d799a24b91df34c94
-  - enabled: 1
-    path: Assets/Scenes/UI_TrainingCatalogue.unity
-    guid: 53710c03876532f48aaad6e4a84a9847
-  - enabled: 1
-    path: Assets/Scenes/UI_ModuleDetail.unity
-    guid: 95106283642c7534d80cd63498dc3978
-  - enabled: 1
-    path: Assets/Scenes/UI_Progress.unity
-    guid: 54d1d33fe6f3ab844847a6188937cb5a
-  - enabled: 1
-    path: Assets/Scenes/UI_Settings.unity
-    guid: 922f802cce81ea64f9802cd573727ff7
-  - enabled: 1
-    path: Assets/Scenes/UI_LearningContent.unity
-    guid: ccaa1c6fe0c12f043aa7aa6694a935f1
-  - enabled: 1
-    path: Assets/Scenes/UI_ARSimulation.unity
-    guid: c7d51dd814519fd41a3e3f00734da6d9
-  - enabled: 1
-    path: Assets/Scenes/UI_Assessment.unity
-    guid: e4a9c9ffc407bc1469ca02398d96a66b
-  - enabled: 1
-    path: Assets/Scenes/UI_Results.unity
-    guid: fdd8db2d2fd12b140947329edde0f07d
-  - enabled: 1
-    path: Assets/Scenes/UI_Certificate.unity
-    guid: 4d9d98326722a7e4dbb23fb0f85d56c7
-  - enabled: 1
-    path: Assets/Scenes/UI_QRVerify.unity
-    guid: ec1a34f9b31d16a459c3eb78162eed6d
   m_configObjects:
     UnityEditor.XR.ARCore.ARCoreSettings: {fileID: 11400000, guid: cbd3db67e59464d9585bd5c5b65740f3, type: 2}
     UnityEditor.XR.ARKit.ARKitSettings: {fileID: 11400000, guid: 17fbec4aee5fc4d89825583c1899c827, type: 2}
