@@ -1,0 +1,126 @@
+/* Icons.uss — Sprite icons for MiningSafetyAR */
+
+/* Bottom Nav Icons (24x24) */
+.icon-home {
+    width: 24px;
+    height: 24px;
+    background-image: resource("Icons/icon_home");
+    background-size: scale-to-fill;
+}
+.icon-training {
+    width: 24px;
+    height: 24px;
+    background-image: resource("Icons/icon_training");
+    background-size: scale-to-fill;
+}
+.icon-progress {
+    width: 24px;
+    height: 24px;
+    background-image: resource("Icons/icon_progress");
+    background-size: scale-to-fill;
+}
+.icon-settings {
+    width: 24px;
+    height: 24px;
+    background-image: resource("Icons/icon_settings");
+    background-size: scale-to-fill;
+}
+
+/* Module Card Icons (48x48) */
+.module-icon-fire {
+    width: 48px;
+    height: 48px;
+    background-image: resource("Icons/module_fire");
+    background-size: scale-to-fill;
+}
+.module-icon-gas {
+    width: 48px;
+    height: 48px;
+    background-image: resource("Icons/module_gas");
+    background-size: scale-to-fill;
+}
+.module-icon-machinery {
+    width: 48px;
+    height: 48px;
+    background-image: resource("Icons/module_machinery");
+    background-size: scale-to-fill;
+}
+.module-icon-electrical {
+    width: 48px;
+    height: 48px;
+    background-image: resource("Icons/module_electrical");
+    background-size: scale-to-fill;
+}
+.module-icon-heights {
+    width: 48px;
+    height: 48px;
+    background-image: resource("Icons/module_heights");
+    background-size: scale-to-fill;
+}
+.module-icon-default {
+    width: 48px;
+    height: 48px;
+    background-image: resource("Icons/module_fire");
+    background-size: scale-to-fill;
+}
+
+/* Splash / Login Logo (64x64) */
+.logo-shield {
+    width: 64px;
+    height: 64px;
+    background-image: resource("Icons/logo_shield");
+    background-size: scale-to-fill;
+}
+
+/* Dashboard Icons (32x32) */
+.avatar-worker {
+    width: 32px;
+    height: 32px;
+    background-image: resource("Icons/avatar_worker");
+    background-size: scale-to-fill;
+}
+.icon-trophy {
+    width: 32px;
+    height: 32px;
+    background-image: resource("Icons/icon_trophy");
+    background-size: scale-to-fill;
+}
+
+/* Learning Content Slide Icons (48x48) */
+.slide-icon-fire { width: 48px; height: 48px; background-image: resource("Icons/slide_fire"); background-size: scale-to-fill; }
+.slide-icon-extinguisher { width: 48px; height: 48px; background-image: resource("Icons/slide_extinguisher"); background-size: scale-to-fill; }
+.slide-icon-evacuation { width: 48px; height: 48px; background-image: resource("Icons/slide_evacuation"); background-size: scale-to-fill; }
+.slide-icon-gas { width: 48px; height: 48px; background-image: resource("Icons/slide_gas"); background-size: scale-to-fill; }
+.slide-icon-ppe { width: 48px; height: 48px; background-image: resource("Icons/slide_ppe"); background-size: scale-to-fill; }
+.slide-icon-confined { width: 48px; height: 48px; background-image: resource("Icons/slide_confined"); background-size: scale-to-fill; }
+.slide-icon-lockout { width: 48px; height: 48px; background-image: resource("Icons/slide_lockout"); background-size: scale-to-fill; }
+.slide-icon-guarding { width: 48px; height: 48px; background-image: resource("Icons/slide_guarding"); background-size: scale-to-fill; }
+.slide-icon-operation { width: 48px; height: 48px; background-image: resource("Icons/slide_operation"); background-size: scale-to-fill; }
+.slide-icon-electrical { width: 48px; height: 48px; background-image: resource("Icons/slide_electrical"); background-size: scale-to-fill; }
+.slide-icon-gloves { width: 48px; height: 48px; background-image: resource("Icons/slide_gloves"); background-size: scale-to-fill; }
+.slide-icon-fall { width: 48px; height: 48px; background-image: resource("Icons/slide_fall"); background-size: scale-to-fill; }
+.slide-icon-ladder { width: 48px; height: 48px; background-image: resource("Icons/slide_ladder"); background-size: scale-to-fill; }
+.slide-icon-tip { width: 24px; height: 24px; background-image: resource("Icons/slide_tip"); background-size: scale-to-fill; }
+
+/* AR Simulation Icons (48x48) */
+.ar-icon-scan { width: 48px; height: 48px; background-image: resource("Icons/ar_scan"); background-size: scale-to-fill; }
+.ar-icon-move { width: 48px; height: 48px; background-image: resource("Icons/ar_move"); background-size: scale-to-fill; }
+.ar-icon-check { width: 48px; height: 48px; background-image: resource("Icons/ar_check"); background-size: scale-to-fill; }
+.ar-icon-fire { width: 48px; height: 48px; background-image: resource("Icons/ar_fire"); background-size: scale-to-fill; }
+.ar-icon-extinguisher { width: 48px; height: 48px; background-image: resource("Icons/ar_extinguisher"); background-size: scale-to-fill; }
+.ar-icon-unlock { width: 48px; height: 48px; background-image: resource("Icons/ar_unlock"); background-size: scale-to-fill; }
+.ar-icon-spray { width: 48px; height: 48px; background-image: resource("Icons/ar_spray"); background-size: scale-to-fill; }
+
+/* Misc Icons (24x24) */
+.icon-back { width: 24px; height: 24px; background-image: resource("Icons/icon_back"); background-size: scale-to-fill; }
+.icon-eye { width: 24px; height: 24px; background-image: resource("Icons/icon_eye"); background-size: scale-to-fill; }
+.icon-search { width: 24px; height: 24px; background-image: resource("Icons/icon_search"); background-size: scale-to-fill; }
+.icon-lock { width: 24px; height: 24px; background-image: resource("Icons/icon_lock"); background-size: scale-to-fill; }
+
+/* App Icon (128x128) */
+.app-icon {
+    width: 128px;
+    height: 128px;
+    background-image: resource("Icons/app_icon");
+    background-size: scale-to-fill;
+}

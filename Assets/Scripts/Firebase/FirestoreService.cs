@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -7,10 +8,14 @@ using UnityEngine.Networking;
 namespace MiningSafetyAR.Firebase
 {
     /// <summary>
-    /// Firestore REST service — works without Firestore SDK (uses UnityWebRequest).
-    /// Project: minesafetyar (193064823382), package com.company.minear
-    /// Collections: workers/{uid}, trainingResults/{id}, certificates/{id}
-    /// Auth: Bearer ID token if logged in (optional for open rules).
+    /// Centralized Firestore REST service. All reads/writes go through here.
+    ///
+    /// Schema:
+    ///   workers/{uid}                      – profile fields only
+    ///   workers/{uid}/progress/{moduleId}  – one doc per module
+    ///   trainingResults/{resultId}         – quiz results
+    ///
+    /// No SDK required — uses UnityWebRequest + REST API.
     /// </summary>
     public class FirestoreService : MonoBehaviour
     {
@@ -18,7 +23,6 @@ namespace MiningSafetyAR.Firebase
 
         private const string PROJECT_ID = "minesafetyar";
         private const string BASE_URL = "https://firestore.googleapis.com/v1/projects/minesafetyar/databases/(default)/documents";
-        // Firebase API key from google-services.json — used as ?key= for unauthenticated REST fallback
         private const string API_KEY = "AIzaSyBxhWZvIqgIMP1niRSc_H2iRMkdDLNdybI";
 
         void Awake()
@@ -28,167 +32,452 @@ namespace MiningSafetyAR.Firebase
             DontDestroyOnLoad(gameObject);
         }
 
-        // --------------------------------------------------------------------
-        // GENERIC REST HELPERS
-        // --------------------------------------------------------------------
+        // ----------------------------------------------------------------
+        // GENERIC REST
+        // ----------------------------------------------------------------
 
-        IEnumerator PutDocument(string path, string json, Action<bool, string> callback, bool useAuth = true)
+        IEnumerator PatchDocument(string path, string json, Action<bool, string> cb, bool useAuth = true)
         {
-            // path e.g. "workers/abc123"  ->  BASE_URL/workers/abc123?key=...
             string url = $"{BASE_URL}/{path}?key={API_KEY}";
-            // Firestore REST expects document fields wrapper, but for our simple JsonUtility objects
-            // we can PUT the raw JSON if we bypass field conversion by using PATCH with document?
-            // Simpler: use PATCH with document fields auto-created via our own wrapper.
-            // For Phase 0 verification we store raw JSON as a single document via POST semantics using PUT to collection/doc.
-            // Firestore REST requires ?key or Bearer token. We try with API key, then with ID token if available.
-
-            // Wrap json into Firestore document format if needed — here we send raw and let Firestore infer via alternative endpoint:
-            // Alternative: Use Firestore REST "documents:commit" is heavy. For demo, we use Firebase Firestore via WebAPI with structured fields.
-            // Minimal working PUT: send {"fields": {...}} — so we convert flat json to fields.
-
             string firestoreJson = ConvertToFirestoreFields(json);
-            Debug.Log($"[Firestore] PUT {url}\n{firestoreJson.Substring(0, Math.Min(500, firestoreJson.Length))}");
+            Debug.Log($"[Firestore] PATCH {path} ({firestoreJson.Length} bytes)");
 
             using var req = new UnityWebRequest(url, "PATCH");
-            byte[] body = Encoding.UTF8.GetBytes(firestoreJson);
-            req.uploadHandler = new UploadHandlerRaw(body);
+            req.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(firestoreJson));
             req.downloadHandler = new DownloadHandlerBuffer();
             req.SetRequestHeader("Content-Type", "application/json");
 
-            // Attach ID token if logged in for secured rules
-            if (useAuth && FirebaseAuthManager.Instance != null && FirebaseAuthManager.Instance.IsLoggedIn)
-            {
-                bool tokenDone = false;
-                string token = null;
-                FirebaseAuthManager.Instance.GetIdToken(t => { token = t; tokenDone = true; });
-                yield return new WaitUntil(() => tokenDone);
-                if (!string.IsNullOrEmpty(token))
-                    req.SetRequestHeader("Authorization", "Bearer " + token);
-            }
+            if (useAuth) yield return AttachAuthToken(req);
 
             yield return req.SendWebRequest();
 
             if (req.result == UnityWebRequest.Result.Success)
             {
-                Debug.Log($"[Firestore] PUT OK {path}: {req.downloadHandler.text.Substring(0, Math.Min(400, req.downloadHandler.text.Length))}");
-                callback?.Invoke(true, req.downloadHandler.text);
+                Debug.Log($"[Firestore] PATCH OK {path}");
+                cb?.Invoke(true, req.downloadHandler.text);
             }
             else
             {
-                Debug.LogError($"[Firestore] PUT FAILED {path}: {req.error} | {req.downloadHandler.text} | code={req.responseCode}");
-                callback?.Invoke(false, req.error + " | " + req.downloadHandler.text);
+                Debug.LogError($"[Firestore] PATCH FAIL {path}: {req.error} | {req.downloadHandler.text}");
+                cb?.Invoke(false, req.error + "|" + req.downloadHandler.text);
             }
         }
 
-        IEnumerator GetDocument(string path, Action<bool, string> callback, bool useAuth = true)
+        IEnumerator GetDocument(string path, Action<bool, string> cb, bool useAuth = true)
         {
             string url = $"{BASE_URL}/{path}?key={API_KEY}";
             using var req = UnityWebRequest.Get(url);
             req.SetRequestHeader("Content-Type", "application/json");
 
-            if (useAuth && FirebaseAuthManager.Instance != null && FirebaseAuthManager.Instance.IsLoggedIn)
-            {
-                bool tokenDone = false;
-                string token = null;
-                FirebaseAuthManager.Instance.GetIdToken(t => { token = t; tokenDone = true; });
-                yield return new WaitUntil(() => tokenDone);
-                if (!string.IsNullOrEmpty(token))
-                    req.SetRequestHeader("Authorization", "Bearer " + token);
-            }
+            if (useAuth) yield return AttachAuthToken(req);
 
             yield return req.SendWebRequest();
 
             if (req.result == UnityWebRequest.Result.Success)
             {
                 Debug.Log($"[Firestore] GET OK {path}");
-                callback?.Invoke(true, req.downloadHandler.text);
+                cb?.Invoke(true, req.downloadHandler.text);
             }
             else
             {
-                Debug.LogWarning($"[Firestore] GET FAILED {path}: {req.error} | {req.downloadHandler.text} | code={req.responseCode}");
-                callback?.Invoke(false, req.error + " | " + req.downloadHandler.text);
+                Debug.LogWarning($"[Firestore] GET FAIL {path}: {req.error} | {req.downloadHandler.text}");
+                cb?.Invoke(false, req.error + "|" + req.downloadHandler.text);
             }
         }
 
-        // Convert flat JSON {"id":"JH","name":"R"} to Firestore fields {"fields":{"id":{"stringValue":"JH"},"name":{"stringValue":"R"}}}
-        // Very light converter — handles string/int/float/bool only, enough for Phase 0 verification.
+        IEnumerator DeleteDocument(string path, Action<bool, string> cb, bool useAuth = true)
+        {
+            string url = $"{BASE_URL}/{path}?key={API_KEY}";
+            using var req = new UnityWebRequest(url, "DELETE");
+            req.downloadHandler = new DownloadHandlerBuffer();
+
+            if (useAuth) yield return AttachAuthToken(req);
+
+            yield return req.SendWebRequest();
+
+            if (req.result == UnityWebRequest.Result.Success)
+            {
+                Debug.Log($"[Firestore] DELETE OK {path}");
+                cb?.Invoke(true, "");
+            }
+            else
+            {
+                Debug.LogWarning($"[Firestore] DELETE FAIL {path}: {req.error}");
+                cb?.Invoke(false, req.error);
+            }
+        }
+
+        IEnumerator RunQuery(string collectionPath, string orderBy, int limit, Action<bool, List<Dictionary<string, object>>> cb, bool useAuth = true)
+        {
+            // Use structured query via documents:runQuery
+            string url = $"{BASE_URL}/{collectionPath}:runQuery?key={API_KEY}";
+            var queryBody = new StringBuilder("{");
+            queryBody.Append("\"from\":[{\"collectionId\":\"" + collectionPath.Split('/')[^1] + "\"}]");
+            if (!string.IsNullOrEmpty(orderBy))
+                queryBody.Append(",\"orderBy\":[{\"field\":{\"fieldPath\":\"" + orderBy + "\"},\"direction\":\"DESCENDING\"}]");
+            if (limit > 0)
+                queryBody.Append(",\"limit\":" + limit);
+            queryBody.Append("}");
+
+            using var req = new UnityWebRequest(url, "POST");
+            req.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(queryBody.ToString()));
+            req.downloadHandler = new DownloadHandlerBuffer();
+            req.SetRequestHeader("Content-Type", "application/json");
+
+            if (useAuth) yield return AttachAuthToken(req);
+
+            yield return req.SendWebRequest();
+
+            var results = new List<Dictionary<string, object>>();
+            if (req.result == UnityWebRequest.Result.Success)
+            {
+                // Response is a JSON array of objects, each with "document" or "readTime"
+                var arr = MiniJSON.Json.Deserialize(req.downloadHandler.text) as List<object>;
+                if (arr != null)
+                {
+                    foreach (var item in arr)
+                    {
+                        var dict = item as Dictionary<string, object>;
+                        if (dict != null && dict.ContainsKey("document"))
+                        {
+                            var doc = dict["document"] as Dictionary<string, object>;
+                            if (doc != null) results.Add(doc);
+                        }
+                    }
+                }
+                cb?.Invoke(true, results);
+            }
+            else
+            {
+                Debug.LogWarning($"[Firestore] QUERY FAIL {collectionPath}: {req.error}");
+                cb?.Invoke(false, results);
+            }
+        }
+
+        IEnumerator AttachAuthToken(UnityWebRequest req)
+        {
+            if (FirebaseAuthManager.Instance == null || !FirebaseAuthManager.Instance.IsLoggedIn)
+                yield break;
+            bool done = false;
+            string token = null;
+            FirebaseAuthManager.Instance.GetIdToken(t => { token = t; done = true; });
+            yield return new WaitUntil(() => done);
+            if (!string.IsNullOrEmpty(token))
+                req.SetRequestHeader("Authorization", "Bearer " + token);
+        }
+
+        // ----------------------------------------------------------------
+        // JSON -> FIRESTORE FIELDS CONVERSION
+        // ----------------------------------------------------------------
+
         string ConvertToFirestoreFields(string flatJson)
         {
             try
             {
-                var dict = MiniJSON.Json.Deserialize(flatJson) as System.Collections.Generic.Dictionary<string, object>;
-                if (dict == null) return "{\"fields\":{}}";
+                var obj = MiniJSON.Json.Deserialize(flatJson) as Dictionary<string, object>;
+                if (obj == null) return "{\"fields\":{}}";
                 var sb = new StringBuilder("{\"fields\":{");
-                bool first = true;
-                foreach (var kv in dict)
-                {
-                    if (!first) sb.Append(",");
-                    first = false;
-                    sb.Append($"\"{kv.Key}\":");
-                    if (kv.Value is string s) sb.Append($"{{\"stringValue\":\"{Escape(s)}\"}}");
-                    else if (kv.Value is bool b) sb.Append($"{{\"booleanValue\":{(b ? "true" : "false")}}}");
-                    else if (kv.Value is long || kv.Value is int) sb.Append($"{{\"integerValue\":\"{kv.Value}\"}}");
-                    else if (kv.Value is double || kv.Value is float) sb.Append($"{{\"doubleValue\":{kv.Value}}}");
-                    else if (kv.Value == null) sb.Append("{\"nullValue\":null}");
-                    else sb.Append($"{{\"stringValue\":\"{Escape(kv.Value.ToString())}\"}}");
-                }
+                ConvertObject(sb, obj);
                 sb.Append("}}");
                 return sb.ToString();
             }
             catch (Exception e)
             {
-                Debug.LogWarning($"[Firestore] Convert fallback raw: {e.Message}");
+                Debug.LogWarning($"[Firestore] ConvertToFirestoreFields fallback: {e.Message}");
                 return "{\"fields\":{}}";
             }
         }
 
-        string Escape(string s) => s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n");
+        void ConvertObject(StringBuilder sb, Dictionary<string, object> dict)
+        {
+            bool first = true;
+            foreach (var kv in dict)
+            {
+                if (!first) sb.Append(",");
+                first = false;
+                sb.Append($"\"{kv.Key}\":");
+                ConvertValue(sb, kv.Value);
+            }
+        }
 
-        // --------------------------------------------------------------------
-        // PUBLIC API — generic documents (Phase 0 verification)
-        // --------------------------------------------------------------------
+        void ConvertValue(StringBuilder sb, object value)
+        {
+            if (value == null)
+                sb.Append("{\"nullValue\":null}");
+            else if (value is string s)
+                sb.Append($"{{\"stringValue\":\"{Escape(s)}\"}}");
+            else if (value is bool b)
+                sb.Append($"{{\"booleanValue\":{(b ? "true" : "false")}}}");
+            else if (value is int || value is long)
+                sb.Append($"{{\"integerValue\":\"{value}\"}}");
+            else if (value is double || value is float)
+                sb.Append($"{{\"doubleValue\":{value}}}");
+            else if (value is Dictionary<string, object> nested)
+            {
+                // Nested object — recurse
+                sb.Append("{\"mapValue\":{\"fields\":{");
+                ConvertObject(sb, nested);
+                sb.Append("}}}");
+            }
+            else if (value is List<object> list)
+            {
+                // Array — convert to Firestore arrayValue
+                sb.Append("{\"arrayValue\":{\"values\":[");
+                bool first = true;
+                foreach (var item in list)
+                {
+                    if (!first) sb.Append(",");
+                    first = false;
+                    ConvertValue(sb, item);
+                }
+                sb.Append("]}}");
+            }
+            else
+                sb.Append($"{{\"stringValue\":\"{Escape(value.ToString())}\"}}");
+        }
+
+        string Escape(string s) => s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "");
+
+        // ----------------------------------------------------------------
+        // FIRESTORE FIELDS -> DICTIONARY PARSING
+        // ----------------------------------------------------------------
+
+        public static Dictionary<string, object> ParseFirestoreFields(string firestoreJson)
+        {
+            try
+            {
+                var root = MiniJSON.Json.Deserialize(firestoreJson) as Dictionary<string, object>;
+                if (root != null && root.TryGetValue("fields", out var fieldsObj))
+                    return fieldsObj as Dictionary<string, object>;
+                // Might be a raw document without "fields" wrapper
+                return root;
+            }
+            catch { return null; }
+        }
+
+        public static string GetstringValue(Dictionary<string, object> fields, string key)
+        {
+            if (fields == null || !fields.TryGetValue(key, out var v)) return "";
+            if (v is Dictionary<string, object> d)
+            {
+                if (d.TryGetValue("stringValue", out var sv)) return sv as string ?? "";
+                if (d.TryGetValue("integerValue", out var iv)) return iv.ToString();
+                if (d.TryGetValue("doubleValue", out var dv)) return dv.ToString();
+                if (d.TryGetValue("booleanValue", out var bv)) return bv.ToString();
+            }
+            return v?.ToString() ?? "";
+        }
+
+        public static int GetintValue(Dictionary<string, object> fields, string key)
+        {
+            if (fields == null || !fields.TryGetValue(key, out var v)) return 0;
+            if (v is Dictionary<string, object> d)
+            {
+                if (d.TryGetValue("integerValue", out var iv) && int.TryParse(iv.ToString(), out int i)) return i;
+                if (d.TryGetValue("stringValue", out var sv) && int.TryParse(sv.ToString(), out int i2)) return i2;
+                if (d.TryGetValue("doubleValue", out var dv) && int.TryParse(dv.ToString(), out int i3)) return i3;
+            }
+            return 0;
+        }
+
+        public static bool GetboolValue(Dictionary<string, object> fields, string key)
+        {
+            if (fields == null || !fields.TryGetValue(key, out var v)) return false;
+            if (v is Dictionary<string, object> d && d.TryGetValue("booleanValue", out var bv))
+                return bv is bool b ? b : bool.TryParse(bv.ToString(), out var br) && br;
+            return false;
+        }
+
+        public static Dictionary<string, object> GetmapValue(Dictionary<string, object> fields, string key)
+        {
+            if (fields == null || !fields.TryGetValue(key, out var v)) return null;
+            if (v is Dictionary<string, object> d && d.TryGetValue("mapValue", out var mv))
+            {
+                if (mv is Dictionary<string, object> mapVal && mapVal.TryGetValue("fields", out var mapFields))
+                    return mapFields as Dictionary<string, object>;
+            }
+            return null;
+        }
+
+        public static List<Dictionary<string, object>> GetarrayValues(Dictionary<string, object> fields, string key)
+        {
+            var result = new List<Dictionary<string, object>>();
+            if (fields == null || !fields.TryGetValue(key, out var v)) return result;
+            if (v is Dictionary<string, object> d && d.TryGetValue("arrayValue", out var av))
+            {
+                if (av is Dictionary<string, object> arrVal && arrVal.TryGetValue("values", out var valuesObj) && valuesObj is List<object> values)
+                {
+                    foreach (var item in values)
+                    {
+                        if (item is Dictionary<string, object> itemDict && itemDict.TryGetValue("mapValue", out var itemMv))
+                        {
+                            if (itemMv is Dictionary<string, object> itemMapVal && itemMapVal.TryGetValue("fields", out var itemFields))
+                                result.Add(itemFields as Dictionary<string, object>);
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
+        // ----------------------------------------------------------------
+        // WORKER PROFILE
+        // ----------------------------------------------------------------
+
+        public void SaveWorker(string firebaseUid, string flatJson, Action<bool, string> cb = null)
+        {
+            StartCoroutine(PatchDocument($"workers/{firebaseUid}", flatJson, cb));
+        }
+
+        public void GetWorker(string firebaseUid, Action<bool, string> cb)
+        {
+            StartCoroutine(GetDocument($"workers/{firebaseUid}", cb));
+        }
+
+        // ----------------------------------------------------------------
+        // MODULE PROGRESS  (subcollection: workers/{uid}/progress/{moduleId})
+        // ----------------------------------------------------------------
+
+        public void SaveModuleProgress(string firebaseUid, string moduleId, string flatJson, Action<bool, string> cb = null)
+        {
+            StartCoroutine(PatchDocument($"workers/{firebaseUid}/progress/{moduleId}", flatJson, cb));
+        }
+
+        public void GetModuleProgress(string firebaseUid, string moduleId, Action<bool, string> cb)
+        {
+            StartCoroutine(GetDocument($"workers/{firebaseUid}/progress/{moduleId}", cb));
+        }
+
+        public void GetAllModuleProgress(string firebaseUid, Action<bool, List<Dictionary<string, object>>> cb)
+        {
+            // List all documents in workers/{uid}/progress subcollection
+            string url = $"{BASE_URL}/workers/{firebaseUid}/progress?key={API_KEY}";
+            StartCoroutine(ListCollection(url, cb));
+        }
+
+        public void DeleteModuleProgress(string firebaseUid, string moduleId, Action<bool, string> cb = null)
+        {
+            StartCoroutine(DeleteDocument($"workers/{firebaseUid}/progress/{moduleId}", cb));
+        }
+
+        IEnumerator ListCollection(string url, Action<bool, List<Dictionary<string, object>>> cb, bool useAuth = true)
+        {
+            using var req = UnityWebRequest.Get(url);
+            req.SetRequestHeader("Content-Type", "application/json");
+            if (useAuth) yield return AttachAuthToken(req);
+            yield return req.SendWebRequest();
+
+            var results = new List<Dictionary<string, object>>();
+            if (req.result == UnityWebRequest.Result.Success)
+            {
+                var root = MiniJSON.Json.Deserialize(req.downloadHandler.text) as Dictionary<string, object>;
+                if (root != null && root.TryGetValue("documents", out var docsObj) && docsObj is List<object> docs)
+                {
+                    foreach (var doc in docs)
+                    {
+                        var docDict = doc as Dictionary<string, object>;
+                        if (docDict != null) results.Add(docDict);
+                    }
+                }
+                cb?.Invoke(true, results);
+            }
+            else
+            {
+                Debug.LogWarning($"[Firestore] LIST FAIL: {req.error}");
+                cb?.Invoke(false, results);
+            }
+        }
+
+        // ----------------------------------------------------------------
+        // TRAINING RESULTS (subcollection: workers/{uid}/results/{resultId})
+        // ----------------------------------------------------------------
+
+        public void SaveTrainingResult(string firebaseUid, string resultId, string flatJson, Action<bool, string> cb = null)
+        {
+            StartCoroutine(PatchDocument($"workers/{firebaseUid}/results/{resultId}", flatJson, cb));
+        }
+
+        public void GetAllTrainingResults(string firebaseUid, Action<bool, List<Dictionary<string, object>>> cb)
+        {
+            string url = $"{BASE_URL}/workers/{firebaseUid}/results?key={API_KEY}";
+            StartCoroutine(ListCollection(url, cb));
+        }
+
+        // ----------------------------------------------------------------
+        // LEGACY COMPAT (kept for Phase 0 tester — delegates to typed methods)
+        // ----------------------------------------------------------------
 
         public void SaveTestDocument(string collection, string docId, string json, Action<bool, string> callback = null)
         {
-            StartCoroutine(PutDocument($"{collection}/{docId}", json, (ok, resp) => callback?.Invoke(ok, resp)));
+            StartCoroutine(PatchDocument($"{collection}/{docId}", json, callback));
         }
 
         public void GetTestDocument(string collection, string docId, Action<bool, string> callback)
         {
-            StartCoroutine(GetDocument($"{collection}/{docId}", (ok, resp) => callback?.Invoke(ok, resp)));
+            StartCoroutine(GetDocument($"{collection}/{docId}", callback));
         }
 
-        // --------------------------------------------------------------------
-        // Typed helpers (will be used from Phase 1+ via AppDataService)
-        // --------------------------------------------------------------------
-
-        public void SaveWorkerJson(string firebaseUid, string workerJson, Action<bool, string> cb = null)
-        {
-            // Use PATCH to create/update workers/{uid}
-            StartCoroutine(PutDocument($"workers/{firebaseUid}", workerJson, (ok, r) => cb?.Invoke(ok, r)));
-        }
-
-        public void GetWorkerJson(string firebaseUid, Action<bool, string> cb)
-        {
-            StartCoroutine(GetDocument($"workers/{firebaseUid}", (ok, r) => cb?.Invoke(ok, r)));
-        }
-
-        // Exposed for tester: save arbitrary JSON under test collection for verification without touching real data
         public void SaveRaw(string path, string flatJson, Action<bool, string> cb)
         {
-            StartCoroutine(PutDocument(path, flatJson, (ok, r) => cb?.Invoke(ok, r)));
+            StartCoroutine(PatchDocument(path, flatJson, cb));
         }
     }
 
-    // Light MiniJSON — embed to avoid dependency on Firebase's Google.MiniJson
-    // We reuse the one from Firebase DLL if available, else fallback to simple.
+    // ----------------------------------------------------------------
+    // Minimal JSON parser (uses Firebase's Google.MiniJSON if available)
+    // ----------------------------------------------------------------
     internal static class MiniJSON
     {
         public static class Json
         {
+            public static string Serialize(object obj)
+            {
+                var sb = new StringBuilder();
+                SerializeValue(sb, obj);
+                return sb.ToString();
+            }
+
+            static void SerializeValue(StringBuilder sb, object value)
+            {
+                if (value == null) { sb.Append("null"); return; }
+                if (value is string s) { sb.Append($"\"{EscapeJson(s)}\""); return; }
+                if (value is bool b) { sb.Append(b ? "true" : "false"); return; }
+                if (value is int || value is long || value is float || value is double) { sb.Append(value); return; }
+                if (value is Dictionary<string, object> dict)
+                {
+                    sb.Append("{");
+                    bool first = true;
+                    foreach (var kv in dict)
+                    {
+                        if (!first) sb.Append(",");
+                        first = false;
+                        sb.Append($"\"{EscapeJson(kv.Key)}\":");
+                        SerializeValue(sb, kv.Value);
+                    }
+                    sb.Append("}");
+                    return;
+                }
+                if (value is List<object> list)
+                {
+                    sb.Append("[");
+                    bool first = true;
+                    foreach (var item in list)
+                    {
+                        if (!first) sb.Append(",");
+                        first = false;
+                        SerializeValue(sb, item);
+                    }
+                    sb.Append("]");
+                    return;
+                }
+                // fallback
+                sb.Append($"\"{EscapeJson(value.ToString())}\"");
+            }
+
+            static string EscapeJson(string s) => s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "");
+
             public static object Deserialize(string json)
             {
-                // Use Firebase's Google.MiniJson if available via reflection, else simple parser
                 try
                 {
                     var type = Type.GetType("Google.MiniJSON.Json, Google.MiniJson");
@@ -199,16 +488,14 @@ namespace MiningSafetyAR.Firebase
                     }
                 }
                 catch { }
-                // Fallback very naive: parse only flat objects {"k":"v",...}
                 return SimpleDeserialize(json);
             }
 
-            static System.Collections.Generic.Dictionary<string, object> SimpleDeserialize(string json)
+            static Dictionary<string, object> SimpleDeserialize(string json)
             {
-                var dict = new System.Collections.Generic.Dictionary<string, object>();
+                var dict = new Dictionary<string, object>();
                 json = json.Trim().TrimStart('{').TrimEnd('}');
                 if (string.IsNullOrWhiteSpace(json)) return dict;
-                // split by comma not inside quotes — naive but enough for flat test docs
                 var parts = System.Text.RegularExpressions.Regex.Split(json, ",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
                 foreach (var p in parts)
                 {
@@ -216,15 +503,13 @@ namespace MiningSafetyAR.Firebase
                     if (kv.Length != 2) continue;
                     string k = kv[0].Trim().Trim('"');
                     string vRaw = kv[1].Trim();
-                    object v;
-                    if (vRaw.StartsWith("\"")) v = vRaw.Trim('"');
-                    else if (vRaw == "true") v = true;
-                    else if (vRaw == "false") v = false;
-                    else if (vRaw == "null") v = null;
-                    else if (long.TryParse(vRaw, out long l)) v = l;
-                    else if (double.TryParse(vRaw, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double d)) v = d;
-                    else v = vRaw;
-                    dict[k] = v;
+                    if (vRaw.StartsWith("\"")) dict[k] = vRaw.Trim('"');
+                    else if (vRaw == "true") dict[k] = true;
+                    else if (vRaw == "false") dict[k] = false;
+                    else if (vRaw == "null") dict[k] = null;
+                    else if (long.TryParse(vRaw, out long l)) dict[k] = l;
+                    else if (double.TryParse(vRaw, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double d)) dict[k] = d;
+                    else dict[k] = vRaw;
                 }
                 return dict;
             }

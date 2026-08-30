@@ -4,6 +4,7 @@
     <Style src="project://database/Assets/UI/Styles/Components.uss" />
     <Style src="project://database/Assets/UI/Styles/Header.uss" />
     <Style src="project://database/Assets/UI/Styles/BottomNav.uss" />
+    <Style src="project://database/Assets/UI/Styles/Icons.uss" />
     <ui:VisualElement class="page-container">
         <ui:ScrollView class="scroll-area">
             <ui:VisualElement class="dashboard__greeting" name="greeting-bar" style="flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 16px;">
@@ -12,7 +13,7 @@
                     <ui:Label class="greeting__sub" name="greeting-sub" text="Stay safe, stay certified" style="font-size: 12px; color: #666666;" />
                 </ui:VisualElement>
                 <ui:VisualElement class="greeting__avatar" name="avatar" style="width: 40px; height: 40px; border-radius: 20px; background-color: #FFF3E0; align-items: center; justify-content: center;">
-                    <ui:Label text="&#x1F477;" style="font-size: 20px;" />
+                    <ui:VisualElement class="avatar-worker" style="width: 24px; height: 24px;" />
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement class="card" name="progress-card" style="margin-bottom: 20px;">
@@ -45,7 +46,7 @@
             <ui:VisualElement name="module-list" />
             <ui:VisualElement class="card-accent" name="cert-banner" style="margin-top: 16px;">
                 <ui:VisualElement style="flex-direction: row; align-items: center;">
-                    <ui:Label text="&#x1F3C6;" style="font-size: 28px; margin-right: 12px;" />
+                    <ui:VisualElement class="icon-trophy" style="width: 28px; height: 28px; margin-right: 12px;" />
                     <ui:VisualElement>
                         <ui:Label text="Your Certificates" style="font-size: 14px; font-weight: 600; color: #1A1A1A;" />
                         <ui:Label name="cert-banner-sub" text="2 certificates earned" style="font-size: 12px; color: #666666;" />
@@ -58,19 +59,19 @@
         <!-- BottomNav -->
         <ui:VisualElement name="bottom-nav" class="bottom-nav">
             <ui:Button name="tab-home" class="bottom-nav__tab bottom-nav__tab--active">
-                <ui:Label text="&#x2302;" style="font-size: 18px;" />
+                <ui:VisualElement class="icon-home" style="margin-bottom: 2px;" />
                 <ui:Label class="bottom-nav__tab-label" text="Home" />
             </ui:Button>
             <ui:Button name="tab-training" class="bottom-nav__tab">
-                <ui:Label text="&#x1F4DA;" style="font-size: 18px;" />
+                <ui:VisualElement class="icon-training" style="margin-bottom: 2px;" />
                 <ui:Label class="bottom-nav__tab-label" text="Training" />
             </ui:Button>
             <ui:Button name="tab-progress" class="bottom-nav__tab">
-                <ui:Label text="&#x1F4CA;" style="font-size: 18px;" />
+                <ui:VisualElement class="icon-progress" style="margin-bottom: 2px;" />
                 <ui:Label class="bottom-nav__tab-label" text="Progress" />
             </ui:Button>
             <ui:Button name="tab-settings" class="bottom-nav__tab">
-                <ui:Label text="&#x2699;" style="font-size: 18px;" />
+                <ui:VisualElement class="icon-settings" style="margin-bottom: 2px;" />
                 <ui:Label class="bottom-nav__tab-label" text="Settings" />
             </ui:Button>
         </ui:VisualElement>

@@ -4,10 +4,13 @@
     <Style src="project://database/Assets/UI/Styles/Components.uss" />
     <Style src="project://database/Assets/UI/Styles/Forms.uss" />
     <Style src="project://database/Assets/UI/Styles/Header.uss" />
+    <Style src="project://database/Assets/UI/Styles/Icons.uss" />
     <ui:VisualElement class="page-container" style="flex-grow: 1; background-color: #FFFFFF;">
         <!-- Header -->
         <ui:VisualElement class="header" style="flex-direction: row; align-items: center; height: 56px; background-color: #FFFFFF; padding: 0 16px; border-bottom-color: #EEEEEE; border-bottom-width: 1px;">
-            <ui:Button class="header__back-btn" name="back-btn" text="&#x2190;" style="width: 40px; height: 40px; font-size: 20px;" />
+            <ui:Button class="header__back-btn" name="back-btn" style="width: 40px; height: 40px;">
+                <ui:VisualElement class="icon-back" style="width: 20px; height: 20px;" />
+            </ui:Button>
             <ui:Label class="header__title" text="Register" style="flex: 1; text-align: center; font-size: 18px; font-weight: 700; color: #1A1A1A;" />
             <ui:VisualElement class="header__right-action" style="width: 40px; height: 40px;" />
         </ui:VisualElement>

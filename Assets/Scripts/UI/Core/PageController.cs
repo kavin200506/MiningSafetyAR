@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UIElements;
+using MiningSafetyAR.UI.Helpers;
 
 namespace MiningSafetyAR.UI
 {
@@ -24,6 +25,8 @@ namespace MiningSafetyAR.UI
                 {
                     root = document.rootVisualElement;
                     BindUI();
+                    IconLoader.ApplyBottomNavIcons(root);
+                    IconLoader.ApplyCommonIcons(root);
                     TryAutoEnter();
                 }
                 else
@@ -41,6 +44,8 @@ namespace MiningSafetyAR.UI
             {
                 root = document.rootVisualElement;
                 BindUI();
+                IconLoader.ApplyBottomNavIcons(root);
+                IconLoader.ApplyCommonIcons(root);
                 TryAutoEnter();
             }
             else

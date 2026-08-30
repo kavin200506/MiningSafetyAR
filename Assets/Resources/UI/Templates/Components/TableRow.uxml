@@ -1,0 +1,8 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="table-row" class="table-row">
+        <ui:Label name="row-num" class="table-cell table-col-num" text="1" style="flex: 0.5; font-size: 12px;" />
+        <ui:Label name="row-date" class="table-cell table-col-date" text="" style="flex: 1.5; font-size: 12px;" />
+        <ui:Label name="row-score" class="table-cell table-col-score" text="" style="flex: 1; font-size: 12px;" />
+        <ui:Label name="row-status" class="table-cell table-col-status" text="" style="flex: 1; font-size: 12px; font-weight: 600;" />
+    </ui:VisualElement>
+</ui:UXML>

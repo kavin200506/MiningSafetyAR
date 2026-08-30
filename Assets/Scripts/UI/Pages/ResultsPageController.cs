@@ -14,7 +14,8 @@ namespace MiningSafetyAR.UI.Pages
         [SerializeField] VisualTreeAsset scoreBarTemplate;
 
         Dictionary<string, object> resultsData;
-        Label resultIcon, resultTitle, resultSubtitle;
+        VisualElement resultIcon;
+        Label resultTitle, resultSubtitle;
         Label simScore, mcqScore, correctCount, finalScore;
         Label resultBadge, moduleName, attemptNum, personalBest;
         VisualElement competencyBars;
@@ -22,7 +23,7 @@ namespace MiningSafetyAR.UI.Pages
 
         protected override void BindUI()
         {
-            resultIcon = root.Q<Label>("result-icon");
+            resultIcon = root.Q<VisualElement>("result-icon");
             resultTitle = root.Q<Label>("result-title");
             resultSubtitle = root.Q<Label>("result-subtitle");
             simScore = root.Q<Label>("sim-score");
@@ -40,9 +41,13 @@ namespace MiningSafetyAR.UI.Pages
             dashboardBtn = root.Q<Button>("dashboard-btn");
 
             if (scoreBarTemplate == null)
+            {
+                scoreBarTemplate = Resources.Load<VisualTreeAsset>("UI/Templates/Components/ScoreBar");
 #if UNITY_EDITOR
-                scoreBarTemplate = UnityEditor.AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/UI/Templates/Components/ScoreBar.uxml");
+                if (scoreBarTemplate == null)
+                    scoreBarTemplate = UnityEditor.AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/UI/Templates/Components/ScoreBar.uxml");
 #endif
+            }
 
             if (certBtn != null) certBtn.RegisterCallback<ClickEvent>(e => OnViewCertificate());
             if (retryBtn != null) retryBtn.RegisterCallback<ClickEvent>(e => OnRetry());
@@ -86,7 +91,10 @@ namespace MiningSafetyAR.UI.Pages
             bool passed = resultsData.ContainsKey("passed") ? (bool)resultsData["passed"] : true;
             string moduleId = resultsData.ContainsKey("moduleId") ? resultsData["moduleId"] as string : "fire_safety";
 
-            if (resultIcon != null) resultIcon.text = passed ? "🏆" : "❌";
+            if (resultIcon != null)
+            {
+                IconLoader.ApplyTo(resultIcon, passed ? "icon_trophy" : "ar_check");
+            }
             if (resultTitle != null) resultTitle.text = passed ? "Congratulations!" : "Keep Trying!";
             if (resultSubtitle != null) resultSubtitle.text = passed ? "You've passed the assessment!" : "You need 60% to pass. Review and try again.";
             if (simScore != null) simScore.text = $"{sim}/100";
@@ -113,27 +121,29 @@ namespace MiningSafetyAR.UI.Pages
             }
             if (personalBest != null)
             {
-                var mod = AppDataService.Instance != null ? AppDataService.Instance.GetModule(moduleId) : null;
-                personalBest.text = mod != null ? $"{mod.bestScore}%" : $"{final}%";
+                var prog = AppDataService.Instance != null ? AppDataService.Instance.GetModuleProgress(moduleId) : null;
+                personalBest.text = prog != null ? $"{prog.bestScore}%" : $"{final}%";
             }
             if (competencyBars != null)
             {
                 competencyBars.Clear();
-                var mod = AppDataService.Instance != null ? AppDataService.Instance.GetModule(moduleId) : null;
-                var cs = mod?.competencyScores;
-                if (cs != null)
+                var prog = AppDataService.Instance != null ? AppDataService.Instance.GetModuleProgress(moduleId) : null;
+                var cs = prog?.competencyScores;
+                if (cs != null && (cs.hazardRecognition > 0 || cs.extinguisherUse > 0 || cs.ppeSelection > 0 || cs.evacuation > 0 || cs.emergencyResponse > 0))
                 {
                     AddScoreBar("Hazard Recognition", cs.hazardRecognition);
                     AddScoreBar("Extinguisher Use", cs.extinguisherUse);
+                    AddScoreBar("PPE Selection", cs.ppeSelection);
                     AddScoreBar("Evacuation", cs.evacuation);
                     AddScoreBar("Emergency Response", cs.emergencyResponse);
                 }
                 else
                 {
-                    AddScoreBar("Hazard Recognition", 75);
-                    AddScoreBar("PPE Selection", 65);
-                    AddScoreBar("Evacuation", 80);
-                    AddScoreBar("Emergency Response", 70);
+                    AddScoreBar("Hazard Recognition", 0);
+                    AddScoreBar("Extinguisher Use", 0);
+                    AddScoreBar("PPE Selection", 0);
+                    AddScoreBar("Evacuation", 0);
+                    AddScoreBar("Emergency Response", 0);
                 }
             }
             if (certBtn != null) certBtn.style.display = passed ? DisplayStyle.Flex : DisplayStyle.None;

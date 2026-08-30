@@ -1,0 +1,5 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="toggle" class="toggle-switch">
+        <ui:VisualElement name="knob" class="toggle-switch__knob" />
+    </ui:VisualElement>
+</ui:UXML>

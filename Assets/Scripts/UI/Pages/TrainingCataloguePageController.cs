@@ -22,9 +22,13 @@ namespace MiningSafetyAR.UI.Pages
             moduleCount = root.Q<Label>("module-count");
 
             if (moduleCardTemplate == null)
+            {
+                moduleCardTemplate = Resources.Load<VisualTreeAsset>("UI/Templates/Components/ModuleCard");
 #if UNITY_EDITOR
-                moduleCardTemplate = UnityEditor.AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/UI/Templates/Components/ModuleCard.uxml");
+                if (moduleCardTemplate == null)
+                    moduleCardTemplate = UnityEditor.AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/UI/Templates/Components/ModuleCard.uxml");
 #endif
+            }
 
             filterButtons = new Button[]
             {

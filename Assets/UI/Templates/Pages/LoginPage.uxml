@@ -3,11 +3,12 @@
     <Style src="project://database/Assets/UI/Styles/Reset.uss" />
     <Style src="project://database/Assets/UI/Styles/Components.uss" />
     <Style src="project://database/Assets/UI/Styles/Forms.uss" />
+    <Style src="project://database/Assets/UI/Styles/Icons.uss" />
     <ui:VisualElement class="page-container" style="flex-grow: 1; background-color: #FFFFFF;">
         <ui:ScrollView style="flex: 1;">
             <ui:VisualElement class="login" style="align-items: center; padding: 40px 24px;">
                 <ui:VisualElement class="login__logo-box" style="width: 80px; height: 80px; border-radius: 20px; background-color: #FF6D00; align-items: center; justify-content: center; margin-bottom: 16px;">
-                    <ui:Label class="login__logo-icon" text="&#x1F6E1;" style="font-size: 48px; color: #FFFFFF;" />
+                    <ui:VisualElement class="logo-shield" style="width: 48px; height: 48px;" />
                 </ui:VisualElement>
                 <ui:Label class="login__title" text="ARC" style="font-size: 36px; font-weight: 800; color: #1A1A1A; letter-spacing: 6px;" />
                 <ui:Label class="login__subtitle" text="MineSafetyAr" style="font-size: 14px; color: #FF6D00; letter-spacing: 2px; margin-bottom: 32px;" />
@@ -21,7 +22,9 @@
                     <ui:Label class="form-label" text="PIN" style="font-size: 11px; color: #666666; margin-bottom: 4px;" />
                     <ui:VisualElement class="input-password" style="flex-direction: row; align-items: center; width: 100%;">
                         <ui:TextField class="input-field" name="pin" is-password-field="true" max-length="4" style="flex: 1; height: 48px;" />
-                        <ui:Button class="pin-toggle" name="pin-toggle" text="&#x1F441;" style="width: 40px; height: 40px; justify-content: center; align-items: center; background-color: rgba(0,0,0,0); border-width: 0;" />
+                        <ui:Button class="pin-toggle" name="pin-toggle" style="width: 40px; height: 40px; justify-content: center; align-items: center; background-color: rgba(0,0,0,0); border-width: 0;">
+                            <ui:VisualElement class="icon-eye" style="width: 20px; height: 20px;" />
+                        </ui:Button>
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <!-- Error -->

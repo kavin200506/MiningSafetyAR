@@ -53,5 +53,6 @@ namespace MiningSafetyAR.Data
         public int attempts = 0;
         public string lastAttempt = "";
         public string certificateId = "";
+        public CompetencyScores competencyScores;
     }
 }

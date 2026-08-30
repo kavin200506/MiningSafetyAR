@@ -9,7 +9,7 @@ namespace MiningSafetyAR.UI.Pages
     public class CertificatePageController : PageController
     {
         string moduleId;
-        Label workerName, moduleTitle, score;
+        Label workerName, moduleTitle, score, passedBadge;
         Label certId, certIdMeta, issuedDate, expiryDate, organization;
         Button backBtn, downloadBtn, shareBtn, verifyBtn;
 
@@ -18,6 +18,8 @@ namespace MiningSafetyAR.UI.Pages
             workerName = root.Q<Label>("worker-name");
             moduleTitle = root.Q<Label>("module-title");
             score = root.Q<Label>("score");
+            passedBadge = root.Q<Label>("passed-badge");
+            if (passedBadge == null) passedBadge = root.Q<Label>(className: "badge--pass");
             certId = root.Q<Label>("cert-id");
             certIdMeta = root.Q<Label>("cert-id-meta");
             issuedDate = root.Q<Label>("issued-date");
@@ -56,11 +58,13 @@ namespace MiningSafetyAR.UI.Pages
             var app = AppDataService.Instance;
             var worker = app != null ? app.CurrentWorker : null;
             var mod = app != null ? app.GetModule(moduleId) : null;
+            var prog = app != null ? app.GetModuleProgress(moduleId) : null;
             if (worker == null || mod == null)
             {
                 if (workerName != null) workerName.text = "Test Worker";
                 if (moduleTitle != null) moduleTitle.text = moduleId;
                 if (score != null) score.text = "85%";
+                if (passedBadge != null) { passedBadge.text = "PASSED"; passedBadge.RemoveFromClassList("badge--fail"); passedBadge.AddToClassList("badge--pass"); }
                 if (certId != null) certId.text = "JH-TEST-000001";
                 if (certIdMeta != null) certIdMeta.text = "JH-TEST-000001";
                 if (issuedDate != null) issuedDate.text = System.DateTime.Now.ToString("yyyy-MM-dd");
@@ -68,12 +72,22 @@ namespace MiningSafetyAR.UI.Pages
                 if (organization != null) organization.text = "Test Org";
                 return;
             }
+            bool passed = prog != null && prog.status == ModuleStatus.Completed;
+            int displayScore = prog != null ? prog.bestScore : mod.bestScore;
             if (workerName != null) workerName.text = worker.name;
             if (moduleTitle != null) moduleTitle.text = mod.title ?? moduleId;
-            if (score != null) score.text = $"{mod.bestScore}%";
-            string certIdStr = $"JH-{moduleId.ToUpper().Substring(0, System.Math.Min(4, moduleId.Length))}-{Random.Range(100000,999999)}";
-            // Try to use existing certificate if exists
-            var existing = app.GetCertificate(mod.certificateId);
+            if (score != null) score.text = $"{displayScore}%";
+            if (passedBadge != null)
+            {
+                passedBadge.text = passed ? "PASSED" : "FAILED";
+                passedBadge.RemoveFromClassList("badge--pass");
+                passedBadge.RemoveFromClassList("badge--fail");
+                passedBadge.AddToClassList(passed ? "badge--pass" : "badge--fail");
+            }
+            string certIdStr = prog != null && !string.IsNullOrEmpty(prog.certificateId)
+                ? prog.certificateId
+                : $"JH-{moduleId.ToUpper().Substring(0, System.Math.Min(4, moduleId.Length))}-{Random.Range(100000,999999)}";
+            var existing = app.GetCertificate(certIdStr);
             if (existing != null) certIdStr = existing.id;
             if (certId != null) certId.text = certIdStr;
             if (certIdMeta != null) certIdMeta.text = certIdStr;

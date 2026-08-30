@@ -5,9 +5,12 @@
     <Style src="project://database/Assets/UI/Styles/Header.uss" />
     <Style src="project://database/Assets/UI/Styles/Forms.uss" />
     <Style src="project://database/Assets/UI/Styles/Tables.uss" />
+    <Style src="project://database/Assets/UI/Styles/Icons.uss" />
     <ui:VisualElement class="page-container">
         <ui:VisualElement class="header">
-            <ui:Button class="header__back-btn" name="back-btn" text="&#x2190;" />
+            <ui:Button class="header__back-btn" name="back-btn">
+                <ui:VisualElement class="icon-back" style="width: 20px; height: 20px;" />
+            </ui:Button>
             <ui:Label class="header__title" text="Assessment" />
             <ui:Label class="question-counter" name="question-counter" text="1/5" style="width: 40px; text-align: center; font-size: 12px; color: #666666;" />
         </ui:VisualElement>
