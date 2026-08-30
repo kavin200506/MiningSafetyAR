@@ -141,6 +141,6 @@ namespace MiningSafetyAR.UI.Pages
 
         void PrevSlide() { if (currentSlide > 0) { currentSlide--; RefreshSlide(); } }
         void NextSlide() { if (currentSlide < slides.Length - 1) { currentSlide++; RefreshSlide(); } }
-        void OnReady() => NavigationManager.Instance.NavigateTo("UI_ARSimulation", moduleId);
+        void OnReady() => NavigationManager.Instance.NavigateTo("AR Plane Detection Placement", moduleId);
     }
 }

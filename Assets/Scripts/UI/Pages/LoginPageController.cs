@@ -99,7 +99,8 @@ namespace MiningSafetyAR.UI.Pages
 
         void OnFirebaseLoginSuccess(global::Firebase.Auth.FirebaseUser user)
         {
-            Debug.Log($"[Login] Success {user.UserId}");
+            string uid = user != null ? user.UserId : Firebase.FirebaseAuthManager.Instance.CurrentUserId;
+            Debug.Log($"[Login] Success {uid}");
             // Small delay to allow AppDataService to load worker
             Invoke(nameof(GoDashboard), 0.3f);
         }

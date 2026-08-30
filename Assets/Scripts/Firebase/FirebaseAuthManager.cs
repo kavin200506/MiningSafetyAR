@@ -1,34 +1,85 @@
 using System;
+using System.Collections;
 using System.Linq;
+
+#if !UNITY_WEBGL
 using Firebase;
 using Firebase.Auth;
+#endif
+
 using UnityEngine;
+using UnityEngine.Networking;
 using MiningSafetyAR.Helpers;
 
 namespace MiningSafetyAR.Firebase
 {
     /// <summary>
-    /// Firebase Auth manager — workerId@miningsafety.app + PIN => ARC{PIN}2026!
-    /// Persistent singleton. Events marshalled to main thread.
+    /// Lightweight container for user state in REST fallback mode.
+    /// </summary>
+    [Serializable]
+    public class RestUserProxy
+    {
+        public string localId;
+        public string email;
+        public string idToken;
+        public string displayName;
+
+        public string UserId => localId;
+        public string Email => email;
+        public string DisplayName => displayName;
+    }
+
+    /// <summary>
+    /// Robust Firebase Auth manager — supports Native C++ Firebase SDK with automatic cross-platform REST API fallback.
+    /// Eliminates DllNotFoundException on macOS Unity Editor while providing full authentication functionality.
+    /// workerId@miningsafety.app + PIN => ARC{PIN}2026!
     /// </summary>
     public class FirebaseAuthManager : MonoBehaviour
     {
         public static FirebaseAuthManager Instance { get; private set; }
 
+        private const string API_KEY = "AIzaSyBxhWZvIqgIMP1niRSc_H2iRMkdDLNdybI";
+
+#if !UNITY_WEBGL
         private FirebaseAuth _auth;
         private FirebaseUser _currentUser;
+#endif
+        private RestUserProxy _restUser;
         private bool _initialized;
+        private bool _useRestFallback;
 
-        public bool IsLoggedIn => _currentUser != null;
-        public string CurrentUserId => _currentUser?.UserId;
-        public string CurrentUserEmail => _currentUser?.Email;
+        public bool IsLoggedIn => 
+#if !UNITY_WEBGL
+            _currentUser != null || 
+#endif
+            _restUser != null;
+
+        public string CurrentUserId => 
+#if !UNITY_WEBGL
+            _currentUser?.UserId ?? 
+#endif
+            _restUser?.UserId;
+
+        public string CurrentUserEmail => 
+#if !UNITY_WEBGL
+            _currentUser?.Email ?? 
+#endif
+            _restUser?.Email;
+
+#if !UNITY_WEBGL
         public FirebaseUser CurrentUser => _currentUser;
+#endif
         public bool IsInitialized => _initialized;
 
+#if !UNITY_WEBGL
         public event Action<FirebaseUser> OnLoginSuccess;
+        public event Action<DependencyStatus> OnInitFailed;
+#else
+        public event Action<object> OnLoginSuccess;
+        public event Action<object> OnInitFailed;
+#endif
         public event Action<string> OnLoginFailed;
         public event Action OnLogout;
-        public event Action<DependencyStatus> OnInitFailed;
         public event Action OnInitSuccess;
 
         void Awake()
@@ -45,45 +96,79 @@ namespace MiningSafetyAR.Firebase
 
         void InitializeFirebase()
         {
-            Debug.Log("[FirebaseAuth] Checking dependencies...");
-            FirebaseApp.CheckAndFixDependenciesAsync().ContinueWith(task =>
+            Debug.Log("[FirebaseAuth] Initializing Firebase Auth...");
+
+            try
             {
-                var status = task.Result;
-                if (status == DependencyStatus.Available)
+#if !UNITY_WEBGL
+                FirebaseApp.CheckAndFixDependenciesAsync().ContinueWith(task =>
                 {
-                    _auth = FirebaseAuth.DefaultInstance;
-                    _initialized = true;
-                    Debug.Log($"[FirebaseAuth] Initialized. SDK={FirebaseApp.DefaultInstance.Options.AppId}");
-                    MainThreadDispatcher.Enqueue(() =>
+                    if (task.IsFaulted || task.IsCanceled)
                     {
-                        OnInitSuccess?.Invoke();
-                        if (_auth.CurrentUser != null)
+                        Debug.LogWarning($"[FirebaseAuth] Native SDK init faulted: {task.Exception?.Message}. Switching to REST mode.");
+                        EnableRestFallback();
+                        return;
+                    }
+
+                    var status = task.Result;
+                    if (status == DependencyStatus.Available)
+                    {
+                        try
                         {
-                            _currentUser = _auth.CurrentUser;
-                            Debug.Log($"[FirebaseAuth] Already logged in: {_currentUser.UserId} ({_currentUser.Email})");
-                            OnLoginSuccess?.Invoke(_currentUser);
+                            _auth = FirebaseAuth.DefaultInstance;
+                            _initialized = true;
+                            _useRestFallback = false;
+                            Debug.Log($"[FirebaseAuth] Native SDK Initialized OK. AppId={FirebaseApp.DefaultInstance.Options.AppId}");
+
+                            MainThreadDispatcher.Enqueue(() =>
+                            {
+                                OnInitSuccess?.Invoke();
+                                if (_auth != null && _auth.CurrentUser != null)
+                                {
+                                    _currentUser = _auth.CurrentUser;
+                                    Debug.Log($"[FirebaseAuth] Already logged in: {_currentUser.UserId} ({_currentUser.Email})");
+                                    OnLoginSuccess?.Invoke(_currentUser);
+                                }
+                            });
                         }
-                    });
-                }
-                else
-                {
-                    Debug.LogError($"[FirebaseAuth] Dependency failed: {status}");
-                    MainThreadDispatcher.Enqueue(() => OnInitFailed?.Invoke(status));
-                }
-            });
+                        catch (Exception ex)
+                        {
+                            Debug.LogWarning($"[FirebaseAuth] Exception getting FirebaseAuth.DefaultInstance: {ex.Message}. Switching to REST mode.");
+                            EnableRestFallback();
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[FirebaseAuth] Dependency status {status}. Switching to REST mode.");
+                        EnableRestFallback();
+                    }
+                });
+#else
+                EnableRestFallback();
+#endif
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[FirebaseAuth] Native SDK DllNotFound / TypeInit exception: {ex.Message}. Switching to REST mode.");
+                EnableRestFallback();
+            }
+        }
+
+        private void EnableRestFallback()
+        {
+            _useRestFallback = true;
+            _initialized = true;
+            Debug.Log("[FirebaseAuth] Cross-Platform REST API Auth Mode ENABLED (100% immune to DllNotFoundException).");
+            MainThreadDispatcher.Enqueue(() => OnInitSuccess?.Invoke());
         }
 
         static string BuildEmail(string workerId) => $"{workerId.Trim()}@miningsafety.app";
         static string BuildPassword(string pin) => $"ARC{pin.Trim()}2026!";
 
-        /// <summary>
-        /// Register new worker. Creates Firebase user then fires OnLoginSuccess.
-        /// </summary>
         public void Register(string workerId, string pin, string displayName, string onSuccessScene = null)
         {
-            if (!_initialized || _auth == null)
+            if (!_initialized)
             {
-                Debug.LogError("[FirebaseAuth] Not initialized yet.");
                 OnLoginFailed?.Invoke("Firebase not ready. Try again.");
                 return;
             }
@@ -95,39 +180,47 @@ namespace MiningSafetyAR.Firebase
 
             string email = BuildEmail(workerId);
             string password = BuildPassword(pin);
-            Debug.Log($"[FirebaseAuth] Registering {email}...");
 
-            _auth.CreateUserWithEmailAndPasswordAsync(email, password).ContinueWith(task =>
+            if (_useRestFallback
+#if !UNITY_WEBGL
+                || _auth == null
+#endif
+               )
             {
-                if (task.IsFaulted || task.IsCanceled)
+                StartCoroutine(RegisterViaRestCoroutine(email, password, displayName));
+            }
+            else
+            {
+#if !UNITY_WEBGL
+                Debug.Log($"[FirebaseAuth] Registering {email} via Native SDK...");
+                _auth.CreateUserWithEmailAndPasswordAsync(email, password).ContinueWith(task =>
                 {
-                    string err = ExtractError(task);
-                    Debug.LogError($"[FirebaseAuth] Register failed: {err}");
-                    MainThreadDispatcher.Enqueue(() => OnLoginFailed?.Invoke(err));
-                    return;
-                }
-
-                _currentUser = task.Result.User;
-                Debug.Log($"[FirebaseAuth] Registered OK: {_currentUser.UserId}");
-
-                // Update display name (fire-and-forget)
-                if (!string.IsNullOrEmpty(displayName))
-                {
-                    var profile = new UserProfile { DisplayName = displayName.Trim() };
-                    _currentUser.UpdateUserProfileAsync(profile).ContinueWith(p =>
+                    if (task.IsFaulted || task.IsCanceled)
                     {
-                        if (p.IsFaulted) Debug.LogWarning($"[FirebaseAuth] DisplayName update failed: {ExtractError(p)}");
-                        else Debug.Log($"[FirebaseAuth] DisplayName set: {displayName}");
-                    });
-                }
+                        string err = ExtractError(task);
+                        Debug.LogError($"[FirebaseAuth] Register failed: {err}");
+                        MainThreadDispatcher.Enqueue(() => OnLoginFailed?.Invoke(err));
+                        return;
+                    }
 
-                MainThreadDispatcher.Enqueue(() => OnLoginSuccess?.Invoke(_currentUser));
-            });
+                    _currentUser = task.Result.User;
+                    Debug.Log($"[FirebaseAuth] Registered OK: {_currentUser.UserId}");
+
+                    if (!string.IsNullOrEmpty(displayName))
+                    {
+                        var profile = new UserProfile { DisplayName = displayName.Trim() };
+                        _currentUser.UpdateUserProfileAsync(profile);
+                    }
+
+                    MainThreadDispatcher.Enqueue(() => OnLoginSuccess?.Invoke(_currentUser));
+                });
+#endif
+            }
         }
 
         public void Login(string workerId, string pin)
         {
-            if (!_initialized || _auth == null)
+            if (!_initialized)
             {
                 OnLoginFailed?.Invoke("Firebase not ready. Try again.");
                 return;
@@ -140,99 +233,193 @@ namespace MiningSafetyAR.Firebase
 
             string email = BuildEmail(workerId);
             string password = BuildPassword(pin);
-            Debug.Log($"[FirebaseAuth] Login {email}...");
 
-            _auth.SignInWithEmailAndPasswordAsync(email, password).ContinueWith(task =>
+            if (_useRestFallback
+#if !UNITY_WEBGL
+                || _auth == null
+#endif
+               )
             {
-                if (task.IsFaulted || task.IsCanceled)
+                StartCoroutine(LoginViaRestCoroutine(email, password));
+            }
+            else
+            {
+#if !UNITY_WEBGL
+                Debug.Log($"[FirebaseAuth] Login {email} via Native SDK...");
+                _auth.SignInWithEmailAndPasswordAsync(email, password).ContinueWith(task =>
                 {
-                    string err = ExtractError(task);
-                    Debug.LogError($"[FirebaseAuth] Login failed: {err}");
-                    MainThreadDispatcher.Enqueue(() => OnLoginFailed?.Invoke(err));
-                    return;
-                }
+                    if (task.IsFaulted || task.IsCanceled)
+                    {
+                        string err = ExtractError(task);
+                        Debug.LogError($"[FirebaseAuth] Login failed: {err}");
+                        MainThreadDispatcher.Enqueue(() => OnLoginFailed?.Invoke(err));
+                        return;
+                    }
 
-                _currentUser = task.Result.User;
-                Debug.Log($"[FirebaseAuth] Login OK: {_currentUser.UserId} ({_currentUser.Email})");
-                MainThreadDispatcher.Enqueue(() => OnLoginSuccess?.Invoke(_currentUser));
-            });
+                    _currentUser = task.Result.User;
+                    Debug.Log($"[FirebaseAuth] Login OK: {_currentUser.UserId} ({_currentUser.Email})");
+                    MainThreadDispatcher.Enqueue(() => OnLoginSuccess?.Invoke(_currentUser));
+                });
+#endif
+            }
         }
 
-        /// <summary>
-        /// Demo login — tries demo@miningsafety.app / ARCDemo2026!, creates if missing.
-        /// </summary>
         public void DemoLogin()
         {
-            if (!_initialized || _auth == null)
-            {
-                OnLoginFailed?.Invoke("Firebase not ready.");
-                return;
-            }
+            Login("demo", "Demo2026");
+        }
 
-            const string email = "demo@miningsafety.app";
-            const string password = "ARCDemo2026!";
-            Debug.Log("[FirebaseAuth] DemoLogin...");
+        // ------------------------------------------------------------------
+        // REST API IMPLEMENTATION (Pure C# UnityWebRequest - Zero Native DLLs)
+        // ------------------------------------------------------------------
 
-            _auth.SignInWithEmailAndPasswordAsync(email, password).ContinueWith(task =>
+        [Serializable]
+        private class AuthRestRequest
+        {
+            public string email;
+            public string password;
+            public bool returnSecureToken = true;
+        }
+
+        [Serializable]
+        private class AuthRestResponse
+        {
+            public string localId;
+            public string email;
+            public string idToken;
+            public string refreshToken;
+            public string expiresIn;
+            public AuthErrorContainer error;
+        }
+
+        [Serializable]
+        private class AuthErrorContainer
+        {
+            public int code;
+            public string message;
+        }
+
+        private IEnumerator LoginViaRestCoroutine(string email, string password)
+        {
+            string url = $"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={API_KEY}";
+            string bodyJson = JsonUtility.ToJson(new AuthRestRequest { email = email, password = password });
+
+            using var req = new UnityWebRequest(url, "POST");
+            req.uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(bodyJson));
+            req.downloadHandler = new DownloadHandlerBuffer();
+            req.SetRequestHeader("Content-Type", "application/json");
+
+            yield return req.SendWebRequest();
+
+            if (req.result == UnityWebRequest.Result.Success)
             {
-                if (task.IsFaulted || task.IsCanceled)
+                AuthRestResponse resp = JsonUtility.FromJson<AuthRestResponse>(req.downloadHandler.text);
+                _restUser = new RestUserProxy
                 {
-                    Debug.Log($"[FirebaseAuth] Demo sign-in failed, creating account: {ExtractError(task)}");
-                    _auth.CreateUserWithEmailAndPasswordAsync(email, password).ContinueWith(createTask =>
-                    {
-                        if (createTask.IsFaulted || createTask.IsCanceled)
-                        {
-                            string err = ExtractError(createTask);
-                            Debug.LogError($"[FirebaseAuth] Demo create failed: {err}");
-                            MainThreadDispatcher.Enqueue(() => OnLoginFailed?.Invoke("Demo login failed: " + err));
-                            return;
-                        }
-                        _currentUser = createTask.Result.User;
-                        var profile = new UserProfile { DisplayName = "Demo Worker" };
-                        _currentUser.UpdateUserProfileAsync(profile);
-                        Debug.Log($"[FirebaseAuth] Demo created: {_currentUser.UserId}");
-                        MainThreadDispatcher.Enqueue(() => OnLoginSuccess?.Invoke(_currentUser));
-                    });
-                    return;
-                }
+                    localId = resp.localId,
+                    email = resp.email,
+                    idToken = resp.idToken,
+                    displayName = email.Split('@')[0]
+                };
 
-                _currentUser = task.Result.User;
-                Debug.Log($"[FirebaseAuth] Demo login OK: {_currentUser.UserId}");
-                MainThreadDispatcher.Enqueue(() => OnLoginSuccess?.Invoke(_currentUser));
-            });
+                Debug.Log($"[FirebaseAuth] REST Login OK: {_restUser.localId} ({_restUser.email})");
+#if !UNITY_WEBGL
+                OnLoginSuccess?.Invoke(_currentUser);
+#else
+                OnLoginSuccess?.Invoke(_restUser);
+#endif
+            }
+            else
+            {
+                // If account not found on sign-in, auto-attempt registration
+                if (req.downloadHandler != null && req.downloadHandler.text.Contains("EMAIL_NOT_FOUND"))
+                {
+                    Debug.Log($"[FirebaseAuth] REST Account not found, auto-creating: {email}...");
+                    yield return RegisterViaRestCoroutine(email, password, email.Split('@')[0]);
+                }
+                else
+                {
+                    string errText = req.downloadHandler != null ? req.downloadHandler.text : req.error;
+                    Debug.LogError($"[FirebaseAuth] REST Login Failed: {errText}");
+                    OnLoginFailed?.Invoke($"Login Failed: {req.error}");
+                }
+            }
+        }
+
+        private IEnumerator RegisterViaRestCoroutine(string email, string password, string displayName)
+        {
+            string url = $"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={API_KEY}";
+            string bodyJson = JsonUtility.ToJson(new AuthRestRequest { email = email, password = password });
+
+            using var req = new UnityWebRequest(url, "POST");
+            req.uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(bodyJson));
+            req.downloadHandler = new DownloadHandlerBuffer();
+            req.SetRequestHeader("Content-Type", "application/json");
+
+            yield return req.SendWebRequest();
+
+            if (req.result == UnityWebRequest.Result.Success)
+            {
+                AuthRestResponse resp = JsonUtility.FromJson<AuthRestResponse>(req.downloadHandler.text);
+                _restUser = new RestUserProxy
+                {
+                    localId = resp.localId,
+                    email = resp.email,
+                    idToken = resp.idToken,
+                    displayName = string.IsNullOrEmpty(displayName) ? email.Split('@')[0] : displayName
+                };
+
+                Debug.Log($"[FirebaseAuth] REST Registration OK: {_restUser.localId} ({_restUser.email})");
+#if !UNITY_WEBGL
+                OnLoginSuccess?.Invoke(_currentUser);
+#else
+                OnLoginSuccess?.Invoke(_restUser);
+#endif
+            }
+            else
+            {
+                string errText = req.downloadHandler != null ? req.downloadHandler.text : req.error;
+                Debug.LogError($"[FirebaseAuth] REST Registration Failed: {errText}");
+                OnLoginFailed?.Invoke($"Registration Failed: {req.error}");
+            }
         }
 
         public void Logout()
         {
+#if !UNITY_WEBGL
             if (_auth != null) _auth.SignOut();
             _currentUser = null;
+#endif
+            _restUser = null;
             Debug.Log("[FirebaseAuth] Logged out");
             OnLogout?.Invoke();
         }
 
-        /// <summary>
-        /// Get fresh ID token for REST calls (optional).
-        /// </summary>
         public void GetIdToken(Action<string> callback)
         {
-            if (_currentUser == null) { callback?.Invoke(null); return; }
-            _currentUser.TokenAsync(false).ContinueWith(t =>
+            if (_restUser != null)
             {
-                if (t.IsFaulted) MainThreadDispatcher.Enqueue(() => callback?.Invoke(null));
-                else MainThreadDispatcher.Enqueue(() => callback?.Invoke(t.Result));
-            });
+                callback?.Invoke(_restUser.idToken);
+                return;
+            }
+#if !UNITY_WEBGL
+            if (_currentUser != null)
+            {
+                _currentUser.TokenAsync(false).ContinueWith(t =>
+                {
+                    if (t.IsFaulted) MainThreadDispatcher.Enqueue(() => callback?.Invoke(null));
+                    else MainThreadDispatcher.Enqueue(() => callback?.Invoke(t.Result));
+                });
+                return;
+            }
+#endif
+            callback?.Invoke(null);
         }
 
-        static string ExtractError(System.Threading.Tasks.Task task)
+        private static string ExtractError(System.Threading.Tasks.Task task)
         {
             if (task.Exception == null) return "Unknown error";
-            // Log full aggregate for debugging
-            Debug.LogError($"[FirebaseAuth] Full exception: {task.Exception}");
-            foreach (var e in task.Exception.InnerExceptions)
-                Debug.LogError($"[FirebaseAuth] Inner: {e.GetType().Name}: {e.Message}\n{e.StackTrace}");
-            var inner = task.Exception.InnerExceptions.FirstOrDefault();
-            if (inner is FirebaseException fe) return $"{fe.Message} (code {(int)fe.ErrorCode} / {fe.ErrorCode}) Full: {task.Exception}";
-            return $"{inner?.Message ?? task.Exception.Message} | Full: {task.Exception}";
+            return task.Exception.InnerExceptions.FirstOrDefault()?.Message ?? task.Exception.Message;
         }
     }
 }
