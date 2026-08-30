@@ -17,6 +17,10 @@ namespace MiningSafetyAR.UI.Pages
         int correctCount = 0;
         int simulationScore = 80;
 
+        // Per-competency tracking
+        Dictionary<string, int> correctByCompetency = new Dictionary<string, int>();
+        Dictionary<string, int> totalByCompetency = new Dictionary<string, int>();
+
         Label questionCounter, questionText;
         Label feedbackIcon, feedbackText;
         VisualElement optionsList, feedbackBanner;
@@ -66,6 +70,8 @@ namespace MiningSafetyAR.UI.Pages
             currentQ = 0;
             correctCount = 0;
             answered = false;
+            correctByCompetency.Clear();
+            totalByCompetency.Clear();
             RefreshQuestion();
         }
 
@@ -137,6 +143,16 @@ namespace MiningSafetyAR.UI.Pages
             bool isCorrect = selected == correct;
             if (isCorrect) correctCount++;
 
+            // Track per-competency scores
+            string comp = questions[currentQ].competency;
+            if (!string.IsNullOrEmpty(comp))
+            {
+                if (!totalByCompetency.ContainsKey(comp)) totalByCompetency[comp] = 0;
+                if (!correctByCompetency.ContainsKey(comp)) correctByCompetency[comp] = 0;
+                totalByCompetency[comp]++;
+                if (isCorrect) correctByCompetency[comp]++;
+            }
+
             var options = optionsList.Children().ToList();
             for (int i = 0; i < options.Count; i++)
             {
@@ -180,7 +196,11 @@ namespace MiningSafetyAR.UI.Pages
             int mcqScore = total > 0 ? (int)((float)correctCount / total * 100f) : 0;
             int finalScore = (int)(simulationScore * 0.6f + mcqScore * 0.4f);
             bool passed = finalScore >= 60;
-            if (AppDataService.Instance != null) AppDataService.Instance.SaveAttempt(moduleId, finalScore, passed);
+            if (AppDataService.Instance != null)
+            {
+                AppDataService.Instance.SaveAttempt(moduleId, finalScore, passed);
+                AppDataService.Instance.UpdateModuleCompetencyScores(moduleId, correctByCompetency, totalByCompetency);
+            }
             var resultsData = new Dictionary<string, object> { { "moduleId", moduleId }, { "mcqScore", mcqScore }, { "correct", correctCount }, { "total", total }, { "simulationScore", simulationScore }, { "finalScore", finalScore }, { "passed", passed } };
             // Try UI_Results, fallback to placeholder dashboard if not yet built
             var nav = NavigationManager.Instance;

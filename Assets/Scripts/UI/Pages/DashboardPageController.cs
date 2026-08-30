@@ -32,11 +32,14 @@ namespace MiningSafetyAR.UI.Pages
             viewCertsBtn = root.Q<Button>("view-certs-btn");
 
             if (moduleCardTemplate == null)
+            {
+                moduleCardTemplate = Resources.Load<VisualTreeAsset>("UI/Templates/Components/ModuleCard");
 #if UNITY_EDITOR
-                moduleCardTemplate = UnityEditor.AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/UI/Templates/Components/ModuleCard.uxml");
+                if (moduleCardTemplate == null)
+                    moduleCardTemplate = UnityEditor.AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/UI/Templates/Components/ModuleCard.uxml");
 #endif
+            }
 
-#if UNITY_EDITOR
             // BottomNav tab clicks
             var tabHome = root.Q<Button>("tab-home");
             var tabTraining = root.Q<Button>("tab-training");
@@ -46,10 +49,25 @@ namespace MiningSafetyAR.UI.Pages
             if (tabTraining != null) tabTraining.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateToTab("UI_TrainingCatalogue"));
             if (tabProgress != null) tabProgress.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateToTab("UI_Progress"));
             if (tabSettings != null) tabSettings.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateToTab("UI_Settings"));
-#endif
 
             if (seeAllBtn != null) seeAllBtn.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateTo("UI_TrainingCatalogue"));
             if (viewCertsBtn != null) viewCertsBtn.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateTo("UI_Progress"));
+
+            // Subscribe to worker loaded event — re-Refresh when async Firestore load completes
+            if (AppDataService.Instance != null)
+                AppDataService.Instance.OnWorkerLoaded += OnWorkerLoaded;
+        }
+
+        void OnDisable()
+        {
+            if (AppDataService.Instance != null)
+                AppDataService.Instance.OnWorkerLoaded -= OnWorkerLoaded;
+        }
+
+        void OnWorkerLoaded(Data.WorkerData worker)
+        {
+            // Async Firestore load completed — refresh the dashboard with real data
+            if (moduleList != null) Refresh();
         }
 
         public override void OnPageEnter()

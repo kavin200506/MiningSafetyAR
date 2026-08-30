@@ -4,30 +4,30 @@
     <Style src="project://database/Assets/UI/Styles/Components.uss" />
     <Style src="project://database/Assets/UI/Styles/Header.uss" />
     <Style src="project://database/Assets/UI/Styles/BottomNav.uss" />
+    <Style src="project://database/Assets/UI/Styles/Icons.uss" />
     <Style src="project://database/Assets/UI/Styles/Tables.uss" />
     <ui:VisualElement class="page-container">
         <ui:VisualElement class="header">
-            <ui:Button class="header__back-btn" name="back-btn" text="&#x2190;" />
+            <ui:Button class="header__back-btn" name="back-btn">
+                <ui:VisualElement class="icon-back" style="width: 20px; height: 20px;" />
+            </ui:Button>
             <ui:Label class="header__title" name="module-title" text="" />
             <ui:VisualElement class="header__right-action" />
         </ui:VisualElement>
         <ui:ScrollView class="scroll-area">
             <ui:VisualElement class="card" name="hero-section" style="align-items: center; padding: 16px;">
-                <ui:Label class="module-hero__emoji" name="hero-emoji" text="" style="font-size: 48px;" />
+                <ui:VisualElement class="module-hero__emoji" name="hero-emoji" style="width: 48px; height: 48px;" />
                 <ui:Label class="badge" name="hero-badge" text="" style="margin-top: 8px;" />
             </ui:VisualElement>
             <ui:Label name="description" style="margin: 16px 0; font-size: 13px; color: #666666;" />
             <ui:VisualElement name="meta-row" style="flex-direction: row; margin-bottom: 8px;">
                 <ui:VisualElement class="pill" style="flex-direction: row; margin-right: 8px;">
-                    <ui:Label text="&#x23F1;" style="margin-right: 4px;" />
                     <ui:Label name="duration" text="45 min" />
                 </ui:VisualElement>
                 <ui:VisualElement class="pill" style="flex-direction: row; margin-right: 8px;">
-                    <ui:Label text="&#x2B50;" style="margin-right: 4px;" />
                     <ui:Label name="difficulty" text="Medium" />
                 </ui:VisualElement>
                 <ui:VisualElement class="pill" style="flex-direction: row;">
-                    <ui:Label text="&#x1F3AF;" style="margin-right: 4px;" />
                     <ui:Label name="domain" text="Fire Safety" />
                 </ui:VisualElement>
             </ui:VisualElement>
@@ -64,7 +64,7 @@
                 <ui:Button class="btn-primary" name="action-btn" text="START TRAINING" />
                 <ui:Button class="btn-secondary" name="cert-btn" text="VIEW CERTIFICATE" style="display: none; margin-top: 8px;" />
                 <ui:VisualElement name="locked-message" style="display: none; align-items: center; margin-top: 12px;">
-                    <ui:Label text="&#x1F512;" style="font-size: 24px;" />
+                    <ui:VisualElement class="icon-lock" style="width: 24px; height: 24px;" />
                     <ui:Label text="Complete previous modules to unlock" style="color: #999999; font-size: 13px; text-align: center;" />
                 </ui:VisualElement>
             </ui:VisualElement>
@@ -72,19 +72,19 @@
         </ui:ScrollView>
         <ui:VisualElement name="bottom-nav" class="bottom-nav">
             <ui:Button name="tab-home" class="bottom-nav__tab">
-                <ui:Label text="&#x2302;" style="font-size: 18px;" />
+                <ui:VisualElement class="icon-home" style="margin-bottom: 2px;" />
                 <ui:Label class="bottom-nav__tab-label" text="Home" />
             </ui:Button>
             <ui:Button name="tab-training" class="bottom-nav__tab bottom-nav__tab--active">
-                <ui:Label text="&#x1F4DA;" style="font-size: 18px;" />
+                <ui:VisualElement class="icon-training" style="margin-bottom: 2px;" />
                 <ui:Label class="bottom-nav__tab-label" text="Training" />
             </ui:Button>
             <ui:Button name="tab-progress" class="bottom-nav__tab">
-                <ui:Label text="&#x1F4CA;" style="font-size: 18px;" />
+                <ui:VisualElement class="icon-progress" style="margin-bottom: 2px;" />
                 <ui:Label class="bottom-nav__tab-label" text="Progress" />
             </ui:Button>
             <ui:Button name="tab-settings" class="bottom-nav__tab">
-                <ui:Label text="&#x2699;" style="font-size: 18px;" />
+                <ui:VisualElement class="icon-settings" style="margin-bottom: 2px;" />
                 <ui:Label class="bottom-nav__tab-label" text="Settings" />
             </ui:Button>
         </ui:VisualElement>

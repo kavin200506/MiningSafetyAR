@@ -13,14 +13,15 @@ namespace MiningSafetyAR.UI.Pages
         int currentSlide = 0;
         LearningSlide[] slides;
 
-        Label slideCounter, slideEmoji, slideTitle, tipText;
-        VisualElement slidePoints, learningFill;
+        Label slideCounter, slideTitle, tipText;
+        VisualElement slideEmoji, slidePoints, learningFill;
         Button prevBtn, nextBtn, readyBtn, backBtn;
 
         [Serializable]
         class LearningSlide
         {
             public string emoji;
+            public string iconClass;
             public string title;
             public string[] points;
             public string tip;
@@ -29,7 +30,7 @@ namespace MiningSafetyAR.UI.Pages
         protected override void BindUI()
         {
             slideCounter = root.Q<Label>("slide-counter");
-            slideEmoji = root.Q<Label>("slide-emoji");
+            slideEmoji = root.Q<VisualElement>("slide-emoji");
             slideTitle = root.Q<Label>("slide-title");
             tipText = root.Q<Label>("tip-text");
             slidePoints = root.Q("slide-points");
@@ -58,35 +59,35 @@ namespace MiningSafetyAR.UI.Pages
             {
                 "fire_safety" => new LearningSlide[]
                 {
-                    new LearningSlide { emoji="🔥", title="Fire Safety Basics", points=new[]{"Understand fire classes (A, B, C, D, K)","Know the fire triangle: Heat, Fuel, Oxygen","Identify evacuation routes in your workplace","Recognize fire hazards in mining environments"}, tip="Always know at least 2 exit routes from any location in the mine." },
-                    new LearningSlide { emoji="🧯", title="P.A.S.S. Technique", points=new[]{"P - Pull the pin","A - Aim at the base of the fire","S - Squeeze the handle","S - Sweep side to side"}, tip="Stand 6-8 feet away from the fire when using an extinguisher." },
-                    new LearningSlide { emoji="🚪", title="Evacuation Procedures", points=new[]{"Sound the alarm immediately","Close doors behind you","Stay low in smoky conditions","Proceed to the designated assembly point"}, tip="Never use elevators during a fire evacuation." }
+                    new LearningSlide { iconClass="slide-icon-fire", title="Fire Safety Basics", points=new[]{"Understand fire classes (A, B, C, D, K)","Know the fire triangle: Heat, Fuel, Oxygen","Identify evacuation routes in your workplace","Recognize fire hazards in mining environments"}, tip="Always know at least 2 exit routes from any location in the mine." },
+                    new LearningSlide { iconClass="slide-icon-extinguisher", title="P.A.S.S. Technique", points=new[]{"P - Pull the pin","A - Aim at the base of the fire","S - Squeeze the handle","S - Sweep side to side"}, tip="Stand 6-8 feet away from the fire when using an extinguisher." },
+                    new LearningSlide { iconClass="slide-icon-evacuation", title="Evacuation Procedures", points=new[]{"Sound the alarm immediately","Close doors behind you","Stay low in smoky conditions","Proceed to the designated assembly point"}, tip="Never use elevators during a fire evacuation." }
                 },
                 "gas_safety" => new LearningSlide[]
                 {
-                    new LearningSlide { emoji="☣️", title="Gas Leak Hazards", points=new[]{"Methane (CH4) is explosive at 5-15%","Carbon Monoxide (CO) is odorless and deadly","Hydrogen Sulfide (H2S) smells like rotten eggs","Always use a multi-gas detector"}, tip="If you smell gas, evacuate immediately and alert others." },
-                    new LearningSlide { emoji="😷", title="PPE for Gas Hazards", points=new[]{"SCBA (Self-Contained Breathing Apparatus)","Gas-tight chemical suit","Personal gas monitor","Two-way radio for communication"}, tip="Always check your SCBA pressure before entering a confined space." },
-                    new LearningSlide { emoji="🤝", title="Confined Space Protocol", points=new[]{"Get a confined space entry permit","Test atmosphere before entry","Have a standby buddy outside","Maintain constant radio contact"}, tip="Never enter a confined space alone. The standby buddy saves lives." }
+                    new LearningSlide { iconClass="slide-icon-gas", title="Gas Leak Hazards", points=new[]{"Methane (CH4) is explosive at 5-15%","Carbon Monoxide (CO) is odorless and deadly","Hydrogen Sulfide (H2S) smells like rotten eggs","Always use a multi-gas detector"}, tip="If you smell gas, evacuate immediately and alert others." },
+                    new LearningSlide { iconClass="slide-icon-ppe", title="PPE for Gas Hazards", points=new[]{"SCBA (Self-Contained Breathing Apparatus)","Gas-tight chemical suit","Personal gas monitor","Two-way radio for communication"}, tip="Always check your SCBA pressure before entering a confined space." },
+                    new LearningSlide { iconClass="slide-icon-confined", title="Confined Space Protocol", points=new[]{"Get a confined space entry permit","Test atmosphere before entry","Have a standby buddy outside","Maintain constant radio contact"}, tip="Never enter a confined space alone. The standby buddy saves lives." }
                 },
                 "machinery_safety" => new LearningSlide[]
                 {
-                    new LearningSlide { emoji="⚙️", title="Lockout/Tagout", points=new[]{"De-energize equipment","Apply lock and tag","Verify zero energy","Only the locker removes it"}, tip="LOTO saves lives — never bypass it." },
-                    new LearningSlide { emoji="🛡️", title="Machine Guarding", points=new[]{"Guards must be in place","Never remove guards","Report damaged guards","Keep hands away"}, tip="Guards are there for your fingers." },
-                    new LearningSlide { emoji="👷", title="Safe Operation", points=new[]{"Pre-shift inspection","Use correct PPE","Follow SOP","Report near misses"}, tip="Slow is smooth, smooth is fast." }
+                    new LearningSlide { iconClass="slide-icon-lockout", title="Lockout/Tagout", points=new[]{"De-energize equipment","Apply lock and tag","Verify zero energy","Only the locker removes it"}, tip="LOTO saves lives — never bypass it." },
+                    new LearningSlide { iconClass="slide-icon-guarding", title="Machine Guarding", points=new[]{"Guards must be in place","Never remove guards","Report damaged guards","Keep hands away"}, tip="Guards are there for your fingers." },
+                    new LearningSlide { iconClass="slide-icon-operation", title="Safe Operation", points=new[]{"Pre-shift inspection","Use correct PPE","Follow SOP","Report near misses"}, tip="Slow is smooth, smooth is fast." }
                 },
                 "electrical_safety" => new LearningSlide[]
                 {
-                    new LearningSlide { emoji="⚡", title="Electrical Hazards", points=new[]{"Wet hands + live wire = danger","Damaged cables are lethal","Overloaded circuits spark fires","Grounding prevents shock"}, tip="Assume all wires are live until proven dead." },
-                    new LearningSlide { emoji="🧤", title="Safe Work Practices", points=new[]{"Lockout before work","Use insulated tools","Wear rubber gloves","Test before touch"}, tip="One hand rule: keep one hand in pocket near live." }
+                    new LearningSlide { iconClass="slide-icon-electrical", title="Electrical Hazards", points=new[]{"Wet hands + live wire = danger","Damaged cables are lethal","Overloaded circuits spark fires","Grounding prevents shock"}, tip="Assume all wires are live until proven dead." },
+                    new LearningSlide { iconClass="slide-icon-gloves", title="Safe Work Practices", points=new[]{"Lockout before work","Use insulated tools","Wear rubber gloves","Test before touch"}, tip="One hand rule: keep one hand in pocket near live." }
                 },
                 "heights_safety" => new LearningSlide[]
                 {
-                    new LearningSlide { emoji="⛰️", title="Fall Protection", points=new[]{"Required above 1.8m","Harness must fit snug","Inspect before each use","Anchor point 5000kg"}, tip="A harness not inspected is a hazard." },
-                    new LearningSlide { emoji="🪜", title="Ladder & Scaffold Safety", points=new[]{"3-point contact on ladder","Scaffold needs guardrails","Secure planks","No loose boards"}, tip="If it wobbles, don’t use it." }
+                    new LearningSlide { iconClass="slide-icon-fall", title="Fall Protection", points=new[]{"Required above 1.8m","Harness must fit snug","Inspect before each use","Anchor point 5000kg"}, tip="A harness not inspected is a hazard." },
+                    new LearningSlide { iconClass="slide-icon-ladder", title="Ladder & Scaffold Safety", points=new[]{"3-point contact on ladder","Scaffold needs guardrails","Secure planks","No loose boards"}, tip="If it wobbles, don't use it." }
                 },
                 _ => new LearningSlide[]
                 {
-                    new LearningSlide { emoji="📚", title="Training Content", points=new[]{"Review safety protocols","Understand emergency procedures","Practice proper equipment usage"}, tip="Complete all slides to proceed to the AR simulation." }
+                    new LearningSlide { iconClass="slide-icon-fire", title="Training Content", points=new[]{"Review safety protocols","Understand emergency procedures","Practice proper equipment usage"}, tip="Complete all slides to proceed to the AR simulation." }
                 }
             };
         }
@@ -104,7 +105,12 @@ namespace MiningSafetyAR.UI.Pages
             if (slides == null || slides.Length == 0) return;
             var slide = slides[currentSlide];
             if (slideCounter != null) slideCounter.text = $"{currentSlide + 1}/{slides.Length}";
-            if (slideEmoji != null) slideEmoji.text = slide.emoji;
+            if (slideEmoji != null)
+            {
+                slideEmoji.Clear();
+                if (!string.IsNullOrEmpty(slide.iconClass))
+                    IconLoader.ApplyByClass(slideEmoji, slide.iconClass);
+            }
             if (slideTitle != null) slideTitle.text = slide.title;
             if (tipText != null) tipText.text = slide.tip;
             if (slidePoints != null)

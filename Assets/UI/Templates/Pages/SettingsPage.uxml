@@ -5,6 +5,7 @@
     <Style src="project://database/Assets/UI/Styles/Header.uss" />
     <Style src="project://database/Assets/UI/Styles/Forms.uss" />
     <Style src="project://database/Assets/UI/Styles/BottomNav.uss" />
+    <Style src="project://database/Assets/UI/Styles/Icons.uss" />
     <ui:VisualElement class="page-container">
         <ui:VisualElement class="header">
             <ui:VisualElement class="header__back-btn" />
@@ -14,7 +15,7 @@
         <ui:ScrollView class="scroll-area">
             <ui:VisualElement class="card" name="profile-card" style="align-items: center; padding: 16px;">
                 <ui:VisualElement style="width: 60px; height: 60px; border-radius: 30px; background-color: #FFF3E0; align-items: center; justify-content: center; margin-bottom: 8px;">
-                    <ui:Label text="&#x1F477;" style="font-size: 28px;" />
+                    <ui:VisualElement class="avatar-worker" style="width: 36px; height: 36px;" />
                 </ui:VisualElement>
                 <ui:Label name="profile-name" text="Ramesh Kumar" style="font-size: 16px; font-weight: 700; color: #1A1A1A;" />
                 <ui:Label name="profile-id" text="JH10293" style="font-size: 12px; color: #FF6D00;" />
@@ -83,19 +84,19 @@
         </ui:ScrollView>
         <ui:VisualElement name="bottom-nav" class="bottom-nav">
             <ui:Button name="tab-home" class="bottom-nav__tab">
-                <ui:Label text="&#x2302;" style="font-size: 18px;" />
+                <ui:VisualElement class="icon-home" style="margin-bottom: 2px;" />
                 <ui:Label class="bottom-nav__tab-label" text="Home" />
             </ui:Button>
             <ui:Button name="tab-training" class="bottom-nav__tab">
-                <ui:Label text="&#x1F4DA;" style="font-size: 18px;" />
+                <ui:VisualElement class="icon-training" style="margin-bottom: 2px;" />
                 <ui:Label class="bottom-nav__tab-label" text="Training" />
             </ui:Button>
             <ui:Button name="tab-progress" class="bottom-nav__tab">
-                <ui:Label text="&#x1F4CA;" style="font-size: 18px;" />
+                <ui:VisualElement class="icon-progress" style="margin-bottom: 2px;" />
                 <ui:Label class="bottom-nav__tab-label" text="Progress" />
             </ui:Button>
             <ui:Button name="tab-settings" class="bottom-nav__tab bottom-nav__tab--active">
-                <ui:Label text="&#x2699;" style="font-size: 18px;" />
+                <ui:VisualElement class="icon-settings" style="margin-bottom: 2px;" />
                 <ui:Label class="bottom-nav__tab-label" text="Settings" />
             </ui:Button>
         </ui:VisualElement>

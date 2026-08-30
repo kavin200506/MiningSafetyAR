@@ -4,6 +4,7 @@
     <Style src="project://database/Assets/UI/Styles/Components.uss" />
     <Style src="project://database/Assets/UI/Styles/Header.uss" />
     <Style src="project://database/Assets/UI/Styles/BottomNav.uss" />
+    <Style src="project://database/Assets/UI/Styles/Icons.uss" />
     <Style src="project://database/Assets/UI/Styles/Tables.uss" />
     <ui:VisualElement class="page-container">
         <ui:VisualElement class="header">
@@ -57,19 +58,19 @@
         </ui:ScrollView>
         <ui:VisualElement name="bottom-nav" class="bottom-nav">
             <ui:Button name="tab-home" class="bottom-nav__tab">
-                <ui:Label text="&#x2302;" style="font-size: 18px;" />
+                <ui:VisualElement class="icon-home" style="margin-bottom: 2px;" />
                 <ui:Label class="bottom-nav__tab-label" text="Home" />
             </ui:Button>
             <ui:Button name="tab-training" class="bottom-nav__tab">
-                <ui:Label text="&#x1F4DA;" style="font-size: 18px;" />
+                <ui:VisualElement class="icon-training" style="margin-bottom: 2px;" />
                 <ui:Label class="bottom-nav__tab-label" text="Training" />
             </ui:Button>
             <ui:Button name="tab-progress" class="bottom-nav__tab bottom-nav__tab--active">
-                <ui:Label text="&#x1F4CA;" style="font-size: 18px;" />
+                <ui:VisualElement class="icon-progress" style="margin-bottom: 2px;" />
                 <ui:Label class="bottom-nav__tab-label" text="Progress" />
             </ui:Button>
             <ui:Button name="tab-settings" class="bottom-nav__tab">
-                <ui:Label text="&#x2699;" style="font-size: 18px;" />
+                <ui:VisualElement class="icon-settings" style="margin-bottom: 2px;" />
                 <ui:Label class="bottom-nav__tab-label" text="Settings" />
             </ui:Button>
         </ui:VisualElement>

@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UIElements;
 using MiningSafetyAR.UI;
@@ -119,18 +120,24 @@ namespace MiningSafetyAR.UI.Pages
                 competencyScores = new CompetencyScores()
             };
 
-            string json = JsonUtility.ToJson(worker);
-            Firebase.FirestoreService.Instance.SaveWorkerJson(worker.firebaseUid, json, (ok, resp) =>
+            // Cache worker locally FIRST so AppDataService picks it up immediately
+            string workerJson = JsonUtility.ToJson(worker);
+            PlayerPrefs.SetString("CachedWorker", workerJson);
+            PlayerPrefs.Save();
+
+            // Save to Firestore, wait for completion, THEN navigate
+            Firebase.FirestoreService.Instance.SaveWorker(worker.firebaseUid, workerJson, (ok, resp) =>
             {
                 Debug.Log($"[Register] Firestore save {(ok ? "OK" : "FAIL")} for {worker.id}");
-                NavigationManager.Instance.NavigateToRoot("UI_Dashboard");
+                // Small delay to ensure Firestore consistency before AppDataService loads
+                StartCoroutine(NavigateAfterSave(worker));
             });
+        }
 
-            // Also cache locally via AppDataService if available
-            if (Data.AppDataService.Instance != null)
-            {
-                // AppDataService will load on next login, but we can set current
-            }
+        System.Collections.IEnumerator NavigateAfterSave(WorkerData worker)
+        {
+            yield return new WaitForSeconds(0.5f);
+            NavigationManager.Instance.NavigateToRoot("UI_Dashboard");
         }
 
         void OnFirebaseRegisterFailed(string error)

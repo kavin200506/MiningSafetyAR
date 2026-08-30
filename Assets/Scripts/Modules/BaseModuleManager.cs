@@ -91,6 +91,11 @@ namespace MiningSafetyAR.Modules
             {
                 LocalScoreManager.Instance.SaveResult(result);
             }
+            // Also save to Firestore via AppDataService
+            if (Data.AppDataService.Instance != null)
+            {
+                Data.AppDataService.Instance.SaveAttempt(moduleName, (int)percentage, passed);
+            }
 
             Debug.Log($"[BaseModuleManager] Module {moduleName} finished. Score: {finalScore}/{maxScore} ({percentage}%). Passed: {passed}");
             OnModuleCompleted?.Invoke(result);

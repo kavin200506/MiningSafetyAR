@@ -28,9 +28,13 @@ namespace MiningSafetyAR.UI.Pages
             historyBody = root.Q("history-body");
 
             if (scoreBarTemplate == null)
+            {
+                scoreBarTemplate = Resources.Load<VisualTreeAsset>("UI/Templates/Components/ScoreBar");
 #if UNITY_EDITOR
-                scoreBarTemplate = UnityEditor.AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/UI/Templates/Components/ScoreBar.uxml");
+                if (scoreBarTemplate == null)
+                    scoreBarTemplate = UnityEditor.AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/UI/Templates/Components/ScoreBar.uxml");
 #endif
+            }
 
             var tabHome = root.Q<Button>("tab-home");
             var tabTraining = root.Q<Button>("tab-training");
@@ -63,17 +67,31 @@ namespace MiningSafetyAR.UI.Pages
             if (competencyBars != null)
             {
                 competencyBars.Clear();
-                var cs = worker.competencyScores ?? new CompetencyScores();
-                AddScoreBar("Hazard Recognition", cs.hazardRecognition);
-                AddScoreBar("PPE Selection", cs.ppeSelection);
-                AddScoreBar("Evacuation", cs.evacuation);
-                AddScoreBar("Emergency Response", cs.emergencyResponse);
+                // Compute aggregate competency scores from all module progress
+                var allModules = app.GetAllModulesWithProgress();
+                int hazardRec = 0, extUse = 0, ppeSel = 0, evac = 0, emergResp = 0;
+                int hazardCount = 0, extCount = 0, ppeCount = 0, evacCount = 0, emergCount = 0;
+                foreach (var m in allModules)
+                {
+                    var p = app.GetModuleProgress(m.id);
+                    if (p?.competencyScores == null) continue;
+                    if (p.competencyScores.hazardRecognition > 0) { hazardRec += p.competencyScores.hazardRecognition; hazardCount++; }
+                    if (p.competencyScores.extinguisherUse > 0) { extUse += p.competencyScores.extinguisherUse; extCount++; }
+                    if (p.competencyScores.ppeSelection > 0) { ppeSel += p.competencyScores.ppeSelection; ppeCount++; }
+                    if (p.competencyScores.evacuation > 0) { evac += p.competencyScores.evacuation; evacCount++; }
+                    if (p.competencyScores.emergencyResponse > 0) { emergResp += p.competencyScores.emergencyResponse; emergCount++; }
+                }
+                AddScoreBar("Hazard Recognition", hazardCount > 0 ? hazardRec / hazardCount : 0);
+                AddScoreBar("Extinguisher Use", extCount > 0 ? extUse / extCount : 0);
+                AddScoreBar("PPE Selection", ppeCount > 0 ? ppeSel / ppeCount : 0);
+                AddScoreBar("Evacuation", evacCount > 0 ? evac / evacCount : 0);
+                AddScoreBar("Emergency Response", emergCount > 0 ? emergResp / emergCount : 0);
             }
 
             if (moduleRows != null)
             {
                 moduleRows.Clear();
-                var modules = app.GetAllModules();
+                    var modules = app.GetAllModulesWithProgress();
                 foreach (var mod in modules)
                 {
                     var row = new VisualElement();
@@ -82,7 +100,9 @@ namespace MiningSafetyAR.UI.Pages
                     row.style.paddingTop = 12; row.style.paddingBottom = 12; row.style.paddingLeft = 12; row.style.paddingRight = 12;
                     row.style.marginBottom = 8;
                     row.style.alignItems = new StyleEnum<Align>(Align.Center);
-                    var icon = new Label(mod.iconEmoji); icon.style.fontSize = 22; icon.style.marginRight = 12;
+                    var icon = new VisualElement();
+                    icon.style.width = 22; icon.style.height = 22; icon.style.marginRight = 12;
+                    IconLoader.ApplyModuleIcon(icon, mod.id);
                     var info = new VisualElement(); info.style.flexGrow = 1;
                     var title = new Label(mod.title); title.style.fontSize = 13; title.style.color = new StyleColor(new Color(0.1f,0.1f,0.1f));
                     var meta = new Label($"{mod.progress}% · Best: {mod.bestScore}%"); meta.style.fontSize = 11; meta.style.color = new StyleColor(new Color(0.44f,0.44f,0.44f));
@@ -118,24 +138,6 @@ namespace MiningSafetyAR.UI.Pages
                     }
                 }
                 else
-                {
-                    var modules = app.GetAllModules();
-                    foreach (var mod in modules)
-                    {
-                        if (mod.attempts > 0 && !string.IsNullOrEmpty(mod.lastAttempt))
-                        {
-                            var row = new VisualElement(); row.AddToClassList("table-row");
-                            row.Add(CreateCell(idx.ToString()));
-                            row.Add(CreateCell(mod.title, "table-cell"));
-                            row.Add(CreateCell(mod.lastAttempt));
-                            row.Add(CreateCell($"{mod.bestScore}% ★ Best", "table-cell--accent"));
-                            row.Add(CreateCell(mod.bestScore >= 60 ? "Pass" : "Fail", mod.bestScore >= 60 ? "table-cell--success" : "table-cell--danger"));
-                            historyBody.Add(row);
-                            idx++;
-                        }
-                    }
-                }
-                if (idx == 1)
                 {
                     var empty = new Label("No attempts yet");
                     empty.style.color = new StyleColor(new Color(0.6f,0.6f,0.6f)); empty.style.fontSize = 11;

@@ -3,10 +3,11 @@
     <Style src="project://database/Assets/UI/Styles/Reset.uss" />
     <Style src="project://database/Assets/UI/Styles/Components.uss" />
     <Style src="project://database/Assets/UI/Styles/Animations.uss" />
+    <Style src="project://database/Assets/UI/Styles/Icons.uss" />
     <ui:VisualElement class="page-container" style="flex-grow: 1; background-color: #FFFFFF;">
         <ui:VisualElement class="splash" style="flex: 1; align-items: center; justify-content: center; padding: 40px 24px; background-color: #FFFFFF;">
             <ui:VisualElement class="splash__logo-box" style="width: 80px; height: 80px; border-radius: 20px; background-color: #FF6D00; align-items: center; justify-content: center; margin-bottom: 16px;">
-                <ui:Label class="splash__logo-icon" text="&#x1F6E1;" style="font-size: 48px; color: #FFFFFF; text-align: center;" />
+                <ui:VisualElement class="logo-shield" style="width: 48px; height: 48px;" />
             </ui:VisualElement>
             <ui:Label class="splash__title" text="ARC" style="font-size: 36px; font-weight: 800; color: #1A1A1A; letter-spacing: 6px; margin-bottom: 4px;" />
             <ui:Label class="splash__subtitle" text="MineSafetyAr" style="font-size: 14px; font-weight: 600; color: #FF6D00; letter-spacing: 2px; margin-bottom: 8px;" />

@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEngine.SceneManagement;
 using MiningSafetyAR.UI;
+using MiningSafetyAR.UI.Helpers;
 using MiningSafetyAR.UI.Navigation;
 
 namespace MiningSafetyAR.UI.Pages
@@ -17,8 +18,8 @@ namespace MiningSafetyAR.UI.Pages
         bool timerRunning = false;
 
         Label scoreValue, timerValue, instructionText;
-        Label phaseEmoji, phaseInstruction;
-        VisualElement phaseDots, scanLine, phaseVisual, arScene, timerPill;
+        Label phaseInstruction;
+        VisualElement phaseEmoji, phaseDots, scanLine, phaseVisual, arScene, timerPill;
 
         PhaseData[] phases;
 
@@ -26,6 +27,7 @@ namespace MiningSafetyAR.UI.Pages
         class PhaseData
         {
             public string emoji;
+            public string iconClass;
             public string instruction;
             public int scoreBonus;
             public bool showScanLine;
@@ -37,7 +39,7 @@ namespace MiningSafetyAR.UI.Pages
             scoreValue = root.Q<Label>("score-value");
             timerValue = root.Q<Label>("timer-value");
             instructionText = root.Q<Label>("instruction-text");
-            phaseEmoji = root.Q<Label>("phase-emoji");
+            phaseEmoji = root.Q<VisualElement>("phase-emoji");
             phaseInstruction = root.Q<Label>("phase-instruction");
             phaseDots = root.Q("phase-dots");
             scanLine = root.Q("scan-line");
@@ -96,14 +98,14 @@ namespace MiningSafetyAR.UI.Pages
         {
             phases = new PhaseData[]
             {
-                new PhaseData { emoji="📱", instruction="Scanning environment...", showScanLine=true },
-                new PhaseData { emoji="👆", instruction="Move phone slowly across a flat surface...", showScanLine=true },
-                new PhaseData { emoji="✅", instruction="Surface detected! Tap to place scenario" },
-                new PhaseData { emoji="🔥", instruction="Fire detected! Locate the extinguisher!", scoreBonus=0 },
-                new PhaseData { emoji="🧯", instruction="Extinguisher located! Move to it and tap to pick up", scoreBonus=10, startTimer=true },
-                new PhaseData { emoji="🔓", instruction="Tap to OPEN CAP", scoreBonus=10 },
-                new PhaseData { emoji="💨", instruction="HOLD to SPRAY (6 seconds)...", scoreBonus=10 },
-                new PhaseData { emoji="✅", instruction="Fire extinguished! Area Clear!", scoreBonus=10 }
+                new PhaseData { iconClass="ar-icon-scan", instruction="Scanning environment...", showScanLine=true },
+                new PhaseData { iconClass="ar-icon-move", instruction="Move phone slowly across a flat surface...", showScanLine=true },
+                new PhaseData { iconClass="ar-icon-check", instruction="Surface detected! Tap to place scenario" },
+                new PhaseData { iconClass="ar-icon-fire", instruction="Fire detected! Locate the extinguisher!", scoreBonus=0 },
+                new PhaseData { iconClass="ar-icon-extinguisher", instruction="Extinguisher located! Move to it and tap to pick up", scoreBonus=10, startTimer=true },
+                new PhaseData { iconClass="ar-icon-unlock", instruction="Tap to OPEN CAP", scoreBonus=10 },
+                new PhaseData { iconClass="ar-icon-spray", instruction="HOLD to SPRAY (6 seconds)...", scoreBonus=10 },
+                new PhaseData { iconClass="ar-icon-check", instruction="Fire extinguished! Area Clear!", scoreBonus=10 }
             };
         }
 
@@ -128,7 +130,12 @@ namespace MiningSafetyAR.UI.Pages
         {
             if (currentPhase >= phases.Length) { OnSimulationComplete(); return; }
             var phase = phases[currentPhase];
-            if (phaseEmoji != null) phaseEmoji.text = phase.emoji;
+            if (phaseEmoji != null)
+            {
+                phaseEmoji.Clear();
+                if (!string.IsNullOrEmpty(phase.iconClass))
+                    IconLoader.ApplyByClass(phaseEmoji, phase.iconClass);
+            }
             if (phaseInstruction != null) phaseInstruction.text = phase.instruction;
             if (instructionText != null) instructionText.text = phase.instruction;
             score += phase.scoreBonus;

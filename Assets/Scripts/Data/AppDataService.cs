@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Firebase.Auth;
+using MiningSafetyAR.Firebase;
 
 namespace MiningSafetyAR.Data
 {
@@ -17,6 +18,22 @@ namespace MiningSafetyAR.Data
         public List<TrainingResult> list = new List<TrainingResult>();
     }
 
+    [System.Serializable]
+    public class WorkerSaveData
+    {
+        public string firebaseUid;
+        public string id;
+        public string name;
+        public string organization;
+        public string sector;
+        public string phone;
+        public string language;
+        public string joinDate;
+        public int overallProgress;
+        public int certificatesEarned;
+        public int totalAttempts;
+    }
+
     public class AppDataService : MonoBehaviour
     {
         public static AppDataService Instance { get; private set; }
@@ -26,7 +43,6 @@ namespace MiningSafetyAR.Data
         [SerializeField] CertificateDatabase certificateDatabase;
 
         public WorkerData CurrentWorker { get; private set; }
-        // Per-worker dynamic progress, keyed by moduleId
         Dictionary<string, ModuleProgress> progressMap = new Dictionary<string, ModuleProgress>();
         List<TrainingResult> allAttempts = new List<TrainingResult>();
 
@@ -38,6 +54,14 @@ namespace MiningSafetyAR.Data
             if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
             DontDestroyOnLoad(gameObject);
+
+            if (moduleDatabase == null) moduleDatabase = Resources.Load<ModuleDatabase>("Data/ModuleDatabase");
+            if (questionDatabase == null) questionDatabase = Resources.Load<QuestionDatabase>("Data/QuestionDatabase");
+            if (certificateDatabase == null) certificateDatabase = Resources.Load<CertificateDatabase>("Data/CertificateDatabase");
+
+            LoadCachedWorker();
+
+            Debug.Log($"[AppDataService] Databases: Modules={moduleDatabase?.GetAll()?.Count ?? 0}, Questions={questionDatabase?.questions?.Count ?? 0}, Certs={certificateDatabase?.certificates?.Count ?? 0}");
         }
 
         void OnEnable()
@@ -66,15 +90,41 @@ namespace MiningSafetyAR.Data
             }
         }
 
-        void OnFirebaseLoginSuccess(FirebaseUser user) => LoadWorkerFromFirestore(user.UserId);
-        void OnFirebaseLogout() { CurrentWorker = null; progressMap.Clear(); allAttempts.Clear(); OnWorkerLoggedOut?.Invoke(); }
+        void OnFirebaseLoginSuccess(FirebaseUser user)
+        {
+            Debug.Log($"[AppDataService] Login: {user.UserId}");
+            LoadWorkerFromFirestore(user.UserId);
+        }
+
+        void OnFirebaseLogout()
+        {
+            string uid = CurrentWorker?.firebaseUid;
+            CurrentWorker = null;
+            progressMap.Clear();
+            allAttempts.Clear();
+            PlayerPrefs.DeleteKey("CachedWorker");
+            if (!string.IsNullOrEmpty(uid)) PlayerPrefs.DeleteKey("ProgressMap_" + uid);
+            OnWorkerLoggedOut?.Invoke();
+        }
+
+        // ================================================================
+        // WORKER PROFILE (workers/{uid})
+        // ================================================================
 
         void LoadWorkerFromFirestore(string firebaseUid)
         {
-            Firebase.FirestoreService.Instance.GetWorkerJson(firebaseUid, (ok, json) =>
+            Firebase.FirestoreService.Instance.GetWorker(firebaseUid, (ok, json) =>
             {
                 if (!ok || string.IsNullOrEmpty(json))
                 {
+                    Debug.LogWarning($"[AppDataService] Firestore load failed for {firebaseUid}, using cache");
+                    if (CurrentWorker != null && CurrentWorker.firebaseUid == firebaseUid && CurrentWorker.id != "NEW")
+                    {
+                        Debug.Log($"[AppDataService] Keeping cached worker: {CurrentWorker.name}");
+                        RecomputeWorkerStatsFromMap();
+                        OnWorkerLoaded?.Invoke(CurrentWorker);
+                        return;
+                    }
                     CurrentWorker = CreateNewWorker(firebaseUid);
                     InitProgressMapForNewWorker();
                     LoadAttemptsLocally(CurrentWorker.id);
@@ -82,22 +132,148 @@ namespace MiningSafetyAR.Data
                     OnWorkerLoaded?.Invoke(CurrentWorker);
                     return;
                 }
-                var worker = ParseWorkerFromFirestoreJson(json);
-                if (worker == null) worker = JsonUtility.FromJson<WorkerData>(json);
-                if (worker == null || string.IsNullOrEmpty(worker.id))
+
+                var fields = Firebase.FirestoreService.ParseFirestoreFields(json);
+                WorkerData worker;
+                if (fields != null)
+                {
+                    worker = new WorkerData();
+                    worker.firebaseUid = firebaseUid;
+                    worker.id = Firebase.FirestoreService.GetstringValue(fields, "id");
+                    worker.name = Firebase.FirestoreService.GetstringValue(fields, "name");
+                    worker.organization = Firebase.FirestoreService.GetstringValue(fields, "organization");
+                    worker.sector = Firebase.FirestoreService.GetstringValue(fields, "sector");
+                    worker.phone = Firebase.FirestoreService.GetstringValue(fields, "phone");
+                    worker.language = Firebase.FirestoreService.GetstringValue(fields, "language");
+                    worker.joinDate = Firebase.FirestoreService.GetstringValue(fields, "joinDate");
+                    worker.overallProgress = Firebase.FirestoreService.GetintValue(fields, "overallProgress");
+                    worker.certificatesEarned = Firebase.FirestoreService.GetintValue(fields, "certificatesEarned");
+                    worker.totalAttempts = Firebase.FirestoreService.GetintValue(fields, "totalAttempts");
+                    if (worker.competencyScores == null) worker.competencyScores = new CompetencyScores();
+                }
+                else
+                {
+                    worker = JsonUtility.FromJson<WorkerData>(json);
+                }
+
+                if (worker == null || string.IsNullOrEmpty(worker.id) || worker.id == "NEW")
                     worker = CreateNewWorker(firebaseUid);
                 worker.firebaseUid = firebaseUid;
                 CurrentWorker = worker;
-                LoadProgressMapFromJson(json);
-                // If no progress map in doc, init
-                if (progressMap.Count == 0) InitProgressMapForNewWorker();
-                // Recompute overallProgress from map (truth from Firestore per-module)
-                RecomputeWorkerStatsFromMap();
-                LoadAttemptsLocally(CurrentWorker.id);
+
+                // Load progress from subcollection
+                LoadProgressFromSubcollection(firebaseUid);
+                // Load attempts from Firestore subcollection
+                LoadAttemptsFromFirestore(firebaseUid);
                 CacheWorkerLocally(CurrentWorker);
-                OnWorkerLoaded?.Invoke(CurrentWorker);
-                Debug.Log($"[AppDataService] Worker loaded: {CurrentWorker.name} ({CurrentWorker.id}) overall={CurrentWorker.overallProgress}% certs={CurrentWorker.certificatesEarned} attemptsLoaded={allAttempts.Count}");
             });
+        }
+
+        // ================================================================
+        // MODULE PROGRESS (workers/{uid}/progress/{moduleId})
+        // ================================================================
+
+        void LoadProgressFromSubcollection(string firebaseUid)
+        {
+            progressMap.Clear();
+
+            // First try to load from local cache immediately
+            LoadProgressFromCache(firebaseUid);
+
+            // Then fetch from Firestore subcollection
+            Firebase.FirestoreService.Instance.GetAllModuleProgress(firebaseUid, (ok, docs) =>
+            {
+                if (!ok || docs == null || docs.Count == 0)
+                {
+                    Debug.Log($"[AppDataService] No progress docs from Firestore, using cache ({progressMap.Count} entries)");
+                    if (progressMap.Count == 0) InitProgressMapForNewWorker();
+                    FinalizeProgressLoad(firebaseUid);
+                    return;
+                }
+
+                progressMap.Clear();
+                foreach (var doc in docs)
+                {
+                    // doc is the full document: {"name":".../progress/fire_safety","fields":{...}}
+                    var fields = doc.ContainsKey("fields") ? doc["fields"] as Dictionary<string, object> : doc;
+                    if (fields == null) continue;
+
+                    string moduleId = Firebase.FirestoreService.GetstringValue(fields, "moduleId");
+                    if (string.IsNullOrEmpty(moduleId))
+                    {
+                        // Extract from document name: .../progress/{moduleId}
+                        string docName = doc.ContainsKey("name") ? doc["name"] as string : "";
+                        moduleId = docName.Contains("/") ? docName.Split('/')[^1] : "";
+                    }
+                    if (string.IsNullOrEmpty(moduleId)) continue;
+
+                    var prog = new ModuleProgress
+                    {
+                        moduleId = moduleId,
+                        status = (ModuleStatus)Firebase.FirestoreService.GetintValue(fields, "status"),
+                        progress = Firebase.FirestoreService.GetintValue(fields, "progress"),
+                        bestScore = Firebase.FirestoreService.GetintValue(fields, "bestScore"),
+                        attempts = Firebase.FirestoreService.GetintValue(fields, "attempts"),
+                        lastAttempt = Firebase.FirestoreService.GetstringValue(fields, "lastAttempt"),
+                        certificateId = Firebase.FirestoreService.GetstringValue(fields, "certificateId")
+                    };
+                    // Load competency scores from nested map
+                    var csFields = Firebase.FirestoreService.GetmapValue(fields, "competencyScores");
+                    if (csFields != null)
+                    {
+                        prog.competencyScores = new CompetencyScores
+                        {
+                            hazardRecognition = Firebase.FirestoreService.GetintValue(csFields, "hazardRecognition"),
+                            extinguisherUse = Firebase.FirestoreService.GetintValue(csFields, "extinguisherUse"),
+                            ppeSelection = Firebase.FirestoreService.GetintValue(csFields, "ppeSelection"),
+                            evacuation = Firebase.FirestoreService.GetintValue(csFields, "evacuation"),
+                            emergencyResponse = Firebase.FirestoreService.GetintValue(csFields, "emergencyResponse")
+                        };
+                    }
+                    progressMap[moduleId] = prog;
+                }
+
+                Debug.Log($"[AppDataService] Loaded {progressMap.Count} progress docs from Firestore");
+                FinalizeProgressLoad(firebaseUid);
+            });
+        }
+
+        void FinalizeProgressLoad(string firebaseUid)
+        {
+            RecomputeWorkerStatsFromMap();
+            CacheWorkerLocally(CurrentWorker);
+            PlayerPrefs.SetString("ProgressMap_" + firebaseUid, ProgressMapToJson());
+            PlayerPrefs.Save();
+            OnWorkerLoaded?.Invoke(CurrentWorker);
+            Debug.Log($"[AppDataService] Worker ready: {CurrentWorker.name} ({CurrentWorker.id}) overall={CurrentWorker.overallProgress}% certs={CurrentWorker.certificatesEarned}");
+        }
+
+        void SaveModuleProgressToFirestore(string firebaseUid, string moduleId, ModuleProgress prog)
+        {
+            var data = new Dictionary<string, object>
+            {
+                { "moduleId", prog.moduleId },
+                { "status", (int)prog.status },
+                { "progress", prog.progress },
+                { "bestScore", prog.bestScore },
+                { "attempts", prog.attempts },
+                { "lastAttempt", prog.lastAttempt ?? "" },
+                { "certificateId", prog.certificateId ?? "" }
+            };
+            // Save competency scores as nested map
+            if (prog.competencyScores != null)
+            {
+                data["competencyScores"] = new Dictionary<string, object>
+                {
+                    { "hazardRecognition", prog.competencyScores.hazardRecognition },
+                    { "extinguisherUse", prog.competencyScores.extinguisherUse },
+                    { "ppeSelection", prog.competencyScores.ppeSelection },
+                    { "evacuation", prog.competencyScores.evacuation },
+                    { "emergencyResponse", prog.competencyScores.emergencyResponse }
+                };
+            }
+            string flatJson = MiniJSON.Json.Serialize(data);
+            Firebase.FirestoreService.Instance.SaveModuleProgress(firebaseUid, moduleId, flatJson);
         }
 
         void InitProgressMapForNewWorker()
@@ -106,44 +282,35 @@ namespace MiningSafetyAR.Data
             var all = moduleDatabase != null ? moduleDatabase.GetAll() : new List<ModuleData>();
             foreach (var m in all)
             {
-                progressMap[m.id] = new ModuleProgress { moduleId = m.id, status = m.id == "heights_safety" ? ModuleStatus.Locked : ModuleStatus.NotStarted, progress = 0, bestScore = 0, attempts = 0, lastAttempt = "", certificateId = "" };
-            }
-        }
-
-        void LoadProgressMapFromJson(string firestoreJson)
-        {
-            progressMap.Clear();
-            try
-            {
-                var dict = MiningSafetyAR.Firebase.MiniJSON.Json.Deserialize(firestoreJson) as Dictionary<string, object>;
-                if (dict != null && dict.TryGetValue("fields", out var fieldsObj) && fieldsObj is Dictionary<string, object> fields)
+                progressMap[m.id] = new ModuleProgress
                 {
-                    if (fields.TryGetValue("progressJson", out var pj) && pj is Dictionary<string, object> pjDict && pjDict.TryGetValue("stringValue", out var sv))
-                    {
-                        string json = sv as string;
-                        if (!string.IsNullOrEmpty(json))
-                        {
-                            var wrapper = JsonUtility.FromJson<ProgressMapWrapper>(json);
-                            if (wrapper != null && wrapper.list != null)
-                                foreach (var p in wrapper.list) progressMap[p.moduleId] = p;
-                        }
-                    }
-                    // Also try to load legacy per-module progress stored as separate fields? Ignore
-                }
-                // Fallback: try raw JSON if it was stored as raw (not Firestore fields)
-                if (progressMap.Count == 0 && firestoreJson.Contains("\"progressMap\""))
-                {
-                    var raw = JsonUtility.FromJson<ProgressMapWrapper>(firestoreJson);
-                    if (raw != null && raw.list != null) foreach (var p in raw.list) progressMap[p.moduleId] = p;
-                }
+                    moduleId = m.id,
+                    status = m.id == "heights_safety" ? ModuleStatus.Locked : ModuleStatus.NotStarted,
+                    progress = 0, bestScore = 0, attempts = 0,
+                    lastAttempt = "", certificateId = ""
+                };
             }
-            catch (System.Exception e) { Debug.LogWarning($"[AppDataService] LoadProgressMap failed: {e.Message}"); }
         }
 
         string ProgressMapToJson()
         {
             var wrapper = new ProgressMapWrapper { list = new List<ModuleProgress>(progressMap.Values) };
             return JsonUtility.ToJson(wrapper);
+        }
+
+        void LoadProgressFromCache(string firebaseUid)
+        {
+            try
+            {
+                string cached = PlayerPrefs.GetString("ProgressMap_" + firebaseUid, "");
+                if (string.IsNullOrEmpty(cached)) return;
+                var wrapper = JsonUtility.FromJson<ProgressMapWrapper>(cached);
+                if (wrapper?.list == null) return;
+                progressMap.Clear();
+                foreach (var p in wrapper.list) progressMap[p.moduleId] = p;
+                Debug.Log($"[AppDataService] Loaded {progressMap.Count} progress entries from cache");
+            }
+            catch (System.Exception e) { Debug.LogWarning($"[AppDataService] Cache load failed: {e.Message}"); }
         }
 
         void RecomputeWorkerStatsFromMap()
@@ -158,73 +325,36 @@ namespace MiningSafetyAR.Data
             }
             int count = Mathf.Max(1, progressMap.Count);
             CurrentWorker.overallProgress = total / count;
-            // certificatesEarned based on completed with certificate
             int certs = 0;
-            foreach (var kv in progressMap) if (kv.Value.status == ModuleStatus.Completed && !string.IsNullOrEmpty(kv.Value.certificateId)) certs++;
-            // Also include certificates from CertificateDatabase for this worker? For now use map
+            foreach (var kv in progressMap)
+                if (kv.Value.status == ModuleStatus.Completed && !string.IsNullOrEmpty(kv.Value.certificateId)) certs++;
             CurrentWorker.certificatesEarned = certs;
         }
 
-        WorkerData ParseWorkerFromFirestoreJson(string firestoreJson)
+        // ================================================================
+        // MODULE DEFINITIONS
+        // ================================================================
+
+        public ModuleData GetModule(string id)
         {
-            try
-            {
-                var dict = MiningSafetyAR.Firebase.MiniJSON.Json.Deserialize(firestoreJson) as Dictionary<string, object>;
-                if (dict != null && dict.ContainsKey("fields"))
-                {
-                    var fields = dict["fields"] as Dictionary<string, object>;
-                    if (fields != null)
-                    {
-                        var w = new WorkerData();
-                        w.firebaseUid = GetStringField(fields, "firebaseUid");
-                        w.id = GetStringField(fields, "id");
-                        w.name = GetStringField(fields, "name");
-                        w.organization = GetStringField(fields, "organization");
-                        w.sector = GetStringField(fields, "sector");
-                        w.phone = GetStringField(fields, "phone");
-                        w.language = GetStringField(fields, "language");
-                        w.joinDate = GetStringField(fields, "joinDate");
-                        w.overallProgress = GetIntField(fields, "overallProgress");
-                        w.certificatesEarned = GetIntField(fields, "certificatesEarned");
-                        w.totalAttempts = GetIntField(fields, "totalAttempts");
-                        if (w.competencyScores == null) w.competencyScores = new CompetencyScores();
-                        return w;
-                    }
-                }
-            }
-            catch (System.Exception e) { Debug.LogWarning($"[AppDataService] ParseWorker failed: {e.Message}"); }
-            return null;
+            if (moduleDatabase == null) moduleDatabase = Resources.Load<ModuleDatabase>("Data/ModuleDatabase");
+            return moduleDatabase != null ? moduleDatabase.GetById(id) : null;
         }
 
-        string GetStringField(Dictionary<string, object> fields, string key)
+        public List<ModuleData> GetAllModules()
         {
-            if (!fields.TryGetValue(key, out var v)) return "";
-            if (v is Dictionary<string, object> d && d.TryGetValue("stringValue", out var sv)) return sv as string ?? "";
-            if (v is Dictionary<string, object> d2 && d2.TryGetValue("integerValue", out var iv)) return iv.ToString();
-            return v?.ToString() ?? "";
-        }
-        int GetIntField(Dictionary<string, object> fields, string key)
-        {
-            if (!fields.TryGetValue(key, out var v)) return 0;
-            if (v is Dictionary<string, object> d)
-            {
-                if (d.TryGetValue("integerValue", out var iv) && int.TryParse(iv.ToString(), out int i)) return i;
-                if (d.TryGetValue("stringValue", out var sv) && int.TryParse(sv.ToString(), out int i2)) return i2;
-                if (d.TryGetValue("doubleValue", out var dv) && int.TryParse(dv.ToString(), out int i3)) return i3;
-            }
-            return 0;
+            if (moduleDatabase == null) moduleDatabase = Resources.Load<ModuleDatabase>("Data/ModuleDatabase");
+            return moduleDatabase != null ? moduleDatabase.GetAll() : new List<ModuleData>();
         }
 
-        // --- Module Access (definition) ---
-        public ModuleData GetModule(string id) => moduleDatabase != null ? moduleDatabase.GetById(id) : null;
-        public List<ModuleData> GetAllModules() => moduleDatabase != null ? moduleDatabase.GetAll() : new List<ModuleData>();
+        // ================================================================
+        // DYNAMIC PROGRESS (per-worker)
+        // ================================================================
 
-        // --- Dynamic per-worker progress ---
         public ModuleProgress GetModuleProgress(string moduleId)
         {
             if (string.IsNullOrEmpty(moduleId)) return null;
             if (progressMap.TryGetValue(moduleId, out var p)) return p;
-            // Not in map (e.g., new module added after worker created) -> create default
             var def = GetModule(moduleId);
             if (def == null) return null;
             var np = new ModuleProgress { moduleId = moduleId, status = moduleId == "heights_safety" ? ModuleStatus.Locked : ModuleStatus.NotStarted };
@@ -234,7 +364,6 @@ namespace MiningSafetyAR.Data
 
         public List<ModuleData> GetAllModulesWithProgress()
         {
-            // Return copies with dynamic progress overlaid (do not mutate shared ModuleData)
             var all = GetAllModules();
             var result = new List<ModuleData>();
             foreach (var m in all)
@@ -249,9 +378,10 @@ namespace MiningSafetyAR.Data
                     attempts = p != null ? p.attempts : 0,
                     lastAttempt = p != null ? p.lastAttempt : "",
                     certificateId = p != null ? p.certificateId : "",
-                    color = m.color, description = m.description, objectives = m.objectives, competencyScores = m.competencyScores
+                    color = m.color, description = m.description, objectives = m.objectives,
+                    // Use dynamic competency scores from progress, fall back to static defaults
+                    competencyScores = (p != null && p.competencyScores != null) ? p.competencyScores : m.competencyScores
                 };
-                // Unlock logic: heights_safety locked until others completed
                 if (m.id == "heights_safety" && copy.status == ModuleStatus.Locked)
                 {
                     bool allPrevCompleted = true;
@@ -267,36 +397,97 @@ namespace MiningSafetyAR.Data
             return result;
         }
 
-        public List<ModuleData> GetModulesByStatusDynamic(ModuleStatus status)
+        /// <summary>
+        /// Update competency scores for a module after a quiz attempt.
+        /// For each competency, calculates: (correct in category / total in category) * 100.
+        /// Merges with existing scores using best-score logic.
+        /// </summary>
+        public void UpdateModuleCompetencyScores(string moduleId, Dictionary<string, int> correctByCompetency, Dictionary<string, int> totalByCompetency)
         {
-            return GetAllModulesWithProgress().FindAll(m => m.status == status);
+            if (string.IsNullOrEmpty(moduleId)) return;
+            var prog = GetModuleProgress(moduleId);
+            if (prog == null) return;
+
+            if (prog.competencyScores == null) prog.competencyScores = new CompetencyScores();
+
+            foreach (var kv in totalByCompetency)
+            {
+                string comp = kv.Key;
+                int total = kv.Value;
+                if (total <= 0) continue;
+                int correct = 0;
+                if (correctByCompetency.ContainsKey(comp)) correct = correctByCompetency[comp];
+                int pct = (int)((float)correct / total * 100f);
+
+                // Update the matching competency field (best score logic)
+                switch (comp)
+                {
+                    case "hazardRecognition":
+                        prog.competencyScores.hazardRecognition = Mathf.Max(prog.competencyScores.hazardRecognition, pct);
+                        break;
+                    case "extinguisherUse":
+                        prog.competencyScores.extinguisherUse = Mathf.Max(prog.competencyScores.extinguisherUse, pct);
+                        break;
+                    case "ppeSelection":
+                        prog.competencyScores.ppeSelection = Mathf.Max(prog.competencyScores.ppeSelection, pct);
+                        break;
+                    case "evacuation":
+                        prog.competencyScores.evacuation = Mathf.Max(prog.competencyScores.evacuation, pct);
+                        break;
+                    case "emergencyResponse":
+                        prog.competencyScores.emergencyResponse = Mathf.Max(prog.competencyScores.emergencyResponse, pct);
+                        break;
+                }
+            }
+
+            // Save to Firestore
+            SaveModuleProgressToFirestore(CurrentWorker.firebaseUid, moduleId, prog);
+            // Update local cache
+            PlayerPrefs.SetString("ProgressMap_" + CurrentWorker.firebaseUid, ProgressMapToJson());
+            PlayerPrefs.Save();
         }
 
-        // Legacy wrappers for old code (now dynamic)
+        public List<ModuleData> GetModulesByStatusDynamic(ModuleStatus status) => GetAllModulesWithProgress().FindAll(m => m.status == status);
         public List<ModuleData> GetModulesByStatus(ModuleStatus status) => GetModulesByStatusDynamic(status);
 
-        // --- Question Access ---
-        public List<QuizQuestionData> GetQuestions(string moduleId) => questionDatabase != null ? questionDatabase.GetForModule(moduleId) : new List<QuizQuestionData>();
+        // ================================================================
+        // QUESTIONS
+        // ================================================================
 
-        // --- Certificate Access ---
-        public CertificateData GetCertificate(string certId) => certificateDatabase != null ? certificateDatabase.GetById(certId) : null;
+        public List<QuizQuestionData> GetQuestions(string moduleId)
+        {
+            if (questionDatabase == null) questionDatabase = Resources.Load<QuestionDatabase>("Data/QuestionDatabase");
+            return questionDatabase != null ? questionDatabase.GetForModule(moduleId) : new List<QuizQuestionData>();
+        }
+
+        // ================================================================
+        // CERTIFICATES
+        // ================================================================
+
+        public CertificateData GetCertificate(string certId)
+        {
+            if (certificateDatabase == null) certificateDatabase = Resources.Load<CertificateDatabase>("Data/CertificateDatabase");
+            return certificateDatabase != null ? certificateDatabase.GetById(certId) : null;
+        }
+
         public List<CertificateData> GetWorkerCertificates()
         {
+            if (certificateDatabase == null) certificateDatabase = Resources.Load<CertificateDatabase>("Data/CertificateDatabase");
             if (CurrentWorker == null || certificateDatabase == null) return new List<CertificateData>();
             return certificateDatabase.GetByWorker(CurrentWorker.id);
         }
 
-        // --- Training Results & Attempt History ---
+        // ================================================================
+        // TRAINING RESULTS & ATTEMPTS
+        // ================================================================
+
         public List<TrainingResult> GetAttemptsForModule(string moduleId)
         {
             if (allAttempts == null) return new List<TrainingResult>();
             return allAttempts.Where(a => string.Equals(a.moduleName, moduleId, System.StringComparison.OrdinalIgnoreCase)).ToList();
         }
 
-        public List<TrainingResult> GetAllAttempts()
-        {
-            return allAttempts ?? new List<TrainingResult>();
-        }
+        public List<TrainingResult> GetAllAttempts() => allAttempts ?? new List<TrainingResult>();
 
         public void SaveAttempt(string moduleId, int score, bool passed)
         {
@@ -318,8 +509,10 @@ namespace MiningSafetyAR.Data
             allAttempts.Add(result);
             SaveAttemptsLocally();
 
+            // Save to Firestore under worker's subcollection
             string json = JsonUtility.ToJson(result);
-            Firebase.FirestoreService.Instance.SaveRaw($"trainingResults/{result.resultId}", json, (ok, resp) => Debug.Log($"[AppDataService] SaveAttempt {(ok ? "OK" : "FAIL")} {moduleId} {score}%"));
+            Firebase.FirestoreService.Instance.SaveTrainingResult(CurrentWorker.firebaseUid, result.resultId, json,
+                (ok, resp) => Debug.Log($"[AppDataService] Attempt {(ok ? "saved" : "FAIL")} {moduleId} {score}%"));
 
             UpdateLocalProgress(moduleId, score, passed);
         }
@@ -338,15 +531,16 @@ namespace MiningSafetyAR.Data
                 prog.lastAttempt = System.DateTime.UtcNow.ToString("yyyy-MM-dd");
                 if (passed && string.IsNullOrEmpty(prog.certificateId))
                 {
-                    // Generate cert id
                     prog.certificateId = $"JH-{moduleId.ToUpper().Substring(0, System.Math.Min(4, moduleId.Length))}-{Random.Range(100000,999999)}";
                 }
-                // Unlock next if needed (heights)
                 if (passed) CheckUnlockHeights();
+
+                // Save this module's progress to its own Firestore document
+                SaveModuleProgressToFirestore(CurrentWorker.firebaseUid, moduleId, prog);
             }
 
             RecomputeWorkerStatsFromMap();
-            SaveWorkerAndProgress();
+            SaveWorkerProfile();
         }
 
         void CheckUnlockHeights()
@@ -363,37 +557,72 @@ namespace MiningSafetyAR.Data
             if (allPrevCompleted) heights.status = ModuleStatus.NotStarted;
         }
 
-        void SaveWorkerAndProgress()
+        // ================================================================
+        // SAVE WORKER PROFILE ONLY (no progressJson blob)
+        // ================================================================
+
+        void SaveWorkerProfile()
         {
             if (CurrentWorker == null) return;
-            // Save worker doc with progressJson
-            string progressJson = ProgressMapToJson();
-            // Build worker json and inject progressJson as stringValue via manual JSON
-            string workerJson = JsonUtility.ToJson(CurrentWorker);
-            // Inject progressJson into JSON string before final }
-            // workerJson is {"firebaseUid":"...","id":"...",...} -> add ,"progressJson":"{...escaped...}"
-            string escaped = progressJson.Replace("\\", "\\\\").Replace("\"", "\\\"");
-            string withProgress = workerJson.TrimEnd('}');
-            if (!withProgress.EndsWith("{")) withProgress += ",";
-            withProgress += $"\"progressJson\":\"{escaped}\"}}";
-            Firebase.FirestoreService.Instance.SaveWorkerJson(CurrentWorker.firebaseUid, withProgress);
+
+            var saveData = new WorkerSaveData
+            {
+                firebaseUid = CurrentWorker.firebaseUid,
+                id = CurrentWorker.id,
+                name = CurrentWorker.name,
+                organization = CurrentWorker.organization,
+                sector = CurrentWorker.sector,
+                phone = CurrentWorker.phone,
+                language = CurrentWorker.language,
+                joinDate = CurrentWorker.joinDate,
+                overallProgress = CurrentWorker.overallProgress,
+                certificatesEarned = CurrentWorker.certificatesEarned,
+                totalAttempts = CurrentWorker.totalAttempts
+            };
+            string workerJson = JsonUtility.ToJson(saveData);
+
+            Firebase.FirestoreService.Instance.SaveWorker(CurrentWorker.firebaseUid, workerJson);
             CacheWorkerLocally(CurrentWorker);
-            // Also cache progressMap locally
-            PlayerPrefs.SetString("ProgressMap_" + CurrentWorker.firebaseUid, progressJson);
+
+            // Cache progress map locally
+            PlayerPrefs.SetString("ProgressMap_" + CurrentWorker.firebaseUid, ProgressMapToJson());
             PlayerPrefs.Save();
         }
 
-        // --- Auth shortcuts ---
+        // ================================================================
+        // AUTH SHORTCUTS
+        // ================================================================
+
         public void Login(string workerId, string pin) => Firebase.FirebaseAuthManager.Instance?.Login(workerId, pin);
         public void DemoLogin() => Firebase.FirebaseAuthManager.Instance?.DemoLogin();
         public void Register(string name, string workerId, string org, string sector, string phone, string pin) => Firebase.FirebaseAuthManager.Instance?.Register(workerId, pin, name);
         public void Logout() => Firebase.FirebaseAuthManager.Instance?.Logout();
+
+        // ================================================================
+        // LOCAL CACHE
+        // ================================================================
 
         void CacheWorkerLocally(WorkerData worker)
         {
             string json = JsonUtility.ToJson(worker);
             PlayerPrefs.SetString("CachedWorker", json);
             PlayerPrefs.Save();
+        }
+
+        void LoadCachedWorker()
+        {
+            try
+            {
+                string json = PlayerPrefs.GetString("CachedWorker", "");
+                if (string.IsNullOrEmpty(json)) return;
+                var worker = JsonUtility.FromJson<WorkerData>(json);
+                if (worker == null || string.IsNullOrEmpty(worker.id) || worker.id == "NEW") return;
+                CurrentWorker = worker;
+                LoadProgressFromCache(worker.firebaseUid);
+                LoadAttemptsLocally(worker.id);
+                Debug.Log($"[AppDataService] Cached worker: {worker.name} ({worker.id}) overall={worker.overallProgress}%");
+            }
+            catch (System.Exception e) { Debug.LogWarning($"[AppDataService] LoadCachedWorker: {e.Message}"); }
         }
 
         public void SaveAttemptsLocally()
@@ -410,20 +639,67 @@ namespace MiningSafetyAR.Data
             allAttempts.Clear();
             if (string.IsNullOrEmpty(workerId)) return;
             string json = PlayerPrefs.GetString("Attempts_" + workerId, "");
-            if (!string.IsNullOrEmpty(json))
+            if (string.IsNullOrEmpty(json)) return;
+            var wrapper = JsonUtility.FromJson<AttemptListWrapper>(json);
+            if (wrapper?.list != null) allAttempts = wrapper.list;
+        }
+
+        void LoadAttemptsFromFirestore(string firebaseUid)
+        {
+            // Load from local cache first
+            LoadAttemptsLocally(CurrentWorker.id);
+
+            // Then fetch from Firestore subcollection
+            Firebase.FirestoreService.Instance.GetAllTrainingResults(firebaseUid, (ok, docs) =>
             {
-                var wrapper = JsonUtility.FromJson<AttemptListWrapper>(json);
-                if (wrapper != null && wrapper.list != null)
+                if (!ok || docs == null || docs.Count == 0)
                 {
-                    allAttempts = wrapper.list;
+                    Debug.Log($"[AppDataService] No attempt docs from Firestore ({allAttempts.Count} from cache)");
+                    return;
                 }
-            }
+
+                allAttempts.Clear();
+                foreach (var doc in docs)
+                {
+                    var fields = doc.ContainsKey("fields") ? doc["fields"] as Dictionary<string, object> : doc;
+                    if (fields == null) continue;
+
+                    var result = new TrainingResult
+                    {
+                        resultId = Firebase.FirestoreService.GetstringValue(fields, "resultId"),
+                        workerId = Firebase.FirestoreService.GetstringValue(fields, "workerId"),
+                        moduleName = Firebase.FirestoreService.GetstringValue(fields, "moduleName"),
+                        score = Firebase.FirestoreService.GetintValue(fields, "score"),
+                        maxScore = Firebase.FirestoreService.GetintValue(fields, "maxScore"),
+                        percentage = Firebase.FirestoreService.GetintValue(fields, "percentage"),
+                        passed = Firebase.FirestoreService.GetboolValue(fields, "passed"),
+                        mistakesCount = Firebase.FirestoreService.GetintValue(fields, "mistakesCount"),
+                        completionTimeSeconds = (float)Firebase.FirestoreService.GetintValue(fields, "completionTimeSeconds"),
+                        timestamp = Firebase.FirestoreService.GetstringValue(fields, "timestamp"),
+                        synced = true
+                    };
+                    allAttempts.Add(result);
+                }
+
+                // Sort by timestamp descending (newest first)
+                allAttempts.Sort((a, b) => string.Compare(b.timestamp, a.timestamp, System.StringComparison.Ordinal));
+
+                // Update local cache
+                SaveAttemptsLocally();
+                Debug.Log($"[AppDataService] Loaded {allAttempts.Count} attempts from Firestore");
+            });
         }
 
         WorkerData CreateNewWorker(string firebaseUid)
         {
-            var w = new WorkerData { firebaseUid = firebaseUid, id = "NEW", name = "New Worker", organization = "", sector = "", phone = "", language = "English", joinDate = System.DateTime.UtcNow.ToString("yyyy-MM-dd"), overallProgress = 0, certificatesEarned = 0, totalAttempts = 0, competencyScores = new CompetencyScores() };
-            return w;
+            return new WorkerData
+            {
+                firebaseUid = firebaseUid, id = "NEW", name = "New Worker",
+                organization = "", sector = "", phone = "", language = "English",
+                joinDate = System.DateTime.UtcNow.ToString("yyyy-MM-dd"),
+                overallProgress = 0, certificatesEarned = 0, totalAttempts = 0,
+                competencyScores = new CompetencyScores()
+            };
         }
     }
 }

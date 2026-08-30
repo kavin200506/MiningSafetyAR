@@ -8,6 +8,7 @@ namespace MiningSafetyAR.Data
     {
         public List<CertificateData> certificates = new List<CertificateData>();
 
+        public List<CertificateData> GetAll() => certificates;
         public CertificateData GetById(string id) => certificates.Find(c => c.id == id);
         public List<CertificateData> GetByWorker(string workerId) => certificates.FindAll(c => c.workerId == workerId);
     }

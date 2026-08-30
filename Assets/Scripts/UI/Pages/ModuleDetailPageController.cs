@@ -15,7 +15,8 @@ namespace MiningSafetyAR.UI.Pages
         string moduleId;
         ModuleData currentModule;
 
-        Label moduleTitle, heroEmoji, heroBadge;
+        Label moduleTitle, heroBadge;
+        VisualElement heroEmoji;
         Label description, duration, difficulty, domain;
         VisualElement bestScoreCard, competencySection;
         VisualElement objectivesList, scoreBars;
@@ -25,7 +26,7 @@ namespace MiningSafetyAR.UI.Pages
         protected override void BindUI()
         {
             moduleTitle = root.Q<Label>("module-title");
-            heroEmoji = root.Q<Label>("hero-emoji");
+            heroEmoji = root.Q<VisualElement>("hero-emoji");
             heroBadge = root.Q<Label>("hero-badge");
             description = root.Q<Label>("description");
             duration = root.Q<Label>("duration");
@@ -41,9 +42,13 @@ namespace MiningSafetyAR.UI.Pages
             backBtn = root.Q<Button>("back-btn");
 
             if (scoreBarTemplate == null)
+            {
+                scoreBarTemplate = Resources.Load<VisualTreeAsset>("UI/Templates/Components/ScoreBar");
 #if UNITY_EDITOR
-                scoreBarTemplate = UnityEditor.AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/UI/Templates/Components/ScoreBar.uxml");
+                if (scoreBarTemplate == null)
+                    scoreBarTemplate = UnityEditor.AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/UI/Templates/Components/ScoreBar.uxml");
 #endif
+            }
 
             if (backBtn != null) backBtn.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.GoBack());
             if (actionBtn != null) actionBtn.RegisterCallback<ClickEvent>(e => OnActionClicked());
@@ -81,7 +86,10 @@ namespace MiningSafetyAR.UI.Pages
             var app = AppDataService.Instance;
             var mod = currentModule;
             if (moduleTitle != null) moduleTitle.text = mod.title;
-            if (heroEmoji != null) heroEmoji.text = mod.iconEmoji;
+            if (heroEmoji != null)
+            {
+                IconLoader.ApplyModuleIcon(heroEmoji, mod.id);
+            }
             if (heroBadge != null)
             {
                 heroBadge.text = mod.status.ToString();

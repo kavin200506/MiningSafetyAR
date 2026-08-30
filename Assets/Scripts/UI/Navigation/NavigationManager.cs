@@ -16,8 +16,8 @@ namespace MiningSafetyAR.UI.Navigation
         private static readonly HashSet<string> bottomNavVisibleScenes = new HashSet<string>
         {
             "UI_Dashboard", "UI_TrainingCatalogue",
-            "UI_ModuleDetail", "UI_Results", "UI_Certificate",
-            "UI_Progress", "UI_Settings", "UI_QRVerify"
+            "UI_ModuleDetail",
+            "UI_Progress", "UI_Settings"
         };
 
         private static readonly Dictionary<string, int> sceneTabMap = new Dictionary<string, int>
