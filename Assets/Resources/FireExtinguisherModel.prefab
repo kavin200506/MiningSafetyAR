@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8293509840676475706}
-  - component: {fileID: 5396412708392511699}
+  - component: {fileID: 7864946340038963965}
   m_Layer: 0
   m_Name: FireExtinguisherModel
   m_TagString: Untagged
@@ -32,7 +32,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5396412708392511699
+--- !u!114 &7864946340038963965
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

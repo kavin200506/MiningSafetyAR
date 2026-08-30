@@ -24,6 +24,40 @@ namespace MiningSafetyAR.Editor
 {
     public class ARSceneBuilder : EditorWindow
     {
+        [InitializeOnLoadMethod]
+        public static void ForceIncludeURPLitShader()
+        {
+            Shader urpLit = Shader.Find("Universal Render Pipeline/Lit");
+            if (urpLit == null) return;
+
+            Object graphicsSettings = AssetDatabase.LoadAssetAtPath<Object>("ProjectSettings/GraphicsSettings.asset");
+            if (graphicsSettings != null)
+            {
+                SerializedObject serializedSettings = new SerializedObject(graphicsSettings);
+                SerializedProperty arrayProp = serializedSettings.FindProperty("m_AlwaysIncludedShaders");
+                if (arrayProp != null)
+                {
+                    bool exists = false;
+                    for (int i = 0; i < arrayProp.arraySize; i++)
+                    {
+                        if (arrayProp.GetArrayElementAtIndex(i).objectReferenceValue == urpLit)
+                        {
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists)
+                    {
+                        arrayProp.InsertArrayElementAtIndex(arrayProp.arraySize);
+                        arrayProp.GetArrayElementAtIndex(arrayProp.arraySize - 1).objectReferenceValue = urpLit;
+                        serializedSettings.ApplyModifiedProperties();
+                        AssetDatabase.SaveAssets();
+                        Debug.Log("[ARSceneBuilder] Successfully added 'Universal Render Pipeline/Lit' shader to Always Included Shaders in Graphics Settings!");
+                    }
+                }
+            }
+        }
+
         [MenuItem("Mining Safety AR/Setup Core AR Scene")]
         public static void SetupARScene()
         {
@@ -668,56 +702,32 @@ namespace MiningSafetyAR.Editor
         {
             string folderPath = "Assets/Prefabs";
             string prefabPath = "Assets/Prefabs/FireExtinguisherModel.prefab";
-            string materialPath = "Assets/Prefabs/FireExtinguisherMaterial.mat";
+            string resourcesFolderPath = "Assets/Resources";
+            string resourcesPrefabPath = "Assets/Resources/FireExtinguisherModel.prefab";
 
             if (!Directory.Exists(folderPath))
             {
                 Directory.CreateDirectory(folderPath);
-                AssetDatabase.Refresh();
             }
-
-            GameObject gltfModel = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Models/FireExtinguisher/FireExtinguisher.gltf") ??
-                                   AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Models/FireExtinguisher/Untitled.gltf") ??
-                                   AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/FireExtinguisher/FireExtinguisher.gltf") ??
-                                   AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/FireExtinguisher/Untitled.gltf");
-
-            if (gltfModel != null)
+            if (!Directory.Exists(resourcesFolderPath))
             {
-                GameObject savedPrefab = PrefabUtility.SaveAsPrefabAsset(gltfModel, prefabPath);
-                Debug.Log($"[ARSceneBuilder] Assigned GLTF 3D model to FireExtinguisherModel prefab at {prefabPath}");
-                return savedPrefab;
+                Directory.CreateDirectory(resourcesFolderPath);
             }
+            AssetDatabase.Refresh();
 
-            GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-            if (existingPrefab != null) return existingPrefab;
-
-            Material mat = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
-            if (mat == null)
+            // Create temporary container object and attach FireExtinguisherModelLoader
+            GameObject tempContainer = new GameObject("FireExtinguisherModel");
+            if (tempContainer.GetComponent<FireExtinguisherModelLoader>() == null)
             {
-                Shader defaultShader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-                if (defaultShader != null)
-                {
-                    mat = new Material(defaultShader);
-                    mat.color = new Color(1.0f, 0.15f, 0.15f); // Vivid Safety Red
-                    AssetDatabase.CreateAsset(mat, materialPath);
-                }
+                tempContainer.AddComponent<FireExtinguisherModelLoader>();
             }
 
-            GameObject tempCylinder = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            tempCylinder.name = "Fire Extinguisher 3D";
-            tempCylinder.transform.localScale = new Vector3(0.35f, 0.35f, 0.35f);
+            GameObject savedPrefab = PrefabUtility.SaveAsPrefabAsset(tempContainer, prefabPath);
+            PrefabUtility.SaveAsPrefabAsset(tempContainer, resourcesPrefabPath);
+            Object.DestroyImmediate(tempContainer);
 
-            MeshRenderer mr = tempCylinder.GetComponent<MeshRenderer>();
-            if (mr != null && mat != null)
-            {
-                mr.sharedMaterial = mat;
-            }
-
-            GameObject primitiveSavedPrefab = PrefabUtility.SaveAsPrefabAsset(tempCylinder, prefabPath);
-            Object.DestroyImmediate(tempCylinder);
-
-            Debug.Log($"[ARSceneBuilder] Auto-created FireExtinguisherModel prefab at {prefabPath}");
-            return primitiveSavedPrefab;
+            Debug.Log($"[ARSceneBuilder] Configured 3D glTF container FireExtinguisherModel prefab at {prefabPath} and {resourcesPrefabPath}");
+            return savedPrefab;
         }
 
         private static GameObject EnsureExitSignPrefab()
@@ -795,9 +805,10 @@ namespace MiningSafetyAR.Editor
             int updatedCount = 0;
             
             ARPlacementManager placementManager = Object.FindFirstObjectByType<ARPlacementManager>();
-            if (placementManager != null && firePrefab != null)
+            if (placementManager != null)
             {
-                placementManager.DefaultPlacementPrefab = firePrefab;
+                if (firePrefab != null) placementManager.DefaultPlacementPrefab = firePrefab;
+                placementManager.ActivePlacementMode = ARPlacementManager.PlacementTargetMode.GroundFireHazard;
                 EditorUtility.SetDirty(placementManager);
                 updatedCount++;
             }
@@ -813,9 +824,40 @@ namespace MiningSafetyAR.Editor
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
             AssetDatabase.SaveAssets();
 
-            string msg = $"Successfully set 'VFX_Fire_Floor_01_Simple.prefab' as the active AR placement prefab on {updatedCount} components in scene '{UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}'!\n\nNow click File -> Build And Run to test on your phone.";
+            string msg = $"Successfully set Ground Fire Hazard ('VFX_Fire_Floor_01_Simple.prefab') as the active AR placement target on plane tap in scene '{UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}'!";
             Debug.Log($"[ARSceneBuilder] {msg}");
-            EditorUtility.DisplayDialog("Mining Safety AR — Prefab Assigned", msg, "OK");
+            EditorUtility.DisplayDialog("Mining Safety AR — Placement Mode", msg, "OK");
+        }
+
+        [MenuItem("Mining Safety AR/Set Default AR Placement Prefab to 3D Fire Extinguisher (Testing)")]
+        public static void SetDefaultPlacementToFireExtinguisherTesting()
+        {
+            string extPrefabPath = "Assets/Prefabs/FireExtinguisherModel.prefab";
+            GameObject extPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(extPrefabPath);
+            int updatedCount = 0;
+
+            ARPlacementManager placementManager = Object.FindFirstObjectByType<ARPlacementManager>();
+            if (placementManager != null && extPrefab != null)
+            {
+                placementManager.DefaultPlacementPrefab = extPrefab;
+                EditorUtility.SetDirty(placementManager);
+                updatedCount++;
+            }
+
+            ARRaycastManager raycastManager = Object.FindFirstObjectByType<ARRaycastManager>();
+            if (raycastManager != null && extPrefab != null)
+            {
+                raycastManager.raycastPrefab = extPrefab;
+                EditorUtility.SetDirty(raycastManager);
+                updatedCount++;
+            }
+
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+            AssetDatabase.SaveAssets();
+
+            string msg = $"Successfully set 3D Fire Extinguisher model ('FireExtinguisherModel.prefab') as active AR placement target for testing in scene '{UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}'!";
+            Debug.Log($"[ARSceneBuilder] {msg}");
+            EditorUtility.DisplayDialog("Mining Safety AR — Placement Mode (Testing)", msg, "OK");
         }
 
         [MenuItem("Mining Safety AR/Optimize Vefects Fire VFX for Mobile (ASTC & View Alignment)")]
