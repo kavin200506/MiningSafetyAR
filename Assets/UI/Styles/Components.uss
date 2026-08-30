@@ -1,0 +1,173 @@
+﻿/* --- Primary Button --- */
+.btn-primary {
+    background-color: var(--accent);
+    color: #FFFFFF;
+    border-width: 0;
+    border-radius: var(--radius-md);
+    height: 48px;
+    font-size: var(--font-size-md);
+    transition: background-color 0.2s ease, scale 0.15s ease;
+}
+
+.btn-primary:hover {
+    background-color: var(--accent-light);
+}
+
+.btn-primary:active {
+    scale: 0.97;
+    opacity: 0.9;
+}
+
+/* --- Secondary Button â€” 65/35: more orange fill */
+.btn-secondary {
+    background-color: var(--accent-soft);
+    color: var(--accent);
+    border-color: var(--accent);
+    border-width: 1px;
+    border-radius: var(--radius-md);
+    height: 48px;
+    font-size: var(--font-size-md);
+    transition: background-color 0.2s ease, scale 0.15s ease;
+}
+
+.btn-secondary:hover {
+    background-color: #FF6D0018;
+}
+
+.btn-secondary:active {
+    scale: 0.97;
+}
+
+/* --- Danger Button --- */
+.btn-danger {
+    background-color: transparent;
+    color: var(--danger);
+    border-color: var(--danger);
+    border-width: 1px;
+    border-radius: var(--radius-md);
+    height: 48px;
+    font-size: var(--font-size-md);
+}
+
+.btn-danger:active {
+    scale: 0.97;
+}
+
+/* --- Text Button --- */
+.btn-text {
+    background-color: transparent;
+    border-width: 0;
+    color: var(--accent);
+    font-size: var(--font-size-sm);
+}
+
+/* --- Cards â€” 65/35: orange left accent + warm tints */
+.card {
+    background-color: var(--bg-card);
+    border-color: var(--border-light);
+    border-width: 1px;
+    border-left-color: var(--accent);
+    border-left-width: 3px;
+    border-radius: var(--radius-2xl);
+    padding: var(--space-xl);
+}
+
+.card-interactive {
+    background-color: var(--bg-card);
+    border-color: var(--border-light);
+    border-width: 1px;
+    border-left-color: var(--accent);
+    border-left-width: 3px;
+    border-radius: var(--radius-xl);
+    padding: var(--space-lg);
+    transition: scale 0.15s ease;
+    cursor: pointer;
+}
+
+.card-interactive:active {
+    scale: 0.98;
+    background-color: var(--accent-soft);
+}
+
+.card-accent {
+    background-color: var(--accent-soft);
+    border-color: var(--border-accent);
+    border-width: 1px;
+    border-left-color: var(--accent);
+    border-left-width: 3px;
+    border-radius: var(--radius-2xl);
+    padding: var(--space-xl);
+}
+
+/* --- Badges --- */
+.badge {
+    border-radius: var(--radius-full);
+    padding: 4px 10px;
+    font-size: var(--font-size-sm);
+}
+
+.badge--completed { background-color: #E8F5E9; color: #2E7D32; }
+.badge--in_progress { background-color: #FFF3E0; color: var(--accent); }
+.badge--not_started { background-color: #F5F5F5; color: var(--text-muted); }
+.badge--locked { background-color: #EEEEEE; color: var(--text-disabled); }
+.badge--pass { background-color: #E8F5E9; color: #2E7D32; }
+.badge--fail { background-color: #FFEBEE; color: #C62828; }
+
+/* --- Pills â€” warm orange tint */
+.pill {
+    background-color: var(--accent-soft);
+    border-color: var(--border-accent);
+    border-width: 1px;
+    border-radius: var(--radius-full);
+    padding: 4px 10px;
+    font-size: var(--font-size-sm);
+    color: var(--accent-dark);
+}
+
+/* --- Dividers â€” orange soft */
+.divider {
+    height: 1px;
+    background-color: var(--border-light);
+    margin: var(--space-xl) 0;
+}
+
+/* --- Page Container --- */
+.page-container {
+    flex: 1;
+    background-color: var(--bg-primary);
+    flex-direction: column;
+    max-width: var(--max-width);
+    align-self: center;
+    width: 100%;
+}
+
+.scroll-area {
+    flex: 1;
+    padding: var(--space-xl);
+    --unity-scroller-visibility: hidden;
+}
+
+.scroll-area #unity-vertical-scroller,
+.scroll-area #unity-horizontal-scroller,
+.scroll-area .unity-scroll-view__vertical-scroller,
+.scroll-area .unity-scroll-view__horizontal-scroller {
+    display: none;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    visibility: hidden;
+}
+
+
+.section-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-lg);
+}
+
+.section-title {
+    font-size: var(--font-size-lg);
+    color: var(--text-primary);
+}
+

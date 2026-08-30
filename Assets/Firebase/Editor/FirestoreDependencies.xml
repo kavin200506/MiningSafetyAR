@@ -1,0 +1,13 @@
+<dependencies>
+  <remoteSwiftPackage url="https://github.com/firebase/firebase-ios-sdk.git" version="12.18.0">
+    <swiftPackage name="FirebaseFirestore" replacesPod="Firebase/Firestore"/>
+  </remoteSwiftPackage>
+  <iosPods>
+    <iosPod name="Firebase/Firestore" version="12.18.0" minTargetSdk="15.0">
+    </iosPod>
+  </iosPods>
+  <androidPackages>
+    <androidPackage spec="com.google.firebase:firebase-firestore:26.6.0">
+    </androidPackage>
+  </androidPackages>
+</dependencies>

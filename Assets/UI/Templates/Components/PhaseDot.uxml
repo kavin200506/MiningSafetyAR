@@ -1,0 +1,3 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="phase-dot" class="phase-dot" style="width: 8px; height: 8px; border-radius: 4px; background-color: #E0E0E0; margin-right: 6px;" />
+</ui:UXML>

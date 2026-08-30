@@ -1,0 +1,6 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="feedback-banner" class="feedback-banner" style="flex-direction: row; align-items: center; border-radius: 10px; padding: 12px; display: none;">
+        <ui:Label name="feedback-icon" class="feedback-banner__icon" text="" style="font-size: 16px; margin-right: 8px;" />
+        <ui:Label name="feedback-text" class="feedback-banner__text" text="" style="font-size: 13px; font-weight: 500;" />
+    </ui:VisualElement>
+</ui:UXML>

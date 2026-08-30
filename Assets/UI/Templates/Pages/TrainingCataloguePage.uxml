@@ -1,0 +1,45 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Styles/Theme.uss" />
+    <Style src="project://database/Assets/UI/Styles/Reset.uss" />
+    <Style src="project://database/Assets/UI/Styles/Components.uss" />
+    <Style src="project://database/Assets/UI/Styles/Header.uss" />
+    <Style src="project://database/Assets/UI/Styles/BottomNav.uss" />
+    <Style src="project://database/Assets/UI/Styles/Icons.uss" />
+    <Style src="project://database/Assets/UI/Styles/Animations.uss" />
+    <ui:VisualElement class="page-container">
+        <ui:VisualElement class="header">
+            <ui:VisualElement class="header__back-btn" />
+            <ui:Label class="header__title" text="Training Modules" />
+            <ui:VisualElement class="header__right-action" />
+        </ui:VisualElement>
+        <ui:VisualElement class="filter-row" name="filter-row">
+            <ui:Button class="filter-pill filter-pill--active" name="filter-all" text="All" />
+            <ui:Button class="filter-pill" name="filter-completed" text="Completed" />
+            <ui:Button class="filter-pill" name="filter-in-progress" text="In Progress" />
+            <ui:Button class="filter-pill" name="filter-not-started" text="Not Started" />
+        </ui:VisualElement>
+        <ui:Label class="module-count" name="module-count" text="5 modules" style="padding: 0 16px; margin: 8px 0; font-size: 12px; color: #666666;" />
+        <ui:ScrollView class="scroll-area">
+            <ui:VisualElement name="module-list" />
+            <ui:VisualElement style="height: 80px;" />
+        </ui:ScrollView>
+        <ui:VisualElement name="bottom-nav" class="bottom-nav">
+            <ui:Button name="tab-home" class="bottom-nav__tab">
+                <ui:VisualElement class="icon-home" style="margin-bottom: 2px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Home" />
+            </ui:Button>
+            <ui:Button name="tab-training" class="bottom-nav__tab bottom-nav__tab--active">
+                <ui:VisualElement class="icon-training" style="margin-bottom: 2px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Training" />
+            </ui:Button>
+            <ui:Button name="tab-progress" class="bottom-nav__tab">
+                <ui:VisualElement class="icon-progress" style="margin-bottom: 2px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Progress" />
+            </ui:Button>
+            <ui:Button name="tab-settings" class="bottom-nav__tab">
+                <ui:VisualElement class="icon-settings" style="margin-bottom: 2px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Settings" />
+            </ui:Button>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

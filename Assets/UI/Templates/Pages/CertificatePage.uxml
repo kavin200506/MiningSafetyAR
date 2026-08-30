@@ -1,0 +1,83 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Styles/Theme.uss" />
+    <Style src="project://database/Assets/UI/Styles/Reset.uss" />
+    <Style src="project://database/Assets/UI/Styles/Components.uss" />
+    <Style src="project://database/Assets/UI/Styles/Header.uss" />
+    <Style src="project://database/Assets/UI/Styles/BottomNav.uss" />
+    <Style src="project://database/Assets/UI/Styles/Icons.uss" />
+    <ui:VisualElement class="page-container">
+        <ui:VisualElement class="header">
+            <ui:Button class="header__back-btn" name="back-btn">
+                <ui:VisualElement class="icon-back" style="width: 20px; height: 20px;" />
+            </ui:Button>
+            <ui:Label class="header__title" text="Certificate" />
+            <ui:VisualElement class="header__right-action" />
+        </ui:VisualElement>
+        <ui:ScrollView class="scroll-area">
+            <ui:VisualElement class="card" name="cert-card" style="padding: 0; overflow: hidden;">
+                <ui:VisualElement style="background-color: #FF6D00; padding: 16px; align-items: center;">
+                    <ui:VisualElement class="logo-shield" style="width: 28px; height: 28px;" />
+                    <ui:Label text="SAFETY CERTIFICATE" style="font-size: 14px; font-weight: 700; color: #FFFFFF; letter-spacing: 2px; margin-top: 4px;" />
+                    <ui:Label text="Government of Jharkhand" style="font-size: 11px; color: #FFFFFF; margin-top: 2px;" />
+                </ui:VisualElement>
+                <ui:VisualElement style="padding: 16px; align-items: center;">
+                    <ui:Label text="This certifies that" style="font-size: 12px; color: #999999;" />
+                    <ui:Label name="worker-name" text="" style="font-size: 18px; font-weight: 700; color: #1A1A1A; margin-top: 4px;" />
+                    <ui:Label text="has successfully completed" style="font-size: 12px; color: #999999; margin-top: 4px;" />
+                    <ui:Label name="module-title" text="" style="font-size: 14px; font-weight: 600; color: #FF6D00; margin-top: 4px; text-align: center;" />
+                    <ui:VisualElement style="flex-direction: row; align-items: center; margin-top: 12px;">
+                        <ui:Label name="score" text="85%" style="font-size: 16px; font-weight: 700; color: #1A1A1A; margin-right: 8px;" />
+                        <ui:Label class="badge badge--pass" text="PASSED" />
+                    </ui:VisualElement>
+                    <ui:VisualElement style="width: 120px; height: 120px; background-color: #F5F5F5; border-color: #E0E0E0; border-width: 1px; border-radius: 8px; align-items: center; justify-content: center; margin-top: 16px;">
+                        <ui:Label text="QR Code" style="font-size: 11px; color: #999999;" />
+                        <ui:Label name="cert-id" text="" style="font-size: 10px; color: #1A1A1A; margin-top: 4px;" />
+                    </ui:VisualElement>
+                    <ui:Label text="Scan to verify certificate" style="font-size: 10px; color: #999999; margin-top: 8px;" />
+                    <ui:VisualElement style="width: 100%; margin-top: 16px;">
+                        <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 6px;">
+                            <ui:Label text="Certificate ID" style="font-size: 11px; color: #999999;" />
+                            <ui:Label name="cert-id-meta" text="" style="font-size: 11px; color: #1A1A1A;" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 6px;">
+                            <ui:Label text="Issued" style="font-size: 11px; color: #999999;" />
+                            <ui:Label name="issued-date" text="" style="font-size: 11px; color: #1A1A1A;" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 6px;">
+                            <ui:Label text="Expires" style="font-size: 11px; color: #999999;" />
+                            <ui:Label name="expiry-date" text="" style="font-size: 11px; color: #1A1A1A;" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="flex-direction: row; justify-content: space-between;">
+                            <ui:Label text="Organization" style="font-size: 11px; color: #999999;" />
+                            <ui:Label name="organization" text="" style="font-size: 11px; color: #1A1A1A;" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement style="margin-top: 16px; padding: 0 16px;">
+                <ui:Button class="btn-primary" name="download-btn" text="Download Certificate" />
+                <ui:Button class="btn-secondary" name="share-btn" text="Share Certificate" style="margin-top: 8px;" />
+                <ui:Button class="btn-secondary" name="verify-btn" text="Verify Certificate" style="margin-top: 8px;" />
+            </ui:VisualElement>
+            <ui:VisualElement style="height: 80px;" />
+        </ui:ScrollView>
+        <ui:VisualElement name="bottom-nav" class="bottom-nav">
+            <ui:Button name="tab-home" class="bottom-nav__tab">
+                <ui:VisualElement class="icon-home" style="margin-bottom: 2px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Home" />
+            </ui:Button>
+            <ui:Button name="tab-training" class="bottom-nav__tab">
+                <ui:VisualElement class="icon-training" style="margin-bottom: 2px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Training" />
+            </ui:Button>
+            <ui:Button name="tab-progress" class="bottom-nav__tab">
+                <ui:VisualElement class="icon-progress" style="margin-bottom: 2px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Progress" />
+            </ui:Button>
+            <ui:Button name="tab-settings" class="bottom-nav__tab">
+                <ui:VisualElement class="icon-settings" style="margin-bottom: 2px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Settings" />
+            </ui:Button>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

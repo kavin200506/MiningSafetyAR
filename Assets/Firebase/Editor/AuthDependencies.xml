@@ -1,0 +1,13 @@
+<dependencies>
+  <remoteSwiftPackage url="https://github.com/firebase/firebase-ios-sdk.git" version="12.18.0">
+    <swiftPackage name="FirebaseAuth" replacesPod="Firebase/Auth"/>
+  </remoteSwiftPackage>
+  <iosPods>
+    <iosPod name="Firebase/Auth" version="12.18.0" minTargetSdk="15.0">
+    </iosPod>
+  </iosPods>
+  <androidPackages>
+    <androidPackage spec="com.google.firebase:firebase-auth:24.2.0">
+    </androidPackage>
+  </androidPackages>
+</dependencies>
