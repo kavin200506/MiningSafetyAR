@@ -1,0 +1,50 @@
+Label, Button, TextField, VisualElement {
+    margin: 0;
+    padding: 0;
+}
+
+Button {
+    background-color: transparent;
+    border-width: 0;
+    border-radius: 0;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+Label {
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+    white-space: pre-wrap;
+}
+
+TextField {
+    background-color: #FFFFFF;
+    border-color: #FFCC80;
+    border-width: 2px;
+    border-radius: var(--radius-md);
+    color: #1A1A1A;
+    font-size: 14px;
+    padding: 0;
+}
+
+TextField:focus {
+    border-color: var(--accent);
+}
+
+/* Hide ScrollView scrollbars globally while keeping drag/touch scrolling active */
+ScrollView {
+    --unity-scroller-visibility: hidden;
+}
+
+ScrollView .unity-scroll-view__vertical-scroller,
+ScrollView .unity-scroll-view__horizontal-scroller,
+#unity-vertical-scroller,
+#unity-horizontal-scroller,
+.unity-scroller {
+    display: none;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    visibility: hidden;
+}
+

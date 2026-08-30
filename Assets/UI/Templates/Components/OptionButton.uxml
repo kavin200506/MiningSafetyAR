@@ -1,0 +1,8 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:Button name="option-btn" class="option-button" style="flex-direction: row; align-items: center; background-color: #F5F5F5; border-color: #E0E0E0; border-width: 1px; border-radius: 10px; padding: 12px; margin-bottom: 8px;">
+        <ui:VisualElement name="option-badge" class="option-button__badge" style="width: 28px; height: 28px; border-radius: 14px; background-color: #FFFFFF; border-color: #E0E0E0; border-width: 1px; align-items: center; justify-content: center; margin-right: 12px;">
+            <ui:Label name="option-letter" class="option-button__letter" text="A" style="font-size: 12px; font-weight: 600; color: #666666;" />
+        </ui:VisualElement>
+        <ui:Label name="option-text" class="option-button__text" text="" style="flex: 1; font-size: 13px; color: #1A1A1A;" />
+    </ui:Button>
+</ui:UXML>

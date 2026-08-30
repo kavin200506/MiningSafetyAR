@@ -1,0 +1,5 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="meta-pill" class="pill meta-pill">
+        <ui:Label name="meta-text" class="meta-pill__text" text="" style="font-size: 11px; color: #666666;" />
+    </ui:VisualElement>
+</ui:UXML>
