@@ -18,6 +18,8 @@ namespace MiningSafetyAR.AR
         private GameObject loadedGLTFModel;
         private bool isLoading = false;
 
+        public static event Action<GameObject> OnModelLoaded;
+
         private async void Start()
         {
             if (loadOnStart && loadedGLTFModel == null && !isLoading)
@@ -65,6 +67,11 @@ namespace MiningSafetyAR.AR
                     loadedGLTFModel.transform.localScale = Vector3.one * modelScaleMultiplier;
 
                     Debug.Log($"[FireExtinguisherModelLoader] Successfully attached real 3D Fire Extinguisher glTF model to '{gameObject.name}'!");
+                    OnModelLoaded?.Invoke(gameObject);
+                    if (FireExtinguisherGrabController.Instance != null)
+                    {
+                        FireExtinguisherGrabController.Instance.SetupExtinguisherForGrabbing(gameObject);
+                    }
                 }
                 else
                 {
