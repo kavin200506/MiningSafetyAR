@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
@@ -6,6 +7,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEditor.XR.Management;
 using UnityEngine;
+using Object = UnityEngine.Object;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
 using UnityEngine.XR.Management;
@@ -136,6 +138,10 @@ namespace MiningSafetyAR.Editor
                 occlusionMgr.requestedEnvironmentDepthMode = UnityEngine.XR.ARSubsystems.EnvironmentDepthMode.Fastest;
                 occlusionMgr.requestedOcclusionPreferenceMode = UnityEngine.XR.ARSubsystems.OcclusionPreferenceMode.PreferEnvironmentOcclusion;
                 Debug.Log("[ARSceneBuilder] Configured AROcclusionManager on AR Camera.");
+
+                // Configure URP Overlay Camera & HeldItemSlot for First-Person Grab & Carry
+                EnsureTagAndLayers();
+                SetupHeldItemOverlayCamera(xrOrigin.Camera);
             }
 
             // 4. Add AR Managers to XR Origin
@@ -184,7 +190,18 @@ namespace MiningSafetyAR.Editor
                 imageTrackingManager.ExitSignPrefab = exitPrefab;
             }
 
-            Debug.Log("[ARSceneBuilder] Configured ARTrackedImageManager, ARImageTrackingManager, and 3D equipment marker prefabs on XR Origin.");
+            FireExtinguisherGrabController grabController = originGO.GetComponent<FireExtinguisherGrabController>();
+            if (grabController == null)
+            {
+                grabController = originGO.AddComponent<FireExtinguisherGrabController>();
+            }
+            if (xrOrigin.Camera != null)
+            {
+                Transform slot = xrOrigin.Camera.transform.Find("HeldItemSlot");
+                if (slot != null) grabController.HeldItemSlot = slot;
+            }
+
+            Debug.Log("[ARSceneBuilder] Configured ARTrackedImageManager, ARImageTrackingManager, FireExtinguisherGrabController, and 3D equipment marker prefabs on XR Origin.");
 
             // 5. Ensure AR Default Plane Prefab & Materials exist and are assigned
             GameObject planePrefab = EnsureARDefaultPlanePrefab();
@@ -941,6 +958,110 @@ namespace MiningSafetyAR.Editor
             string msg = $"Successfully optimized {updatedTexturesCount} Vefects textures (ASTC 6x6 / 512 Max Size) and {updatedParticleRenderersCount} ParticleSystemRenderers (View Alignment) for Mobile Android!";
             Debug.Log($"[ARSceneBuilder] {msg}");
             EditorUtility.DisplayDialog("Vefects Mobile Optimization Complete", msg, "OK");
+        }
+
+        private static void EnsureTagAndLayers()
+        {
+            try
+            {
+                SerializedObject tagManager = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
+                SerializedProperty layers = tagManager.FindProperty("layers");
+                if (layers != null)
+                {
+                    SetLayerIfEmpty(layers, 6, "Grabbable");
+                    SetLayerIfEmpty(layers, 7, "HeldItem");
+                    tagManager.ApplyModifiedProperties();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[WARN] [ARSceneBuilder] Could not register layers in TagManager.asset: {ex.Message}");
+            }
+        }
+
+        private static void SetLayerIfEmpty(SerializedProperty layers, int index, string layerName)
+        {
+            if (index < layers.arraySize)
+            {
+                SerializedProperty element = layers.GetArrayElementAtIndex(index);
+                if (string.IsNullOrEmpty(element.stringValue) || element.stringValue == layerName)
+                {
+                    element.stringValue = layerName;
+                }
+            }
+        }
+
+        private static void SetupHeldItemOverlayCamera(Camera mainCam)
+        {
+            if (mainCam == null) return;
+
+            int heldItemLayer = LayerMask.NameToLayer("HeldItem");
+            if (heldItemLayer == -1) heldItemLayer = 7;
+
+            // 1. Create or locate HeldItemSlot child on main camera
+            Transform slotTransform = mainCam.transform.Find("HeldItemSlot");
+            if (slotTransform == null)
+            {
+                GameObject slotGO = new GameObject("HeldItemSlot");
+                slotGO.transform.SetParent(mainCam.transform, false);
+                slotGO.transform.localPosition = new Vector3(0.18f, -0.22f, 0.35f);
+                slotGO.transform.localRotation = Quaternion.Euler(10f, -15f, 0f);
+                slotTransform = slotGO.transform;
+                Undo.RegisterCreatedObjectUndo(slotGO, "Create HeldItemSlot");
+            }
+
+            // 2. Create or locate HeldItemOverlayCamera child on main camera
+            Transform overlayCamTransform = mainCam.transform.Find("HeldItemOverlayCamera");
+            GameObject overlayCamGO;
+            if (overlayCamTransform == null)
+            {
+                overlayCamGO = new GameObject("HeldItemOverlayCamera");
+                overlayCamGO.transform.SetParent(mainCam.transform, false);
+                overlayCamGO.transform.localPosition = Vector3.zero;
+                overlayCamGO.transform.localRotation = Quaternion.identity;
+                Undo.RegisterCreatedObjectUndo(overlayCamGO, "Create HeldItemOverlayCamera");
+            }
+            else
+            {
+                overlayCamGO = overlayCamTransform.gameObject;
+            }
+
+            Camera overlayCam = overlayCamGO.GetComponent<Camera>();
+            if (overlayCam == null)
+            {
+                overlayCam = overlayCamGO.AddComponent<Camera>();
+            }
+
+            overlayCam.clearFlags = CameraClearFlags.Depth;
+            overlayCam.cullingMask = 1 << heldItemLayer;
+            overlayCam.nearClipPlane = 0.05f;
+            overlayCam.farClipPlane = 10.0f;
+            overlayCam.fieldOfView = mainCam.fieldOfView;
+
+            // Main Camera should cull out HeldItem layer to prevent double rendering
+            mainCam.cullingMask &= ~(1 << heldItemLayer);
+
+            // 3. Configure URP Camera Data & Camera Stacking
+            UnityEngine.Rendering.Universal.UniversalAdditionalCameraData baseCamData = mainCam.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            if (baseCamData == null)
+            {
+                baseCamData = mainCam.gameObject.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            }
+            baseCamData.renderType = UnityEngine.Rendering.Universal.CameraRenderType.Base;
+
+            UnityEngine.Rendering.Universal.UniversalAdditionalCameraData overlayCamData = overlayCamGO.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            if (overlayCamData == null)
+            {
+                overlayCamData = overlayCamGO.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            }
+            overlayCamData.renderType = UnityEngine.Rendering.Universal.CameraRenderType.Overlay;
+
+            if (!baseCamData.cameraStack.Contains(overlayCam))
+            {
+                baseCamData.cameraStack.Add(overlayCam);
+            }
+
+            Debug.Log($"[ARSceneBuilder] Configured URP Overlay Camera '{overlayCamGO.name}' stacked onto Base AR Camera for HeldItem layer ({heldItemLayer}).");
         }
     }
 }

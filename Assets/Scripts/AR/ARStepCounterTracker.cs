@@ -223,7 +223,7 @@ namespace MiningSafetyAR.AR
                 scanRemainingTime = Mathf.Max(0f, scanDuration - (Time.time - startTime));
                 Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
 
-                if (raycastMgr != null && raycastMgr.Raycast(screenCenter, hits, UnityEngine.XR.ARSubsystems.TrackableType.PlaneWithinPolygon | UnityEngine.XR.ARSubsystems.TrackableType.Planes))
+                if (!wallFound && raycastMgr != null && raycastMgr.Raycast(screenCenter, hits, UnityEngine.XR.ARSubsystems.TrackableType.PlaneWithinPolygon | UnityEngine.XR.ARSubsystems.TrackableType.Planes))
                 {
                     foreach (var hit in hits)
                     {
@@ -235,15 +235,14 @@ namespace MiningSafetyAR.AR
                                 spawnPos = hit.pose.position;
                                 spawnRot = hit.pose.rotation;
                                 wallFound = true;
-                                Debug.Log($"[ARStepCounterTracker] 🧯 VERTICAL WALL DETECTED during 5s scan! Placing 3D Fire Extinguisher on wall at {spawnPos}");
+                                Debug.Log($"[ARStepCounterTracker] 🧯 VERTICAL WALL CONFIRMED during scan! Position: {spawnPos}");
                                 break;
                             }
                         }
                     }
                 }
 
-                if (wallFound) break;
-                yield return new WaitForSeconds(0.1f);
+                yield return new WaitForSeconds(0.05f);
             }
 
             if (!wallFound)
@@ -294,6 +293,12 @@ namespace MiningSafetyAR.AR
             currentState = StepTrackerState.ExtinguisherDiscovered;
             string placementType = wallFound ? "VERTICAL WALL" : "FLOOR";
             Debug.Log($"[ARStepCounterTracker] 🧯 DISCOVERY SUCCESS ({placementType})! 3D Fire Extinguisher spawned at {spawnPos}!");
+            
+            if (FireExtinguisherGrabController.Instance != null)
+            {
+                FireExtinguisherGrabController.Instance.SetupExtinguisherForGrabbing(container);
+            }
+
             OnExtinguisherDiscovered?.Invoke(spawnPos);
             wallScanCoroutine = null;
         }
