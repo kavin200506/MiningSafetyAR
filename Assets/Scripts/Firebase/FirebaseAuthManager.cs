@@ -71,6 +71,7 @@ namespace MiningSafetyAR.Firebase
 #endif
         public bool IsInitialized => _initialized;
 
+#pragma warning disable CS0067
 #if !UNITY_WEBGL
         public event Action<FirebaseUser> OnLoginSuccess;
         public event Action<DependencyStatus> OnInitFailed;
@@ -78,6 +79,7 @@ namespace MiningSafetyAR.Firebase
         public event Action<object> OnLoginSuccess;
         public event Action<object> OnInitFailed;
 #endif
+#pragma warning restore CS0067
         public event Action<string> OnLoginFailed;
         public event Action OnLogout;
         public event Action OnInitSuccess;
@@ -140,6 +142,7 @@ namespace MiningSafetyAR.Firebase
                     else
                     {
                         Debug.LogWarning($"[FirebaseAuth] Dependency status {status}. Switching to REST mode.");
+                        MainThreadDispatcher.Enqueue(() => OnInitFailed?.Invoke(status));
                         EnableRestFallback();
                     }
                 });

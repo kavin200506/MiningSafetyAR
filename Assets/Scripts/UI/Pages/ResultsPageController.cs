@@ -169,7 +169,8 @@ namespace MiningSafetyAR.UI.Pages
         void OnRetry()
         {
             string mid = resultsData.ContainsKey("moduleId") ? resultsData["moduleId"] as string : "fire_safety";
-            NavigationManager.Instance.NavigateTo("UI_LearningContent", mid);
+            Debug.Log($"[Results] Retaking training for module '{mid}' -> Launching AR Plane Detection Placement scene...");
+            NavigationManager.Instance.NavigateTo("AR Plane Detection Placement", mid);
         }
         void OnBackToModule()
         {
