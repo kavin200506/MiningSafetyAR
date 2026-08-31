@@ -150,6 +150,12 @@ namespace MiningSafetyAR.AR
 
         private GameObject GetOrSpawnObjectForMarker(string imageName, Vector3 position, Quaternion rotation)
         {
+            if (string.IsNullOrEmpty(imageName))
+            {
+                Debug.LogWarning("[WARN] [ARImageTrackingManager] GetOrSpawnObjectForMarker called with null or empty imageName.");
+                return null;
+            }
+
             if (spawnedObjects.TryGetValue(imageName, out GameObject existingObj) && existingObj != null)
             {
                 return existingObj;
