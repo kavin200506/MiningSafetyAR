@@ -6,70 +6,98 @@
     <Style src="project://database/Assets/UI/Styles/BottomNav.uss" />
     <Style src="project://database/Assets/UI/Styles/Icons.uss" />
     <Style src="project://database/Assets/UI/Styles/Tables.uss" />
-    <ui:VisualElement class="page-container">
-        <ui:VisualElement class="header">
-            <ui:Button class="header__back-btn" name="back-btn">
-                <ui:VisualElement class="icon-back" style="width: 20px; height: 20px;" />
-            </ui:Button>
-            <ui:Label class="header__title" name="module-title" text="" />
-            <ui:VisualElement class="header__right-action" />
-        </ui:VisualElement>
-        <ui:ScrollView class="scroll-area">
-            <ui:VisualElement class="card" name="hero-section" style="align-items: center; padding: 16px;">
-                <ui:VisualElement class="module-hero__emoji" name="hero-emoji" style="width: 48px; height: 48px;" />
-                <ui:Label class="badge" name="hero-badge" text="" style="margin-top: 8px;" />
-            </ui:VisualElement>
-            <ui:Label name="description" style="margin: 16px 0; font-size: 13px; color: #666666;" />
-            <ui:VisualElement name="meta-row" style="flex-direction: row; margin-bottom: 8px;">
-                <ui:VisualElement class="pill" style="flex-direction: row; margin-right: 8px;">
-                    <ui:Label name="duration" text="45 min" />
-                </ui:VisualElement>
-                <ui:VisualElement class="pill" style="flex-direction: row; margin-right: 8px;">
-                    <ui:Label name="difficulty" text="Medium" />
-                </ui:VisualElement>
-                <ui:VisualElement class="pill" style="flex-direction: row;">
-                    <ui:Label name="domain" text="Fire Safety" />
+    
+    <ui:VisualElement class="page-container" style="background-color: rgb(245, 247, 250);">
+        <ui:ScrollView class="scroll-area" style="flex: 1;">
+            
+            <!-- Dynamic Orange Hero Header -->
+            <ui:VisualElement style="background-color: rgb(255, 109, 0); padding: 32px 20px 100px 20px; border-bottom-left-radius: 40px; border-bottom-right-radius: 40px;">
+                <ui:VisualElement style="flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <ui:Button class="header__back-btn" name="back-btn" style="width: 40px; height: 40px; background-color: rgba(255, 255, 255, 0.2); border-radius: 20px; border-width: 0; align-items: center; justify-content: center;">
+                        <ui:Label text="&lt;" style="color: rgb(255, 255, 255); font-size: 22px; font-weight: 700; -unity-font-style: bold; margin-bottom: 4px;" />
+                    </ui:Button>
+                    <ui:Label name="module-title" text="Module Title" style="font-size: 22px; font-weight: 700; color: rgb(255, 255, 255); -unity-font-style: bold; flex: 1; -unity-text-align: middle-center; white-space: normal;" />
+                    <ui:VisualElement style="width: 40px; height: 40px;" /> <!-- Spacer for centering -->
                 </ui:VisualElement>
             </ui:VisualElement>
-            <ui:VisualElement class="card" name="best-score-card" style="margin-top: 16px; display: none;">
-                <ui:Label text="Best Score" style="font-size: 14px; font-weight: 600; color: #1A1A1A;" />
-                <ui:VisualElement class="progress-track" name="best-track" style="height: 6px; background-color: #FFE0B2; border-radius: 3px; margin: 8px 0;">
-                    <ui:VisualElement class="progress-fill" style="height: 100%; background-color: #FF6D00; width: 0%;" />
+
+            <!-- Floating Hero Card (Overlaps the header) -->
+            <ui:VisualElement style="padding: 0 16px; margin-top: -64px;">
+                <ui:VisualElement class="card" name="hero-section" style="background-color: rgb(255, 255, 255); border-radius: 24px; padding: 24px; border-width: 1px; border-color: rgb(230, 230, 230); box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.05); margin-bottom: 24px; align-items: center;">
+                    <ui:VisualElement style="width: 80px; height: 80px; border-radius: 40px; background-color: rgb(255, 243, 224); align-items: center; justify-content: center; margin-bottom: 16px; border-width: 4px; border-color: rgb(255, 255, 255); box-shadow: 0px 4px 10px rgba(255, 109, 0, 0.2);">
+                        <ui:VisualElement class="module-hero__emoji" name="hero-emoji" style="width: 48px; height: 48px;" />
+                    </ui:VisualElement>
+                    
+                    <ui:Label class="badge" name="hero-badge" text="REQUIRED" style="background-color: rgb(232, 245, 233); color: rgb(76, 175, 80); padding: 6px 16px; border-radius: 12px; font-size: 11px; font-weight: 700; -unity-font-style: bold; margin-bottom: 16px;" />
+                    
+                    <ui:Label name="description" text="Module description goes here..." style="font-size: 14px; color: rgb(102, 102, 102); text-align: center; white-space: normal; line-height: 20px; margin-bottom: 24px;" />
+                    
+                    <!-- Info Pills -->
+                    <ui:VisualElement name="meta-row" style="flex-direction: row; flex-wrap: wrap; justify-content: center;">
+                        <ui:VisualElement class="pill" style="background-color: rgb(245, 245, 245); border-radius: 16px; padding: 8px 16px; margin-right: 8px; margin-bottom: 8px;">
+                            <ui:Label name="duration" text="45 min" style="font-size: 12px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold;" />
+                        </ui:VisualElement>
+                        <ui:VisualElement class="pill" style="background-color: rgb(245, 245, 245); border-radius: 16px; padding: 8px 16px; margin-right: 8px; margin-bottom: 8px;">
+                            <ui:Label name="difficulty" text="Medium" style="font-size: 12px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold;" />
+                        </ui:VisualElement>
+                        <ui:VisualElement class="pill" style="background-color: rgb(245, 245, 245); border-radius: 16px; padding: 8px 16px; margin-bottom: 8px;">
+                            <ui:Label name="domain" text="Fire Safety" style="font-size: 12px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold;" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
                 </ui:VisualElement>
-                <ui:Label name="best-score-text" text="" style="font-size: 12px; color: #1A1A1A;" />
-                <ui:Label name="attempt-count" text="" style="font-size: 11px; color: #666666;" />
-                <ui:Label name="last-attempt" text="" style="font-size: 11px; color: #999999;" />
-            </ui:VisualElement>
-            <ui:VisualElement style="margin-top: 16px;">
-                <ui:Label text="Learning Objectives" style="font-size: 14px; font-weight: 600; color: #1A1A1A; margin-bottom: 8px;" />
-                <ui:VisualElement name="objectives-list" />
-            </ui:VisualElement>
-            <ui:VisualElement name="competency-section" style="margin-top: 16px; display: none;">
-                <ui:Label text="Competency Scores" style="font-size: 14px; font-weight: 600; color: #1A1A1A; margin-bottom: 8px;" />
-                <ui:VisualElement name="score-bars" />
-            </ui:VisualElement>
-            <ui:VisualElement style="margin-top: 16px;">
-                <ui:Label text="Attempt History" style="font-size: 14px; font-weight: 600; color: #1A1A1A; margin-bottom: 8px;" />
-                <ui:VisualElement class="table" name="attempt-table">
-                    <ui:VisualElement class="table-header">
-                        <ui:Label text="#" style="width: 30px; font-size: 11px; color: #999999;" />
-                        <ui:Label text="Date" style="flex: 1; font-size: 11px; color: #999999;" />
-                        <ui:Label text="Score" style="width: 60px; font-size: 11px; color: #999999;" />
-                        <ui:Label text="Status" style="width: 60px; font-size: 11px; color: #999999;" />
+                
+                <!-- Action Buttons -->
+                <ui:VisualElement name="action-section" style="margin-bottom: 32px;">
+                    <ui:Button class="btn-primary" name="action-btn" text="START TRAINING" style="background-color: rgb(255, 109, 0); color: rgb(255, 255, 255); font-size: 16px; font-weight: 700; -unity-font-style: bold; padding: 16px; border-radius: 20px; border-width: 0; box-shadow: 0px 8px 16px rgba(255, 109, 0, 0.3);" />
+                    <ui:Button class="btn-secondary" name="cert-btn" text="VIEW CERTIFICATE" style="display: none; background-color: rgb(255, 255, 255); color: rgb(255, 109, 0); font-size: 14px; font-weight: 700; -unity-font-style: bold; padding: 16px; border-radius: 20px; border-width: 2px; border-color: rgb(255, 109, 0); margin-top: 12px;" />
+                    <ui:VisualElement name="locked-message" style="display: none; align-items: center; margin-top: 16px; background-color: rgb(245, 245, 245); padding: 16px; border-radius: 20px;">
+                        <ui:VisualElement class="icon-lock" style="width: 24px; height: 24px; margin-bottom: 8px; -unity-background-image-tint-color: rgb(153, 153, 153);" />
+                        <ui:Label text="Complete previous modules to unlock" style="color: rgb(153, 153, 153); font-size: 13px; text-align: center;" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                
+                <!-- Best Score Card -->
+                <ui:VisualElement class="card" name="best-score-card" style="background-color: rgb(255, 255, 255); border-radius: 24px; padding: 24px; border-width: 1px; border-color: rgb(230, 230, 230); margin-bottom: 24px;">
+                    <ui:Label text="Best Score" style="font-size: 16px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold; margin-bottom: 16px;" />
+                    <ui:VisualElement class="progress-track" name="best-track" style="height: 10px; background-color: rgb(245, 245, 245); border-radius: 5px; margin-bottom: 16px; overflow: hidden;">
+                        <ui:VisualElement class="progress-fill" style="height: 100%; background-color: rgb(255, 109, 0); width: 0%;" />
+                    </ui:VisualElement>
+                    <ui:VisualElement style="flex-direction: row; justify-content: space-between; align-items: center;">
+                        <ui:Label name="best-score-text" text="0%" style="font-size: 20px; font-weight: 800; color: rgb(255, 109, 0); -unity-font-style: bold;" />
+                        <ui:VisualElement style="align-items: flex-end;">
+                            <ui:Label name="attempt-count" text="0 attempts" style="font-size: 12px; font-weight: 600; color: rgb(102, 102, 102); -unity-font-style: bold;" />
+                            <ui:Label name="last-attempt" text="Never" style="font-size: 11px; color: rgb(153, 153, 153); margin-top: 2px;" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                
+                <!-- Learning Objectives -->
+                <ui:Label text="Learning Objectives" style="font-size: 18px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold; margin-bottom: 12px; padding-left: 4px;" />
+                <ui:VisualElement class="card" name="objectives-list" style="background-color: rgb(255, 255, 255); border-radius: 20px; padding: 20px; border-width: 1px; border-color: rgb(230, 230, 230); margin-bottom: 24px;" />
+                
+                <!-- Competency Scores -->
+                <ui:VisualElement name="competency-section" style="margin-bottom: 24px; display: none;">
+                    <ui:Label text="Competency Scores" style="font-size: 18px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold; margin-bottom: 12px; padding-left: 4px;" />
+                    <ui:VisualElement class="card" name="score-bars" style="background-color: rgb(255, 255, 255); border-radius: 20px; padding: 20px; border-width: 1px; border-color: rgb(230, 230, 230);" />
+                </ui:VisualElement>
+                
+                <!-- Attempt History -->
+                <ui:Label text="Attempt History" style="font-size: 18px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold; margin-bottom: 12px; padding-left: 4px;" />
+                <ui:VisualElement class="table" name="attempt-table" style="background-color: rgb(255, 255, 255); border-radius: 20px; padding: 8px; border-width: 1px; border-color: rgb(230, 230, 230); overflow: hidden;">
+                    <ui:VisualElement class="table-header" style="flex-direction: row; border-bottom-width: 1px; border-bottom-color: rgb(240, 240, 240); padding: 12px 16px; background-color: rgb(249, 249, 249);">
+                        <ui:Label text="#" style="width: 30px; font-size: 12px; font-weight: 700; color: rgb(153, 153, 153); -unity-font-style: bold;" />
+                        <ui:Label text="Date" style="flex: 1; font-size: 12px; font-weight: 700; color: rgb(153, 153, 153); -unity-font-style: bold;" />
+                        <ui:Label text="Score" style="width: 60px; font-size: 12px; font-weight: 700; color: rgb(153, 153, 153); -unity-font-style: bold;" />
+                        <ui:Label text="Status" style="width: 60px; font-size: 12px; font-weight: 700; color: rgb(153, 153, 153); -unity-font-style: bold; -unity-text-align: middle-right;" />
                     </ui:VisualElement>
                     <ui:VisualElement name="table-body" />
                 </ui:VisualElement>
+                
+                <ui:VisualElement style="height: 100px;" />
             </ui:VisualElement>
-            <ui:VisualElement name="action-section" style="margin-top: 24px;">
-                <ui:Button class="btn-primary" name="action-btn" text="START TRAINING" />
-                <ui:Button class="btn-secondary" name="cert-btn" text="VIEW CERTIFICATE" style="display: none; margin-top: 8px;" />
-                <ui:VisualElement name="locked-message" style="display: none; align-items: center; margin-top: 12px;">
-                    <ui:VisualElement class="icon-lock" style="width: 24px; height: 24px;" />
-                    <ui:Label text="Complete previous modules to unlock" style="color: #999999; font-size: 13px; text-align: center;" />
-                </ui:VisualElement>
-            </ui:VisualElement>
-            <ui:VisualElement style="height: 80px;" />
         </ui:ScrollView>
+        
+        <!-- Bottom Nav -->
         <ui:VisualElement name="bottom-nav" class="bottom-nav">
             <ui:Button name="tab-home" class="bottom-nav__tab">
                 <ui:VisualElement class="icon-home" style="margin-bottom: 2px;" />

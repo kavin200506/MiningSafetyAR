@@ -230,8 +230,9 @@ namespace MiningSafetyAR.UI.Pages
         void OnActionClicked()
         {
             if (string.IsNullOrEmpty(moduleId)) moduleId = "fire_safety";
-            Debug.Log($"[ModuleDetail] Launching AR Plane Detection Placement training for module '{moduleId}'...");
-            NavigationManager.Instance.NavigateTo("AR Plane Detection Placement", moduleId);
+            // Bypassing the SampleScene to test the Assessment page
+            Debug.Log($"[ModuleDetail] BYPASS: Launching UI_Assessment for module '{moduleId}'...");
+            NavigationManager.Instance.NavigateTo("UI_Assessment", moduleId);
         }
 
         void OnViewCertificate() => NavigationManager.Instance.NavigateTo("UI_Certificate", currentModule.certificateId);

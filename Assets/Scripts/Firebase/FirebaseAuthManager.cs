@@ -102,58 +102,13 @@ namespace MiningSafetyAR.Firebase
 
             try
             {
-#if !UNITY_WEBGL
-                FirebaseApp.CheckAndFixDependenciesAsync().ContinueWith(task =>
-                {
-                    if (task.IsFaulted || task.IsCanceled)
-                    {
-                        Debug.LogWarning($"[FirebaseAuth] Native SDK init faulted: {task.Exception?.Message}. Switching to REST mode.");
-                        EnableRestFallback();
-                        return;
-                    }
-
-                    var status = task.Result;
-                    if (status == DependencyStatus.Available)
-                    {
-                        try
-                        {
-                            _auth = FirebaseAuth.DefaultInstance;
-                            _initialized = true;
-                            _useRestFallback = false;
-                            Debug.Log($"[FirebaseAuth] Native SDK Initialized OK. AppId={FirebaseApp.DefaultInstance.Options.AppId}");
-
-                            MainThreadDispatcher.Enqueue(() =>
-                            {
-                                OnInitSuccess?.Invoke();
-                                if (_auth != null && _auth.CurrentUser != null)
-                                {
-                                    _currentUser = _auth.CurrentUser;
-                                    Debug.Log($"[FirebaseAuth] Already logged in: {_currentUser.UserId} ({_currentUser.Email})");
-                                    OnLoginSuccess?.Invoke(_currentUser);
-                                }
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.LogWarning($"[FirebaseAuth] Exception getting FirebaseAuth.DefaultInstance: {ex.Message}. Switching to REST mode.");
-                            EnableRestFallback();
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"[FirebaseAuth] Dependency status {status}. Switching to REST mode.");
-                        MainThreadDispatcher.Enqueue(() => OnInitFailed?.Invoke(status));
-                        EnableRestFallback();
-                    }
-                });
-#else
+                // FORCE REST MODE GLOBALLY ON ALL PLATFORMS (Android/iOS/Editor)
+                // This completely bypasses the native Firebase SDK and prevents CheckAndFixDependenciesAsync from hanging forever.
                 EnableRestFallback();
-#endif
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[FirebaseAuth] Native SDK DllNotFound / TypeInit exception: {ex.Message}. Switching to REST mode.");
-                EnableRestFallback();
+                Debug.LogWarning($"[FirebaseAuth] Exception enabling REST mode: {ex.Message}.");
             }
         }
 

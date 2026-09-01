@@ -7,9 +7,6 @@
     <ui:VisualElement class="page-container" style="flex-grow: 1; background-color: transparent;">
         <ui:VisualElement name="background-image-container" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; -unity-background-scale-mode: scale-and-crop; background-image: url(&quot;project://database/Assets/UI/Sprites/Login_BG.png?fileID=2800000&amp;guid=58cef1ed9c0a4f64ca6d0034e049e4e1&amp;type=3#Login_BG&quot;);"/>
         <ui:VisualElement name="bottom-graphics" style="position: absolute; left: 0; right: 0; bottom: 0; height: 300px; background-color: transparent; -unity-background-scale-mode: scale-to-fit; background-image: url(&quot;project://database/Assets/UI/Sprites/Splash_Icons%201.png?fileID=2800000&amp;guid=13546ecbe8775e542b9425e04c7da465&amp;type=3#Splash_Icons 1&quot;); opacity: 0.5;"/>
-        <ui:Button name="back-btn" style="position: absolute; top: 40px; left: 24px; width: 48px; height: 48px; border-radius: 12px; background-color: rgb(255, 255, 255); border-width: 0; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); z-index: 10;">
-            <ui:Label text="←" style="font-size: 24px; color: rgb(26, 26, 26); -unity-font-style: bold;"/>
-        </ui:Button>
         <ui:ScrollView style="flex: 1; width: 100%;">
             <ui:VisualElement class="register" style="flex: 1; align-items: center; justify-content: flex-start; padding: 40px 24px; min-height: 1200px; padding-top: 60px;">
                 <ui:VisualElement name="app-logo" style="width: 112px; height: 83px; border-radius: 20px; align-items: center; justify-content: center; margin-bottom: 16px; background-color: transparent; -unity-background-scale-mode: scale-to-fit; background-image: url(&quot;project://database/Assets/UI/Sprites/AR_Logo.png?fileID=2800000&amp;guid=e2e5e39cb631c0f44b6438f78142e8d0&amp;type=3#AR_Logo&quot;);"/>
@@ -64,6 +61,10 @@
                     </ui:VisualElement>
                     <ui:Label name="error-msg" text="" style="display: none; font-size: 13px; color: rgb(244, 67, 54); text-align: center; margin-bottom: 12px;"/>
                     <ui:Button name="register-btn" text="REGISTER" class="btn-primary" style="width: 288px; height: 39px; font-size: 16px; font-weight: 700; border-radius: 12px; margin-bottom: 16px; border-left-width: 0;"/>
+                    <ui:VisualElement style="flex-direction: row; justify-content: center; align-items: center;">
+                        <ui:Label text="Already logged in? " style="font-size: 13px; color: rgb(102, 102, 102);" />
+                        <ui:Button name="signin-btn" text="Sign In" style="font-size: 13px; font-weight: 700; color: rgb(255, 109, 0); background-color: transparent; border-width: 0; padding: 0; -unity-font-style: bold; margin: 0;" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:ScrollView>

@@ -2,18 +2,15 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
-using Firebase;
-using Firebase.Auth;
-using Firebase.Extensions;
-using System;
+using MiningSafetyAR.Firebase;
 
 namespace MiningSafetyAR.UI.Login
 {
     public class LoginController : MonoBehaviour
     {
         [Header("Input Fields")]
-        [SerializeField] private TMP_InputField usernameInput; // Used for email in Firebase
-        [SerializeField] private TMP_InputField passwordInput;
+        [SerializeField] private TMP_InputField usernameInput; // Worker ID
+        [SerializeField] private TMP_InputField passwordInput; // PIN
         
         [Header("Buttons & Feedback")]
         [SerializeField] private Button loginButton;
@@ -25,7 +22,6 @@ namespace MiningSafetyAR.UI.Login
         [Header("Scene Routing")]
         [SerializeField] private string nextSceneName = "MainMenu";
 
-        private FirebaseAuth auth;
         private bool isFirebaseInitialized = false;
 
         private void Start()
@@ -33,25 +29,30 @@ namespace MiningSafetyAR.UI.Login
             HideError();
             DisableButtons(); // Prevent clicks until Firebase is ready
 
-            // Check and fix dependencies before initializing Firebase
-            FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task => 
+            // Hook up initialization via FirebaseAuthManager instead of native FirebaseApp
+            if (FirebaseAuthManager.Instance != null)
             {
-                var dependencyStatus = task.Result;
-                if (dependencyStatus == DependencyStatus.Available)
-                {
-                    InitializeFirebase();
-                }
-                else
-                {
-                    Debug.LogError($"Could not resolve all Firebase dependencies: {dependencyStatus}");
-                    ShowError("System Error: Failed to initialize backend.");
-                }
-            });
+                if (FirebaseAuthManager.Instance.IsInitialized) Initialize();
+                else FirebaseAuthManager.Instance.OnInitSuccess += Initialize;
+            }
+            else Invoke(nameof(RetryInit), 0.5f);
         }
 
-        private void InitializeFirebase()
+        private void RetryInit()
         {
-            auth = FirebaseAuth.DefaultInstance;
+            if (FirebaseAuthManager.Instance != null)
+            {
+                if (FirebaseAuthManager.Instance.IsInitialized) Initialize();
+                else FirebaseAuthManager.Instance.OnInitSuccess += Initialize;
+            }
+            else Invoke(nameof(RetryInit), 0.5f);
+        }
+
+        private void Initialize()
+        {
+            if (FirebaseAuthManager.Instance != null)
+                FirebaseAuthManager.Instance.OnInitSuccess -= Initialize;
+
             isFirebaseInitialized = true;
 
             // Hook up the buttons now that we're ready
@@ -61,6 +62,11 @@ namespace MiningSafetyAR.UI.Login
             if (guestButton != null) guestButton.onClick.AddListener(ContinueAsGuest);
             
             EnableButtons();
+
+            if (PlayerPrefs.HasKey("Username") && usernameInput != null)
+            {
+                usernameInput.text = PlayerPrefs.GetString("Username");
+            }
         }
 
         private void DisableButtons()
@@ -84,96 +90,62 @@ namespace MiningSafetyAR.UI.Login
             if (!isFirebaseInitialized) return;
             HideError();
 
-            string email = usernameInput != null ? usernameInput.text : "";
-            string password = passwordInput != null ? passwordInput.text : "";
+            string workerId = usernameInput != null ? usernameInput.text : "";
+            string pin = passwordInput != null ? passwordInput.text : "";
 
-            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+            if (string.IsNullOrWhiteSpace(workerId) || string.IsNullOrWhiteSpace(pin))
             {
-                ShowError("Please enter both email and password.");
+                ShowError("Please enter both Worker ID and PIN.");
                 return;
             }
 
             DisableButtons();
             
-            auth.SignInWithEmailAndPasswordAsync(email, password).ContinueWithOnMainThread(task => 
-            {
-                if (task.IsCanceled || task.IsFaulted)
-                {
-                    HandleAuthError(task.Exception);
-                    EnableButtons();
-                    return;
-                }
+#if !UNITY_WEBGL
+            FirebaseAuthManager.Instance.OnLoginSuccess += OnLoginSuccessNative;
+#endif
+            FirebaseAuthManager.Instance.OnLoginFailed += OnLoginFailed;
+            FirebaseAuthManager.Instance.Login(workerId, pin);
+        }
 
-                AuthResult result = task.Result;
-                Debug.LogFormat("User signed in successfully: {0} ({1})", result.User.Email, result.User.UserId);
-                
-                PlayerPrefs.SetString("Username", result.User.Email);
+#if !UNITY_WEBGL
+        void OnLoginSuccessNative(global::Firebase.Auth.FirebaseUser user)
+        {
+            FirebaseAuthManager.Instance.OnLoginSuccess -= OnLoginSuccessNative;
+            FirebaseAuthManager.Instance.OnLoginFailed -= OnLoginFailed;
+            OnLoginSuccessCore();
+        }
+#endif
+
+        void OnLoginSuccessCore()
+        {
+            if (usernameInput != null)
+            {
+                PlayerPrefs.SetString("Username", usernameInput.text);
                 PlayerPrefs.Save();
-                
-                LoadNextScene();
-            });
+            }
+            LoadNextScene();
+        }
+
+        void OnLoginFailed(string err)
+        {
+#if !UNITY_WEBGL
+            FirebaseAuthManager.Instance.OnLoginSuccess -= OnLoginSuccessNative;
+#endif
+            FirebaseAuthManager.Instance.OnLoginFailed -= OnLoginFailed;
+            EnableButtons();
+            ShowError(err);
         }
 
         public void CreateAccount()
         {
-            if (!isFirebaseInitialized) return;
-            HideError();
-
-            string email = usernameInput != null ? usernameInput.text : "";
-            string password = passwordInput != null ? passwordInput.text : "";
-
-            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-            {
-                ShowError("Please enter an email and password to register.");
-                return;
-            }
-
-            DisableButtons();
-
-            auth.CreateUserWithEmailAndPasswordAsync(email, password).ContinueWithOnMainThread(task => 
-            {
-                if (task.IsCanceled || task.IsFaulted)
-                {
-                    HandleAuthError(task.Exception);
-                    EnableButtons();
-                    return;
-                }
-
-                AuthResult result = task.Result;
-                Debug.LogFormat("Firebase user created successfully: {0} ({1})", result.User.Email, result.User.UserId);
-                
-                PlayerPrefs.SetString("Username", result.User.Email);
-                PlayerPrefs.Save();
-                
-                LoadNextScene();
-            });
+            // Optional: If they click "Create Account" from UI_Login, route them to UI_Register
+            SceneManager.LoadScene("UI_Register");
         }
 
         public void ForgotPassword()
         {
-            if (!isFirebaseInitialized) return;
-            HideError();
-
-            string email = usernameInput != null ? usernameInput.text : "";
-            if (string.IsNullOrWhiteSpace(email))
-            {
-                ShowError("Please enter your email address to reset password.");
-                return;
-            }
-
-            DisableButtons();
-
-            auth.SendPasswordResetEmailAsync(email).ContinueWithOnMainThread(task =>
-            {
-                EnableButtons();
-                if (task.IsCanceled || task.IsFaulted)
-                {
-                    HandleAuthError(task.Exception);
-                    return;
-                }
-                
-                ShowMessage("Password reset email sent!");
-            });
+            ShowError("Password reset is handled via HR. Please contact your manager.");
         }
 
         public void ContinueAsGuest()
@@ -182,23 +154,11 @@ namespace MiningSafetyAR.UI.Login
             HideError();
             DisableButtons();
 
-            auth.SignInAnonymouslyAsync().ContinueWithOnMainThread(task => 
-            {
-                if (task.IsCanceled || task.IsFaulted)
-                {
-                    HandleAuthError(task.Exception);
-                    EnableButtons();
-                    return;
-                }
-
-                AuthResult result = task.Result;
-                Debug.LogFormat("Guest signed in successfully: {0}", result.User.UserId);
-                
-                PlayerPrefs.SetString("Username", "Guest User");
-                PlayerPrefs.Save();
-                
-                LoadNextScene();
-            });
+#if !UNITY_WEBGL
+            FirebaseAuthManager.Instance.OnLoginSuccess += OnLoginSuccessNative;
+#endif
+            FirebaseAuthManager.Instance.OnLoginFailed += OnLoginFailed;
+            FirebaseAuthManager.Instance.DemoLogin();
         }
 
         private void LoadNextScene()
@@ -211,43 +171,6 @@ namespace MiningSafetyAR.UI.Login
             {
                 Debug.LogWarning("LoginController: Next Scene Name is not set!");
                 EnableButtons();
-            }
-        }
-
-        private void HandleAuthError(AggregateException aggregateException)
-        {
-            string errorMessage = "An unknown error occurred.";
-            
-            if (aggregateException != null)
-            {
-                FirebaseException firebaseEx = aggregateException.Flatten().InnerExceptions[0] as FirebaseException;
-                if (firebaseEx != null)
-                {
-                    AuthError errorCode = (AuthError)firebaseEx.ErrorCode;
-                    errorMessage = GetErrorMessage(errorCode);
-                }
-                else
-                {
-                    errorMessage = aggregateException.Flatten().InnerExceptions[0].Message;
-                }
-            }
-
-            ShowError(errorMessage);
-        }
-
-        private string GetErrorMessage(AuthError errorCode)
-        {
-            switch (errorCode)
-            {
-                // case AuthError.AccountExistsWithDifferentCredential: return "Account already exists with different credentials.";
-                case AuthError.MissingPassword: return "Please enter a password.";
-                case AuthError.WeakPassword: return "Password is too weak. Please use at least 6 characters.";
-                case AuthError.InvalidEmail: return "Invalid email address format.";
-                case AuthError.UserNotFound: return "Account not found. Please register first.";
-                case AuthError.WrongPassword: return "Incorrect password. Please try again.";
-                case AuthError.EmailAlreadyInUse: return "An account with this email already exists.";
-                case AuthError.NetworkRequestFailed: return "Network error. Please check your internet connection.";
-                default: return "Authentication failed. Please try again.";
             }
         }
 

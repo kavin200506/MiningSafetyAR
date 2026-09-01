@@ -1,4 +1,4 @@
-﻿.bottom-nav {
+.bottom-nav {
     position: absolute;
     bottom: 0;
     left: 0;

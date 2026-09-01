@@ -478,40 +478,114 @@ namespace MiningSafetyAR.Firebase
 
             public static object Deserialize(string json)
             {
+                if (string.IsNullOrWhiteSpace(json)) return null;
+                int pos = 0;
                 try
                 {
-                    var type = Type.GetType("Google.MiniJSON.Json, Google.MiniJson");
-                    if (type != null)
-                    {
-                        var m = type.GetMethod("Deserialize", new[] { typeof(string) });
-                        return m.Invoke(null, new object[] { json });
-                    }
+                    return ParseValue(json, ref pos);
                 }
-                catch { }
-                return SimpleDeserialize(json);
+                catch (Exception e)
+                {
+                    Debug.LogError($"[MiniJSON] Parse error at pos {pos}: {e.Message}");
+                    return null;
+                }
             }
 
-            static Dictionary<string, object> SimpleDeserialize(string json)
+            static object ParseValue(string json, ref int pos)
+            {
+                SkipWhitespace(json, ref pos);
+                if (pos >= json.Length) return null;
+                char c = json[pos];
+                if (c == '{') return ParseObject(json, ref pos);
+                if (c == '[') return ParseArray(json, ref pos);
+                if (c == '"') return ParseString(json, ref pos);
+                if (c == 't' || c == 'f') return ParseBool(json, ref pos);
+                if (c == 'n') return ParseNull(json, ref pos);
+                return ParseNumber(json, ref pos);
+            }
+
+            static Dictionary<string, object> ParseObject(string json, ref int pos)
             {
                 var dict = new Dictionary<string, object>();
-                json = json.Trim().TrimStart('{').TrimEnd('}');
-                if (string.IsNullOrWhiteSpace(json)) return dict;
-                var parts = System.Text.RegularExpressions.Regex.Split(json, ",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
-                foreach (var p in parts)
+                pos++; // skip '{'
+                while (pos < json.Length)
                 {
-                    var kv = p.Split(new[] { ':' }, 2);
-                    if (kv.Length != 2) continue;
-                    string k = kv[0].Trim().Trim('"');
-                    string vRaw = kv[1].Trim();
-                    if (vRaw.StartsWith("\"")) dict[k] = vRaw.Trim('"');
-                    else if (vRaw == "true") dict[k] = true;
-                    else if (vRaw == "false") dict[k] = false;
-                    else if (vRaw == "null") dict[k] = null;
-                    else if (long.TryParse(vRaw, out long l)) dict[k] = l;
-                    else if (double.TryParse(vRaw, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double d)) dict[k] = d;
-                    else dict[k] = vRaw;
+                    SkipWhitespace(json, ref pos);
+                    if (json[pos] == '}') { pos++; return dict; }
+                    string key = ParseString(json, ref pos);
+                    SkipWhitespace(json, ref pos);
+                    if (json[pos] == ':') pos++;
+                    dict[key] = ParseValue(json, ref pos);
+                    SkipWhitespace(json, ref pos);
+                    if (json[pos] == ',') pos++;
                 }
                 return dict;
+            }
+
+            static List<object> ParseArray(string json, ref int pos)
+            {
+                var list = new List<object>();
+                pos++; // skip '['
+                while (pos < json.Length)
+                {
+                    SkipWhitespace(json, ref pos);
+                    if (json[pos] == ']') { pos++; return list; }
+                    list.Add(ParseValue(json, ref pos));
+                    SkipWhitespace(json, ref pos);
+                    if (json[pos] == ',') pos++;
+                }
+                return list;
+            }
+
+            static string ParseString(string json, ref int pos)
+            {
+                pos++; // skip '"'
+                var sb = new StringBuilder();
+                while (pos < json.Length)
+                {
+                    char c = json[pos++];
+                    if (c == '"') return sb.ToString();
+                    if (c == '\\')
+                    {
+                        if (pos >= json.Length) break;
+                        char esc = json[pos++];
+                        if (esc == 'n') sb.Append('\n');
+                        else if (esc == 'r') sb.Append('\r');
+                        else if (esc == 't') sb.Append('\t');
+                        else sb.Append(esc);
+                    }
+                    else sb.Append(c);
+                }
+                return sb.ToString();
+            }
+
+            static bool ParseBool(string json, ref int pos)
+            {
+                if (json[pos] == 't') { pos += 4; return true; }
+                pos += 5; return false;
+            }
+
+            static object ParseNull(string json, ref int pos)
+            {
+                pos += 4; return null;
+            }
+
+            static object ParseNumber(string json, ref int pos)
+            {
+                int start = pos;
+                while (pos < json.Length && "-+0123456789.eE".IndexOf(json[pos]) >= 0) pos++;
+                string numStr = json.Substring(start, pos - start);
+                if (numStr.Contains(".") || numStr.Contains("e") || numStr.Contains("E"))
+                {
+                    if (double.TryParse(numStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double d)) return d;
+                }
+                if (long.TryParse(numStr, out long l)) return l;
+                return 0;
+            }
+
+            static void SkipWhitespace(string json, ref int pos)
+            {
+                while (pos < json.Length && char.IsWhiteSpace(json[pos])) pos++;
             }
         }
     }
