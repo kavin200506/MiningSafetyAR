@@ -33,6 +33,7 @@ namespace MiningSafetyAR.Data
         public float completionTimeSeconds;
         public string timestamp;
         public bool synced;
+        public List<StepMetric> stepMetrics = new List<StepMetric>();
 
         public TrainingResult()
         {
@@ -71,5 +72,14 @@ namespace MiningSafetyAR.Data
         public string issuedAt;
         public string verificationUrl;
         public string signatureHash;
+    }
+
+    [Serializable]
+    public struct StepMetric
+    {
+        public string stepName;
+        public int errorCount;
+        public float durationSeconds;
+        public int score;
     }
 }
