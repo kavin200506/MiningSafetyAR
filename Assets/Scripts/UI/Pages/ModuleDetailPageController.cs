@@ -230,8 +230,26 @@ namespace MiningSafetyAR.UI.Pages
         void OnActionClicked()
         {
             if (string.IsNullOrEmpty(moduleId)) moduleId = "fire_safety";
-            Debug.Log($"[ModuleDetail] Launching AR Plane Detection Placement training for module '{moduleId}'...");
-            NavigationManager.Instance.NavigateTo("AR Plane Detection Placement", moduleId);
+            Debug.Log($"[ModuleDetail] Starting location capture screen for module '{moduleId}'...");
+
+            TrainingLocationCapture.EnsureInstance();
+
+            if (!TrainingLocationCapture.HasConsentBeenPrompted)
+            {
+                TrainingLocationCapture.ShowConsentModal(root, (granted) =>
+                {
+                    StartLocationCaptureAndNavigate();
+                });
+            }
+            else
+            {
+                StartLocationCaptureAndNavigate();
+            }
+        }
+
+        void StartLocationCaptureAndNavigate()
+        {
+            NavigationManager.Instance.NavigateTo("UI_LocationCapture", moduleId);
         }
 
         void OnViewCertificate() => NavigationManager.Instance.NavigateTo("UI_Certificate", currentModule.certificateId);

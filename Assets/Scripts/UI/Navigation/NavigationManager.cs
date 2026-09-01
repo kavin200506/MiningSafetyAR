@@ -46,9 +46,11 @@ namespace MiningSafetyAR.UI.Navigation
 
         public void NavigateTo(string sceneName, object param = null, bool pushToStack = true)
         {
+            Debug.Log($"[Nav] >>> NAVIGATING TO: '{sceneName}' (param: {param ?? "none"})");
+
             if (!SceneExists(sceneName))
             {
-                Debug.LogError($"[Nav] Scene not in BuildSettings: {sceneName}");
+                Debug.LogError($"[Nav] FAILED: Scene not found in BuildSettings: '{sceneName}'");
                 return;
             }
 
@@ -60,10 +62,11 @@ namespace MiningSafetyAR.UI.Navigation
             LoadScene(sceneName, () =>
             {
                 var page = FindFirstObjectByType<PageController>();
+                Debug.Log($"[Nav] <<< SCENE LOADED OK: '{sceneName}' -> Active Controller: {(page != null ? page.GetType().Name : "None")}");
+
                 if (page != null)
                 {
                     if (param != null) page.SetNavigationParameter(param);
-                    // Avoid double OnPageEnter if already auto-entered without param
                     if (!page.HasEntered || param != null)
                     {
                         page.MarkEntered();

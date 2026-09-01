@@ -169,8 +169,21 @@ namespace MiningSafetyAR.UI.Pages
         void OnRetry()
         {
             string mid = resultsData.ContainsKey("moduleId") ? resultsData["moduleId"] as string : "fire_safety";
-            Debug.Log($"[Results] Retaking training for module '{mid}' -> Launching AR Plane Detection Placement scene...");
-            NavigationManager.Instance.NavigateTo("AR Plane Detection Placement", mid);
+            Debug.Log($"[Results] Retaking training for module '{mid}' -> Launching location capture page...");
+
+            TrainingLocationCapture.EnsureInstance();
+
+            if (!TrainingLocationCapture.HasConsentBeenPrompted)
+            {
+                TrainingLocationCapture.ShowConsentModal(root, (granted) =>
+                {
+                    NavigationManager.Instance.NavigateTo("UI_LocationCapture", mid);
+                });
+            }
+            else
+            {
+                NavigationManager.Instance.NavigateTo("UI_LocationCapture", mid);
+            }
         }
         void OnBackToModule()
         {

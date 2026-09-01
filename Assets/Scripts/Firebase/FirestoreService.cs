@@ -176,6 +176,27 @@ namespace MiningSafetyAR.Firebase
             {
                 var obj = MiniJSON.Json.Deserialize(flatJson) as Dictionary<string, object>;
                 if (obj == null) return "{\"fields\":{}}";
+
+                // Auto-inject geoPointValue if latitude/longitude exist and hasLocation is true
+                if (!obj.ContainsKey("geoPointValue") && obj.ContainsKey("hasLocation") && obj.ContainsKey("latitude") && obj.ContainsKey("longitude"))
+                {
+                    bool hasLoc = false;
+                    var hl = obj["hasLocation"];
+                    if (hl is bool b) hasLoc = b;
+                    else if (hl != null) bool.TryParse(hl.ToString(), out hasLoc);
+
+                    if (hasLoc)
+                    {
+                        double lat = System.Convert.ToDouble(obj["latitude"]);
+                        double lng = System.Convert.ToDouble(obj["longitude"]);
+                        obj["geoPointValue"] = new Dictionary<string, object>
+                        {
+                            { "latitude", lat },
+                            { "longitude", lng }
+                        };
+                    }
+                }
+
                 var sb = new StringBuilder("{\"fields\":{");
                 ConvertObject(sb, obj);
                 sb.Append("}}");
@@ -195,8 +216,20 @@ namespace MiningSafetyAR.Firebase
             {
                 if (!first) sb.Append(",");
                 first = false;
-                sb.Append($"\"{kv.Key}\":");
-                ConvertValue(sb, kv.Value);
+
+                if (kv.Key == "geoPointValue" && kv.Value is Dictionary<string, object> geoDict)
+                {
+                    double lat = geoDict.ContainsKey("latitude") ? System.Convert.ToDouble(geoDict["latitude"]) : 0;
+                    double lng = geoDict.ContainsKey("longitude") ? System.Convert.ToDouble(geoDict["longitude"]) : 0;
+                    string latStr = lat.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    string lngStr = lng.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    sb.Append($"\"geoPointValue\":{{\"geoPointValue\":{{\"latitude\":{latStr},\"longitude\":{lngStr}}}}}");
+                }
+                else
+                {
+                    sb.Append($"\"{kv.Key}\":");
+                    ConvertValue(sb, kv.Value);
+                }
             }
         }
 
@@ -426,7 +459,7 @@ namespace MiningSafetyAR.Firebase
     // ----------------------------------------------------------------
     // Minimal JSON parser (uses Firebase's Google.MiniJSON if available)
     // ----------------------------------------------------------------
-    internal static class MiniJSON
+    public static class MiniJSON
     {
         public static class Json
         {

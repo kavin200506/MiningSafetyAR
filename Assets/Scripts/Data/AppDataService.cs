@@ -490,7 +490,7 @@ namespace MiningSafetyAR.Data
 
         public List<TrainingResult> GetAllAttempts() => allAttempts ?? new List<TrainingResult>();
 
-        public void SaveAttempt(string moduleId, int score, bool passed)
+        public void SaveAttempt(string moduleId, int score, bool passed, LocationDataPayload locationOverride = null)
         {
             var result = new TrainingResult
             {
@@ -507,13 +507,24 @@ namespace MiningSafetyAR.Data
                 synced = false
             };
 
+            var locPayload = locationOverride ?? (TrainingLocationCapture.Instance != null ? TrainingLocationCapture.Instance.LatestLocationPayload : null);
+            if (locPayload != null && locPayload.hasLocation)
+            {
+                result.latitude = locPayload.latitude;
+                result.longitude = locPayload.longitude;
+                result.locationAccuracyMeters = locPayload.horizontalAccuracy;
+                result.locationName = locPayload.locationName;
+                result.hasLocation = true;
+                result.capturedOffline = locPayload.capturedOffline;
+            }
+
             allAttempts.Add(result);
             SaveAttemptsLocally();
 
             // Save to Firestore under worker's subcollection
             string json = JsonUtility.ToJson(result);
             Firebase.FirestoreService.Instance.SaveTrainingResult(CurrentWorker.firebaseUid, result.resultId, json,
-                (ok, resp) => Debug.Log($"[AppDataService] Attempt {(ok ? "saved" : "FAIL")} {moduleId} {score}%"));
+                (ok, resp) => Debug.Log($"[AppDataService] Attempt {(ok ? "saved" : "FAIL")} {moduleId} {score}% (HasLocation={result.hasLocation})"));
 
             UpdateLocalProgress(moduleId, score, passed);
         }

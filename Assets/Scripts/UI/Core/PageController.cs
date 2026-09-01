@@ -60,12 +60,7 @@ namespace MiningSafetyAR.UI
             if (!hasEntered)
             {
                 hasEntered = true;
-                // Let NavigationManager know current scene if it hasn't been set
-                var nav = Navigation.NavigationManager.Instance;
-                if (nav != null && string.IsNullOrEmpty(nav.CurrentScene))
-                {
-                    // NavigationManager will be set on next NavigateTo, but for direct play set via reflection
-                }
+                Debug.Log($"[PageController] Auto-entered page controller: {GetType().Name} in scene: {gameObject.scene.name}");
                 OnPageEnter();
             }
         }

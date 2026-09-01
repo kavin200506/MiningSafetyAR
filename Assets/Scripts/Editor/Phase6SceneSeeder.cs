@@ -12,6 +12,7 @@ public static class Phase6SceneSeeder
         CreateScene("UI_Results", "Assets/UI/Templates/Pages/ResultsPage.uxml", typeof(MiningSafetyAR.UI.Pages.ResultsPageController), true);
         CreateScene("UI_Certificate", "Assets/UI/Templates/Pages/CertificatePage.uxml", typeof(MiningSafetyAR.UI.Pages.CertificatePageController), true);
         CreateScene("UI_QRVerify", "Assets/UI/Templates/Pages/QRVerifyPage.uxml", typeof(MiningSafetyAR.UI.Pages.QRVerifyPageController), true);
+        CreateScene("UI_LocationCapture", "Assets/UI/Templates/Pages/UI_LocationCapture.uxml", typeof(MiningSafetyAR.UI.Pages.LocationCapturePageController), true);
 
         // Assign scoreBar template for Results
         AssignTemplate("UI_Results", "scoreBarTemplate", "Assets/UI/Templates/Components/ScoreBar.uxml");
@@ -76,7 +77,7 @@ public static class Phase6SceneSeeder
 
     static void AddScenesToBuildSettings()
     {
-        string[] newScenes = { "Assets/Scenes/UI_Results.unity", "Assets/Scenes/UI_Certificate.unity", "Assets/Scenes/UI_QRVerify.unity" };
+        string[] newScenes = { "Assets/Scenes/UI_LocationCapture.unity", "Assets/Scenes/UI_Results.unity", "Assets/Scenes/UI_Certificate.unity", "Assets/Scenes/UI_QRVerify.unity" };
         var list = new System.Collections.Generic.List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
         foreach (var path in newScenes)
         {

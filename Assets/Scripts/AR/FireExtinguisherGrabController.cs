@@ -288,6 +288,7 @@ namespace MiningSafetyAR.AR
                 tapSource = "InputSystemPointer";
             }
 
+#if ENABLE_LEGACY_INPUT_MANAGER
             // 3. Legacy Input Fallbacks
             if (!tapDetected && Input.touchCount > 0 && Input.GetTouch(0).phase == UnityEngine.TouchPhase.Began)
             {
@@ -301,6 +302,7 @@ namespace MiningSafetyAR.AR
                 tapDetected = true;
                 tapSource = "LegacyInputMouse";
             }
+#endif
 
             if (tapDetected)
             {

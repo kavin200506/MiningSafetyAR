@@ -34,6 +34,14 @@ namespace MiningSafetyAR.Data
         public string timestamp;
         public bool synced;
 
+        // Geo Location fields for regional analytics
+        public double latitude;
+        public double longitude;
+        public float locationAccuracyMeters;
+        public string locationName;
+        public bool hasLocation;
+        public bool capturedOffline;
+
         public TrainingResult()
         {
             resultId = Guid.NewGuid().ToString();

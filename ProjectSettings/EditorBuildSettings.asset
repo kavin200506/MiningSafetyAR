@@ -33,6 +33,9 @@ EditorBuildSettings:
     path: Assets/Scenes/UI_Assessment.unity
     guid: e4a9c9ffc407bc1469ca02398d96a66b
   - enabled: 1
+    path: Assets/Scenes/UI_LocationCapture.unity
+    guid: 82a17f654b9d4c72a123456789abcdef
+  - enabled: 1
     path: Assets/Scenes/UI_Results.unity
     guid: fdd8db2d2fd12b140947329edde0f07d
   - enabled: 1
