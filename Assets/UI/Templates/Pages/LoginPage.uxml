@@ -14,26 +14,20 @@
                 <ui:Label text="MineSafetyAr" style="font-size: 14px; font-weight: 600; color: rgb(255, 109, 0); letter-spacing: 2px; margin-bottom: 8px; -unity-font-style: bold;"/>
                 <ui:Label text="AR-Based Industrial Safety Training" style="font-size: 13px; color: rgb(153, 153, 153); margin-bottom: 24px; -unity-font-style: bold;"/>
                 <ui:VisualElement class="card" style="width: 100%; max-width: 400px; padding: 32px; background-color: rgb(255, 255, 255); border-radius: 24px; border-left-width: 0; margin-bottom: 32px;">
-                    <ui:Label text="Welcome Back!" style="font-size: 24px; font-weight: 800; color: rgb(26, 26, 26); text-align: center; margin-bottom: 8px; -unity-font-style: bold; -unity-text-align: upper-center; height: 28px; width: 257px;"/>
-                    <ui:Label text="Login to continue your training" style="font-size: 13px; color: rgb(102, 102, 102); text-align: center; margin-bottom: 32px; height: 4px; width: 236px; -unity-text-align: upper-center; -unity-font-style: bold;"/>
+                    <ui:Label text="Welcome Back!" style="font-size: 24px; font-weight: 800; color: rgb(26, 26, 26); text-align: center; margin-bottom: 8px; -unity-font-style: bold; -unity-text-align: upper-right; height: 28px; width: 257px;"/>
+                    <ui:Label text="Login to continue your training" style="font-size: 13px; color: rgb(102, 102, 102); text-align: center; margin-bottom: 32px; height: 4px; width: 316px; -unity-text-align: upper-center; -unity-font-style: bold;"/>
                     <ui:VisualElement class="form-group" style="width: 100%; margin-bottom: 16px;">
-                        <ui:TextField name="worker-id" value="Username or Email" class="input-field" style="height: 48px; border-radius: 8px; border-color: rgb(255, 158, 64);"/>
+                        <ui:TextField name="worker-id" value="" class="input-field" style="height: 48px; border-radius: 8px; border-color: rgb(255, 158, 64);"/>
                     </ui:VisualElement>
                     <ui:VisualElement class="form-group" style="width: 100%; margin-bottom: 12px;">
                         <ui:VisualElement class="input-password" style="flex-direction: row; align-items: center; width: 100%;">
-                            <ui:TextField name="pin" is-password-field="true" value="Password" class="input-field" style="flex: 1; height: 48px; border-radius: 8px; border-color: rgb(255, 209, 166);"/>
+                            <ui:TextField name="pin" is-password-field="true" value="" class="input-field" style="flex: 1; height: 48px; border-radius: 8px; border-color: rgb(255, 209, 166);"/>
                         </ui:VisualElement>
                     </ui:VisualElement>
-                    <ui:Label text="Forgot Password?" style="font-size: 12px; font-weight: 600; color: rgb(255, 109, 0); text-align: right; margin-bottom: 24px; height: 7px; width: 237px; -unity-font-style: bold; -unity-text-align: upper-right;"/>
+                    <ui:Label text="Forgot Password?" style="font-size: 12px; font-weight: 600; color: rgb(255, 109, 0); text-align: right; margin-bottom: 24px; height: 7px; width: 312px; -unity-font-style: bold; -unity-text-align: upper-right;"/>
                     <ui:Button name="login-btn" text="LOGIN" class="btn-primary" style="width: 100%; height: 48px; border-radius: 12px; margin-bottom: 24px; border-left-width: 0; -unity-font-style: bold;"/>
-                    <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 24px; -unity-font-style: bold;">
-                        <ui:VisualElement style="flex: 1; height: 1px; background-color: rgb(224, 224, 224);"/>
-                        <ui:Label text="OR" style="font-size: 12px; color: rgb(153, 153, 153); margin-left: 16px; margin-right: 16px; -unity-font-style: bold;"/>
-                        <ui:VisualElement style="flex: 1; height: 1px; background-color: rgb(224, 224, 224);"/>
-                    </ui:VisualElement>
-                    <ui:Button name="demo-btn" text="Continue as Guest (Explore)" style="width: 100%; height: 48px; border-radius: 12px; background-color: transparent; border-width: 1px; border-color: rgb(255, 109, 0); color: rgb(255, 109, 0); font-weight: 600; font-size: 14px; -unity-font-style: bold;"/>
                 </ui:VisualElement>
-                <ui:Label text="Don&apos;t have an account? Sign Up" style="font-size: 12px; color: rgb(102, 102, 102); text-align: center; margin-bottom: 32px; height: 2px; width: 283px; -unity-text-align: upper-center; -unity-font-style: bold;"/>
+                <ui:Button name="register-btn" text="Don&apos;t have an account? Sign Up" style="font-size: 12px; color: rgb(102, 102, 102); text-align: center; margin-bottom: 32px; height: 30px; width: 283px; -unity-text-align: middle-center; -unity-font-style: bold; background-color: transparent; border-width: 0;"/>
             </ui:VisualElement>
         </ui:ScrollView>
     </ui:VisualElement>

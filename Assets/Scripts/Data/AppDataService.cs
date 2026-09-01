@@ -176,8 +176,6 @@ namespace MiningSafetyAR.Data
 
         void LoadProgressFromSubcollection(string firebaseUid)
         {
-            progressMap.Clear();
-
             // First try to load from local cache immediately
             LoadProgressFromCache(firebaseUid);
 
@@ -192,7 +190,7 @@ namespace MiningSafetyAR.Data
                     return;
                 }
 
-                progressMap.Clear();
+                // Instead of clearing the map, we merge! This protects against partial parsing failures from SimpleDeserialize.
                 foreach (var doc in docs)
                 {
                     // doc is the full document: {"name":".../progress/fire_safety","fields":{...}}
@@ -231,10 +229,32 @@ namespace MiningSafetyAR.Data
                             emergencyResponse = Firebase.FirestoreService.GetintValue(csFields, "emergencyResponse")
                         };
                     }
+
+                    // MERGE with local cache (retain highest values)
+                    if (progressMap.TryGetValue(moduleId, out var localProg))
+                    {
+                        prog.progress = Mathf.Max(prog.progress, localProg.progress);
+                        prog.bestScore = Mathf.Max(prog.bestScore, localProg.bestScore);
+                        prog.attempts = Mathf.Max(prog.attempts, localProg.attempts);
+                        if (localProg.status > prog.status) prog.status = localProg.status;
+                        if (string.IsNullOrEmpty(prog.certificateId)) prog.certificateId = localProg.certificateId;
+                        if (string.IsNullOrEmpty(prog.lastAttempt)) prog.lastAttempt = localProg.lastAttempt;
+
+                        if (localProg.competencyScores != null)
+                        {
+                            if (prog.competencyScores == null) prog.competencyScores = new CompetencyScores();
+                            prog.competencyScores.hazardRecognition = Mathf.Max(prog.competencyScores.hazardRecognition, localProg.competencyScores.hazardRecognition);
+                            prog.competencyScores.extinguisherUse = Mathf.Max(prog.competencyScores.extinguisherUse, localProg.competencyScores.extinguisherUse);
+                            prog.competencyScores.ppeSelection = Mathf.Max(prog.competencyScores.ppeSelection, localProg.competencyScores.ppeSelection);
+                            prog.competencyScores.evacuation = Mathf.Max(prog.competencyScores.evacuation, localProg.competencyScores.evacuation);
+                            prog.competencyScores.emergencyResponse = Mathf.Max(prog.competencyScores.emergencyResponse, localProg.competencyScores.emergencyResponse);
+                        }
+                    }
+
                     progressMap[moduleId] = prog;
                 }
 
-                Debug.Log($"[AppDataService] Loaded {progressMap.Count} progress docs from Firestore");
+                Debug.Log($"[AppDataService] Merged {progressMap.Count} progress docs from Firestore/Cache");
                 FinalizeProgressLoad(firebaseUid);
             });
         }

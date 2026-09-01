@@ -19,10 +19,13 @@ namespace MiningSafetyAR.UI.Helpers
 
         public static void ApplyTo(VisualElement element, string iconName)
         {
+            Clear(element);
+        }
+
+        public static void Clear(VisualElement element)
+        {
             if (element == null) return;
-            var sprite = Get(iconName);
-            if (sprite != null)
-                element.style.backgroundImage = new StyleBackground(sprite);
+            element.style.backgroundImage = StyleKeyword.Null;
         }
 
         static readonly Dictionary<string, string> ModuleIcons = new Dictionary<string, string>
@@ -80,39 +83,34 @@ namespace MiningSafetyAR.UI.Helpers
 
         public static void ApplyModuleIcon(VisualElement element, string moduleId)
         {
-            ApplyTo(element, GetModuleName(moduleId));
+            Clear(element);
         }
 
         public static void ApplyByClass(VisualElement element, string iconClass)
         {
-            if (SlideIcons.TryGetValue(iconClass, out var slideName))
-                ApplyTo(element, slideName);
-            else if (ArIcons.TryGetValue(iconClass, out var arName))
-                ApplyTo(element, arName);
-            else
-                ApplyTo(element, iconClass);
+            Clear(element);
         }
 
         public static void ApplyBottomNavIcons(VisualElement root)
         {
             if (root == null) return;
-            ApplyTo(root.Q<VisualElement>("tab-home")?.Q<VisualElement>() ?? root.Q("icon-home"), "icon_home");
-            ApplyTo(root.Q<VisualElement>("tab-training")?.Q<VisualElement>() ?? root.Q("icon-training"), "icon_training");
-            ApplyTo(root.Q<VisualElement>("tab-progress")?.Q<VisualElement>() ?? root.Q("icon-progress"), "icon_progress");
-            ApplyTo(root.Q<VisualElement>("tab-settings")?.Q<VisualElement>() ?? root.Q("icon-settings"), "icon_settings");
+            Clear(root.Q<VisualElement>("tab-home")?.Q<VisualElement>() ?? root.Q("icon-home"));
+            Clear(root.Q<VisualElement>("tab-training")?.Q<VisualElement>() ?? root.Q("icon-training"));
+            Clear(root.Q<VisualElement>("tab-progress")?.Q<VisualElement>() ?? root.Q("icon-progress"));
+            Clear(root.Q<VisualElement>("tab-settings")?.Q<VisualElement>() ?? root.Q("icon-settings"));
         }
 
         public static void ApplyCommonIcons(VisualElement root)
         {
             if (root == null) return;
             ApplyTo(root.Q("logo-shield"), "logo_shield");
-            ApplyTo(root.Q("icon-back"), "icon_back");
-            ApplyTo(root.Q("icon-eye"), "icon_eye");
-            ApplyTo(root.Q("icon-search"), "icon_search");
-            ApplyTo(root.Q("icon-lock"), "icon_lock");
-            ApplyTo(root.Q("icon-trophy"), "icon_trophy");
-            ApplyTo(root.Q("avatar-worker"), "avatar_worker");
-            ApplyTo(root.Q("slide-icon-tip"), "slide_tip");
+            Clear(root.Q("icon-back"));
+            Clear(root.Q("icon-eye"));
+            Clear(root.Q("icon-search"));
+            Clear(root.Q("icon-lock"));
+            Clear(root.Q("icon-trophy"));
+            Clear(root.Q("avatar-worker"));
+            Clear(root.Q("slide-icon-tip"));
         }
     }
 }

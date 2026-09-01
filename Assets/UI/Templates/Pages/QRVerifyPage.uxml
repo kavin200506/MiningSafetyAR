@@ -3,41 +3,139 @@
     <Style src="project://database/Assets/UI/Styles/Reset.uss" />
     <Style src="project://database/Assets/UI/Styles/Components.uss" />
     <Style src="project://database/Assets/UI/Styles/Header.uss" />
-    <Style src="project://database/Assets/UI/Styles/Forms.uss" />
     <Style src="project://database/Assets/UI/Styles/BottomNav.uss" />
     <Style src="project://database/Assets/UI/Styles/Icons.uss" />
-    <ui:VisualElement class="page-container">
-        <ui:VisualElement class="header">
-            <ui:Button class="header__back-btn" name="back-btn">
-                <ui:VisualElement class="icon-back" style="width: 20px; height: 20px;" />
-            </ui:Button>
-            <ui:Label class="header__title" text="Verify Certificate" />
-            <ui:VisualElement class="header__right-action" />
-        </ui:VisualElement>
-        <ui:ScrollView class="scroll-area">
-            <ui:VisualElement class="card" name="search-card" style="align-items: center; padding: 16px;">
-                <ui:VisualElement class="icon-search" style="width: 28px; height: 28px;" />
-                <ui:Label text="Certificate Verification" style="font-size: 16px; font-weight: 700; color: #1A1A1A; text-align: center; margin-top: 12px;" />
-                <ui:Label text="Enter your certificate ID to verify" style="font-size: 13px; color: #999999; text-align: center; margin-top: 4px;" />
-                <ui:TextField class="input-field" name="cert-input" style="width: 100%; margin-top: 16px;" />
-                <ui:Button class="btn-primary" name="verify-btn" text="VERIFY" style="width: 100%; margin-top: 12px;" />
-                <ui:VisualElement name="quick-fill" style="flex-direction: row; margin-top: 12px; width: 100%; justify-content: space-between;">
-                    <ui:Button class="quick-fill-btn" name="qf-1" text="JH-FIRE-001928" style="flex: 1; height: 32px; background-color: #FFF3E0; border-color: #FFCC80; border-width: 1px; border-radius: 6px; font-size: 10px; color: #FF6D00; margin-right: 6px;" />
-                    <ui:Button class="quick-fill-btn" name="qf-2" text="JH-GAS-002156" style="flex: 1; height: 32px; background-color: #FFF3E0; border-color: #FFCC80; border-width: 1px; border-radius: 6px; font-size: 10px; color: #FF6D00; margin-right: 6px;" />
-                    <ui:Button class="quick-fill-btn" name="qf-3" text="INVALID-000" style="flex: 1; height: 32px; background-color: #F5F5F5; border-color: #E0E0E0; border-width: 1px; border-radius: 6px; font-size: 10px; color: #999999;" />
+    <ui:VisualElement class="page-container" style="background-color: rgb(250, 250, 250);">
+        <!-- Header -->
+        <ui:VisualElement class="header" style="background-color: rgb(255, 255, 255); padding: 16px 20px; flex-direction: row; align-items: center; justify-content: space-between; border-bottom-width: 2px; border-bottom-color: rgb(255, 109, 0);">
+            <ui:VisualElement style="flex-direction: row; align-items: center;">
+                <ui:Button name="back-btn" style="width: 32px; height: 32px; border-width: 0; background-color: transparent; align-items: center; justify-content: center; margin-right: 8px;">
+                    <ui:Label text="&lt;" style="font-size: 24px; color: rgb(26, 26, 26); font-weight: bold; margin-bottom: 2px;" />
+                </ui:Button>
+                <ui:Label text="Verify Certificate" style="font-size: 18px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold;" />
+            </ui:VisualElement>
+            <ui:VisualElement style="width: 24px; height: 24px; justify-content: center; align-items: center;">
+                <ui:VisualElement class="icon-bell" style="width: 20px; height: 20px;" />
+                <ui:VisualElement style="position: absolute; top: -4px; right: -4px; background-color: rgb(255, 109, 0); width: 14px; height: 14px; border-radius: 7px; align-items: center; justify-content: center;">
+                    <ui:Label text="3" style="font-size: 9px; color: rgb(255, 255, 255); font-weight: 700; -unity-font-style: bold;" />
                 </ui:VisualElement>
             </ui:VisualElement>
-            <ui:VisualElement class="card" name="loading-card" style="display: none; margin-top: 16px; align-items: center; padding: 16px;">
-                <ui:VisualElement style="width: 24px; height: 24px; border-color: #FF6D00; border-width: 2px; border-radius: 12px; border-top-color: rgba(0,0,0,0);" />
-                <ui:Label text="Checking certificate..." style="margin-top: 12px; color: #999999; font-size: 12px;" />
+        </ui:VisualElement>
+        
+        <ui:ScrollView class="scroll-area" style="flex: 1; padding: 16px;">
+            <!-- Top Card (Certificate Verification) -->
+            <ui:VisualElement class="card" name="search-card" style="background-color: rgb(255, 250, 245); border-radius: 24px; padding: 24px 16px; align-items: center; border-width: 1px; border-color: rgb(255, 237, 213); margin-bottom: 24px;">
+                <!-- Shield Icon -->
+                <ui:VisualElement style="width: 64px; height: 64px; background-color: rgb(255, 237, 213); border-radius: 32px; align-items: center; justify-content: center; margin-bottom: 16px;">
+                    <ui:VisualElement class="icon-shield-check" style="width: 32px; height: 32px; -unity-background-image-tint-color: rgb(255, 109, 0);" />
+                </ui:VisualElement>
+                
+                <ui:Label text="Certificate Verification" style="font-size: 18px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold; margin-bottom: 4px;" />
+                <ui:Label text="Enter your certificate ID to verify" style="font-size: 13px; color: rgb(102, 102, 102); margin-bottom: 24px;" />
+                
+                <!-- Input Field -->
+                <ui:VisualElement style="flex-direction: row; align-items: center; background-color: rgb(255, 255, 255); border-radius: 12px; border-width: 1px; border-color: rgb(230, 230, 230); width: 100%; padding: 0 16px; height: 48px; margin-bottom: 16px;">
+                    <ui:VisualElement class="icon-certificate" style="width: 20px; height: 20px; -unity-background-image-tint-color: rgb(255, 109, 0); margin-right: 12px;" />
+                    <ui:TextField name="cert-input" style="flex: 1; height: 100%; font-size: 14px; background-color: transparent; border-width: 0;" />
+                </ui:VisualElement>
+                
+                <!-- Verify Button -->
+                <ui:Button name="verify-btn" style="flex-direction: row; align-items: center; justify-content: center; background-color: rgb(255, 109, 0); border-radius: 12px; width: 100%; height: 48px; border-width: 0; margin-bottom: 24px;">
+                    <ui:VisualElement class="icon-search" style="width: 18px; height: 18px; -unity-background-image-tint-color: rgb(255, 255, 255); margin-right: 8px;" />
+                    <ui:Label text="Verify Certificate" style="font-size: 14px; font-weight: 700; color: rgb(255, 255, 255); -unity-font-style: bold;" />
+                </ui:Button>
+                
+                <!-- Sample IDs Divider -->
+                <ui:VisualElement style="flex-direction: row; align-items: center; width: 100%; margin-bottom: 16px;">
+                    <ui:VisualElement style="flex: 1; height: 1px; background-color: rgb(255, 237, 213);" />
+                    <ui:Label text="Sample Certificate IDs" style="font-size: 11px; color: rgb(153, 153, 153); margin: 0 12px;" />
+                    <ui:VisualElement style="flex: 1; height: 1px; background-color: rgb(255, 237, 213);" />
+                </ui:VisualElement>
+                
+                <!-- Sample Pills -->
+                <ui:VisualElement name="quick-fill" style="flex-direction: row; width: 100%; justify-content: space-between;">
+                    <ui:Button name="qf-1" text="JH-FIRE-001028" style="flex: 1; height: 36px; background-color: rgb(255, 250, 245); border-color: rgb(255, 172, 102); border-width: 1px; border-radius: 8px; font-size: 11px; font-weight: 600; color: rgb(255, 109, 0); margin-right: 8px; -unity-font-style: bold;" />
+                    <ui:Button name="qf-2" text="JH-GAS-002145" style="flex: 1; height: 36px; background-color: rgb(255, 250, 245); border-color: rgb(255, 172, 102); border-width: 1px; border-radius: 8px; font-size: 11px; font-weight: 600; color: rgb(255, 109, 0); margin-right: 8px; -unity-font-style: bold;" />
+                    <ui:Button name="qf-3" text="INVALID-000" style="flex: 1; height: 36px; background-color: rgb(245, 245, 245); border-color: rgb(230, 230, 230); border-width: 1px; border-radius: 8px; font-size: 11px; font-weight: 600; color: rgb(153, 153, 153); -unity-font-style: bold;" />
+                </ui:VisualElement>
             </ui:VisualElement>
-            <ui:VisualElement class="card" name="result-card" style="display: none; margin-top: 16px; padding: 16px;">
-                <ui:Label class="badge" name="verify-badge" text="" style="align-self: center;" />
-                <ui:VisualElement name="verify-details" style="margin-top: 12px;" />
-                <ui:Button class="btn-primary" name="view-cert-btn" text="VIEW CERTIFICATE" style="display: none; margin-top: 16px;" />
+            
+            <!-- Recent Verifications Section -->
+            <ui:VisualElement style="margin-bottom: 24px;">
+                <!-- Header -->
+                <ui:VisualElement style="flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 0 4px;">
+                    <ui:VisualElement style="flex-direction: row; align-items: center;">
+                        <ui:VisualElement class="icon-history" style="width: 20px; height: 20px; -unity-background-image-tint-color: rgb(255, 109, 0); margin-right: 8px;" />
+                        <ui:Label text="Recent Verifications" style="font-size: 16px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold;" />
+                    </ui:VisualElement>
+                    <ui:Label text="View All" style="font-size: 13px; font-weight: 600; color: rgb(255, 109, 0); -unity-font-style: bold;" />
+                </ui:VisualElement>
+                
+                <!-- List Container -->
+                <ui:VisualElement class="card" style="background-color: rgb(255, 255, 255); border-radius: 16px; padding: 16px; border-width: 1px; border-color: rgb(240, 240, 240);">
+                    
+                    <!-- Record 1 (Valid) -->
+                    <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 16px; padding-bottom: 16px; border-bottom-width: 1px; border-bottom-color: rgb(245, 245, 245);">
+                        <ui:VisualElement style="width: 40px; height: 40px; background-color: rgb(232, 245, 233); border-radius: 20px; align-items: center; justify-content: center; margin-right: 12px;">
+                            <ui:VisualElement class="icon-shield-check" style="width: 20px; height: 20px; -unity-background-image-tint-color: rgb(76, 175, 80);" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="flex: 1;">
+                            <ui:Label text="JH-FIRE-001028" style="font-size: 13px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold;" />
+                            <ui:Label text="Valid Certificate" style="font-size: 11px; font-weight: 600; color: rgb(76, 175, 80); -unity-font-style: bold; margin-top: 2px;" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="align-items: flex-end; margin-right: 12px;">
+                            <ui:Label text="05 May 2025" style="font-size: 11px; color: rgb(153, 153, 153);" />
+                            <ui:Label text="10:30 AM" style="font-size: 11px; color: rgb(153, 153, 153); margin-top: 2px;" />
+                        </ui:VisualElement>
+                        <ui:Label text="VALID" style="background-color: rgb(232, 245, 233); color: rgb(76, 175, 80); padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; -unity-font-style: bold;" />
+                    </ui:VisualElement>
+                    
+                    <!-- Record 2 (Valid) -->
+                    <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 16px; padding-bottom: 16px; border-bottom-width: 1px; border-bottom-color: rgb(245, 245, 245);">
+                        <ui:VisualElement style="width: 40px; height: 40px; background-color: rgb(232, 245, 233); border-radius: 20px; align-items: center; justify-content: center; margin-right: 12px;">
+                            <ui:VisualElement class="icon-shield-check" style="width: 20px; height: 20px; -unity-background-image-tint-color: rgb(76, 175, 80);" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="flex: 1;">
+                            <ui:Label text="JH-GAS-002145" style="font-size: 13px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold;" />
+                            <ui:Label text="Valid Certificate" style="font-size: 11px; font-weight: 600; color: rgb(76, 175, 80); -unity-font-style: bold; margin-top: 2px;" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="align-items: flex-end; margin-right: 12px;">
+                            <ui:Label text="04 May 2025" style="font-size: 11px; color: rgb(153, 153, 153);" />
+                            <ui:Label text="04:15 PM" style="font-size: 11px; color: rgb(153, 153, 153); margin-top: 2px;" />
+                        </ui:VisualElement>
+                        <ui:Label text="VALID" style="background-color: rgb(232, 245, 233); color: rgb(76, 175, 80); padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; -unity-font-style: bold;" />
+                    </ui:VisualElement>
+                    
+                    <!-- Record 3 (Invalid) -->
+                    <ui:VisualElement style="flex-direction: row; align-items: center;">
+                        <ui:VisualElement style="width: 40px; height: 40px; background-color: rgb(255, 235, 238); border-radius: 20px; align-items: center; justify-content: center; margin-right: 12px;">
+                            <ui:VisualElement class="icon-close" style="width: 20px; height: 20px; -unity-background-image-tint-color: rgb(244, 67, 54);" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="flex: 1;">
+                            <ui:Label text="INVALID-000" style="font-size: 13px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold;" />
+                            <ui:Label text="Certificate Not Found" style="font-size: 11px; font-weight: 600; color: rgb(244, 67, 54); -unity-font-style: bold; margin-top: 2px;" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="align-items: flex-end; margin-right: 12px;">
+                            <ui:Label text="04 May 2025" style="font-size: 11px; color: rgb(153, 153, 153);" />
+                            <ui:Label text="02:40 PM" style="font-size: 11px; color: rgb(153, 153, 153); margin-top: 2px;" />
+                        </ui:VisualElement>
+                        <ui:Label text="INVALID" style="background-color: rgb(255, 235, 238); color: rgb(244, 67, 54); padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; -unity-font-style: bold;" />
+                    </ui:VisualElement>
+                    
+                </ui:VisualElement>
             </ui:VisualElement>
-            <ui:VisualElement style="height: 80px;" />
+            
+            <!-- Bottom Info Banner -->
+            <ui:VisualElement class="card" style="flex-direction: row; align-items: center; background-color: rgb(255, 245, 233); border-radius: 16px; padding: 16px; border-width: 1px; border-color: rgb(255, 237, 213); margin-bottom: 24px;">
+                <ui:VisualElement class="icon-info" style="width: 20px; height: 20px; -unity-background-image-tint-color: rgb(255, 109, 0); margin-right: 12px;" />
+                <ui:Label text="Enter a valid certificate ID to check authenticity and verify its status." style="flex: 1; font-size: 12px; color: rgb(102, 102, 102); white-space: normal;" />
+                <ui:VisualElement class="icon-certificate" style="width: 32px; height: 32px; -unity-background-image-tint-color: rgb(255, 172, 102); opacity: 0.5;" />
+            </ui:VisualElement>
+            
+            <ui:VisualElement style="height: 100px;" />
         </ui:ScrollView>
+        
+        <!-- Bottom Nav -->
         <ui:VisualElement name="bottom-nav" class="bottom-nav">
             <ui:Button name="tab-home" class="bottom-nav__tab">
                 <ui:VisualElement class="icon-home" style="margin-bottom: 2px;" />
@@ -47,7 +145,7 @@
                 <ui:VisualElement class="icon-training" style="margin-bottom: 2px;" />
                 <ui:Label class="bottom-nav__tab-label" text="Training" />
             </ui:Button>
-            <ui:Button name="tab-progress" class="bottom-nav__tab">
+            <ui:Button name="tab-progress" class="bottom-nav__tab bottom-nav__tab--active">
                 <ui:VisualElement class="icon-progress" style="margin-bottom: 2px;" />
                 <ui:Label class="bottom-nav__tab-label" text="Progress" />
             </ui:Button>

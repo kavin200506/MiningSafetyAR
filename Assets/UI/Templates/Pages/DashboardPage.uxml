@@ -5,57 +5,68 @@
     <Style src="project://database/Assets/UI/Styles/Header.uss" />
     <Style src="project://database/Assets/UI/Styles/BottomNav.uss" />
     <Style src="project://database/Assets/UI/Styles/Icons.uss" />
-    <ui:VisualElement class="page-container">
-        <ui:ScrollView class="scroll-area">
-            <ui:VisualElement class="dashboard__greeting" name="greeting-bar" style="flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <ui:VisualElement class="greeting__left">
-                    <ui:Label class="greeting__text" name="greeting-text" text="Hello, Ramesh" style="font-size: 18px; font-weight: 700; color: #1A1A1A;" />
-                    <ui:Label class="greeting__sub" name="greeting-sub" text="Stay safe, stay certified" style="font-size: 12px; color: #666666;" />
-                </ui:VisualElement>
-                <ui:VisualElement class="greeting__avatar" name="avatar" style="width: 40px; height: 40px; border-radius: 20px; background-color: #FFF3E0; align-items: center; justify-content: center;">
-                    <ui:VisualElement class="avatar-worker" style="width: 24px; height: 24px;" />
-                </ui:VisualElement>
-            </ui:VisualElement>
-            <ui:VisualElement class="card" name="progress-card" style="margin-bottom: 20px;">
-                <ui:VisualElement style="flex-direction: row; justify-content: space-between;">
-                    <ui:Label text="Overall Progress" style="font-size: 14px; font-weight: 600; color: #1A1A1A;" />
-                    <ui:Label name="progress-value" text="0%" style="font-size: 18px; font-weight: 700; color: #FF6D00;" />
-                </ui:VisualElement>
-                <ui:VisualElement class="progress-track" name="overall-track" style="height: 6px; background-color: #FFE0B2; border-radius: 3px; margin: 12px 0;">
-                    <ui:VisualElement class="progress-fill" name="progress-fill" style="height: 100%; background-color: #FF6D00; width: 0%;" />
-                </ui:VisualElement>
-                <ui:VisualElement style="flex-direction: row; justify-content: space-around; margin-top: 8px;">
-                    <ui:VisualElement style="align-items: center;">
-                        <ui:Label name="completed-count" text="2" style="font-size: 18px; font-weight: 700; color: #1A1A1A;" />
-                        <ui:Label text="Completed" style="font-size: 10px; color: #999999;" />
+    
+    <ui:VisualElement class="page-container" style="background-color: rgb(245, 247, 250);">
+        <ui:ScrollView class="scroll-area" style="flex: 1;">
+            
+            <!-- Dynamic Orange Hero Header -->
+            <ui:VisualElement style="background-color: rgb(255, 109, 0); padding: 32px 20px 72px 20px; border-bottom-left-radius: 40px; border-bottom-right-radius: 40px;">
+                <ui:VisualElement class="dashboard__greeting" name="greeting-bar" style="flex-direction: row; justify-content: space-between; align-items: center;">
+                    <ui:VisualElement class="greeting__left">
+                        <ui:Label class="greeting__text" name="greeting-text" text="Hello, User" style="font-size: 24px; font-weight: 700; color: rgb(255, 255, 255); -unity-font-style: bold;" />
+                        <ui:Label class="greeting__sub" name="greeting-sub" text="Stay safe, stay certified" style="font-size: 14px; color: rgb(255, 224, 178); margin-top: 4px;" />
                     </ui:VisualElement>
-                    <ui:VisualElement style="align-items: center;">
-                        <ui:Label name="cert-count" text="2" style="font-size: 18px; font-weight: 700; color: #1A1A1A;" />
-                        <ui:Label text="Certificates" style="font-size: 10px; color: #999999;" />
-                    </ui:VisualElement>
-                    <ui:VisualElement style="align-items: center;">
-                        <ui:Label name="attempts-count" text="7" style="font-size: 18px; font-weight: 700; color: #1A1A1A;" />
-                        <ui:Label text="Attempts" style="font-size: 10px; color: #999999;" />
+                    <ui:VisualElement class="greeting__avatar" name="avatar" style="width: 56px; height: 56px; border-radius: 28px; background-color: rgb(255, 255, 255); align-items: center; justify-content: center; border-width: 3px; border-color: rgba(255, 255, 255, 0.5);">
+                        <ui:VisualElement class="avatar-worker" style="width: 32px; height: 32px; -unity-background-image-tint-color: rgb(255, 109, 0);" />
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
-            <ui:VisualElement class="section-header">
-                <ui:Label class="section-title" text="Training Modules" />
-                <ui:Button class="btn-text" name="see-all-btn" text="See All" />
-            </ui:VisualElement>
-            <ui:VisualElement name="module-list" />
-            <ui:VisualElement class="card-accent" name="cert-banner" style="margin-top: 16px;">
-                <ui:VisualElement style="flex-direction: row; align-items: center;">
-                    <ui:VisualElement class="icon-trophy" style="width: 28px; height: 28px; margin-right: 12px;" />
-                    <ui:VisualElement>
-                        <ui:Label text="Your Certificates" style="font-size: 14px; font-weight: 600; color: #1A1A1A;" />
-                        <ui:Label name="cert-banner-sub" text="2 certificates earned" style="font-size: 12px; color: #666666;" />
+
+            <!-- Floating Progress Card (Overlaps the header) -->
+            <ui:VisualElement style="padding: 0 16px; margin-top: -48px;">
+                <ui:VisualElement class="card" name="progress-card" style="background-color: rgb(255, 255, 255); border-radius: 24px; padding: 24px; border-width: 1px; border-color: rgb(230, 230, 230); box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.05); margin-bottom: 24px;">
+                    <ui:VisualElement style="flex-direction: row; justify-content: space-between; align-items: center;">
+                        <ui:Label text="Overall Progress" style="font-size: 16px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold;" />
+                        <ui:VisualElement style="background-color: rgb(255, 243, 224); padding: 6px 12px; border-radius: 12px;">
+                            <ui:Label name="progress-value" text="0%" style="font-size: 16px; font-weight: 700; color: rgb(255, 109, 0); -unity-font-style: bold;" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    
+                    <ui:VisualElement class="progress-track" name="overall-track" style="height: 10px; background-color: rgb(245, 245, 245); border-radius: 5px; margin: 20px 0; overflow: hidden;">
+                        <ui:VisualElement class="progress-fill" name="progress-fill" style="height: 100%; background-color: rgb(255, 109, 0); width: 0%;" />
+                    </ui:VisualElement>
+                    
+                    <!-- Stats Row -->
+                    <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-top: 8px;">
+                        <ui:VisualElement style="align-items: center; flex: 1;">
+                            <ui:Label name="completed-count" text="0" style="font-size: 22px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold;" />
+                            <ui:Label text="Completed" style="font-size: 11px; font-weight: 600; color: rgb(153, 153, 153); -unity-font-style: bold; margin-top: 4px;" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="width: 1px; height: 32px; background-color: rgb(240, 240, 240);" />
+                        <ui:VisualElement style="align-items: center; flex: 1;">
+                            <ui:Label name="cert-count" text="0" style="font-size: 22px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold;" />
+                            <ui:Label text="Certificates" style="font-size: 11px; font-weight: 600; color: rgb(153, 153, 153); -unity-font-style: bold; margin-top: 4px;" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="width: 1px; height: 32px; background-color: rgb(240, 240, 240);" />
+                        <ui:VisualElement style="align-items: center; flex: 1;">
+                            <ui:Label name="attempts-count" text="0" style="font-size: 22px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold;" />
+                            <ui:Label text="Attempts" style="font-size: 11px; font-weight: 600; color: rgb(153, 153, 153); -unity-font-style: bold; margin-top: 4px;" />
+                        </ui:VisualElement>
                     </ui:VisualElement>
                 </ui:VisualElement>
-                <ui:Button class="btn-primary" name="view-certs-btn" text="View All" style="margin-top: 12px;" />
+
+                <!-- Training Modules Section -->
+                <ui:VisualElement class="section-header" style="flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-left: 4px;">
+                    <ui:Label class="section-title" text="Continue Learning" style="font-size: 18px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold;" />
+                    <ui:Button class="btn-text" name="see-all-btn" text="See All" style="font-size: 14px; font-weight: 700; color: rgb(255, 109, 0); -unity-font-style: bold; background-color: transparent; border-width: 0;" />
+                </ui:VisualElement>
+                
+                <ui:VisualElement name="module-list" style="margin-bottom: 12px;" />
+                
+                <ui:VisualElement style="height: 100px;" />
             </ui:VisualElement>
-            <ui:VisualElement style="height: 80px;" />
         </ui:ScrollView>
+        
         <!-- BottomNav -->
         <ui:VisualElement name="bottom-nav" class="bottom-nav">
             <ui:Button name="tab-home" class="bottom-nav__tab bottom-nav__tab--active">

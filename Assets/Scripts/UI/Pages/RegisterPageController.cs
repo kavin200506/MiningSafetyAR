@@ -11,7 +11,7 @@ namespace MiningSafetyAR.UI.Pages
     {
         TextField nameInput, workerIdInput, orgInput, phoneInput, pinInput, confirmPinInput;
         DropdownField sectorDropdown;
-        Button registerBtn, backBtn;
+        Button registerBtn, signinBtn;
         Button langEn, langHi, langSat;
         Label errorMsg;
         string selectedLanguage = "English";
@@ -26,7 +26,7 @@ namespace MiningSafetyAR.UI.Pages
             confirmPinInput = root.Q<TextField>("confirm-pin");
             sectorDropdown = root.Q<DropdownField>("sector-dropdown");
             registerBtn = root.Q<Button>("register-btn");
-            backBtn = root.Q<Button>("back-btn");
+            signinBtn = root.Q<Button>("signin-btn");
             langEn = root.Q<Button>("lang-en");
             langHi = root.Q<Button>("lang-hi");
             langSat = root.Q<Button>("lang-sat");
@@ -52,7 +52,7 @@ namespace MiningSafetyAR.UI.Pages
             if (nameInput != null) nameInput.schedule.Execute(() => { nameInput.Focus(); ForceTextFieldColors(nameInput, "name-input"); }).StartingIn(150);
 
             if (registerBtn != null) registerBtn.RegisterCallback<ClickEvent>(evt => OnRegister());
-            if (backBtn != null) backBtn.RegisterCallback<ClickEvent>(evt => NavigationManager.Instance.GoBack());
+            if (signinBtn != null) signinBtn.RegisterCallback<ClickEvent>(evt => NavigationManager.Instance.NavigateToRoot("UI_Login"));
             if (langEn != null) langEn.RegisterCallback<ClickEvent>(evt => SetLanguage("English", langEn));
             if (langHi != null) langHi.RegisterCallback<ClickEvent>(evt => SetLanguage("Hindi", langHi));
             if (langSat != null) langSat.RegisterCallback<ClickEvent>(evt => SetLanguage("Santali", langSat));
