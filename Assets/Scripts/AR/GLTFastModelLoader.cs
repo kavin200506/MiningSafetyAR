@@ -239,19 +239,30 @@ namespace MiningSafetyAR.AR
         {
             if (container == null) return;
 
-            // Find genuine URP Lit shader, ignoring any X-Ray or Error shaders
-            Shader urpShader = Shader.Find("Universal Render Pipeline/Lit");
-            if (urpShader == null || urpShader.name.Contains("Error") || urpShader.name.Contains("Simulation") || urpShader.name.Contains("X-Ray"))
+            // Find genuine URP Lit shader, ensuring we NEVER fall back to legacy 'Standard' (which renders pink in URP)
+            Shader urpShader = Shader.Find("Universal Render Pipeline/Lit") ?? 
+                               Shader.Find("Universal Render Pipeline/Simple Lit") ?? 
+                               Shader.Find("Universal Render Pipeline/Unlit");
+
+            // Fallback: If Shader.Find returned null (common in runtime Android builds), retrieve shader from any active scene material
+            if (urpShader == null)
             {
-                urpShader = Shader.Find("Universal Render Pipeline/Simple Lit") ?? 
-                            Shader.Find("Universal Render Pipeline/Unlit") ?? 
-                            Shader.Find("Standard");
+                Renderer[] sceneRenderers = UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None);
+                foreach (Renderer r in sceneRenderers)
+                {
+                    if (r != null && r.sharedMaterial != null && r.sharedMaterial.shader != null && r.sharedMaterial.shader.name.Contains("Universal Render Pipeline"))
+                    {
+                        urpShader = r.sharedMaterial.shader;
+                        Debug.Log($"[GLTFastModelLoader] Found valid URP shader from scene renderer '{r.name}': {urpShader.name}");
+                        break;
+                    }
+                }
             }
 
             Texture2D labelTexture = Resources.Load<Texture2D>("FireExtinguisher_Label");
             Renderer[] renderers = container.GetComponentsInChildren<Renderer>(true);
 
-            Debug.Log($"[GLTFastModelLoader] TARGET URP SHADER: '{urpShader?.name}' applied to {renderers.Length} renderers under '{container.name}'...");
+            Debug.Log($"[GLTFastModelLoader] TARGET URP SHADER: '{(urpShader != null ? urpShader.name : "NULL")}' applied to {renderers.Length} renderers under '{container.name}'...");
 
             // Geometric 3D Volume Analysis: Identify the largest mesh volume (the Cylinder Body Tank)
             Renderer cylinderBodyRenderer = null;
@@ -288,8 +299,16 @@ namespace MiningSafetyAR.AR
                     Texture mainTex = orig != null && orig.HasProperty("_BaseMap") ? orig.GetTexture("_BaseMap") : 
                                       orig != null && orig.HasProperty("_MainTex") ? orig.GetTexture("_MainTex") : orig != null ? orig.mainTexture : null;
 
-                    // Create clean material with URP Lit shader
-                    Material mat = new Material(urpShader);
+                    // Preserve existing URP material if already valid, otherwise use target URP shader
+                    Shader targetShader = urpShader ?? (orig != null ? orig.shader : Shader.Find("Universal Render Pipeline/Unlit"));
+                    if (targetShader == null)
+                    {
+                        Debug.LogWarning($"[GLTFastModelLoader] Unable to resolve valid URP shader for '{r.gameObject.name}'. Retaining original material.");
+                        newMats[i] = orig;
+                        continue;
+                    }
+
+                    Material mat = new Material(targetShader);
                     mat.name = $"{r.gameObject.name}_URPMat";
 
                     if (mat.HasProperty("_WorkflowMode")) mat.SetFloat("_WorkflowMode", 1.0f);

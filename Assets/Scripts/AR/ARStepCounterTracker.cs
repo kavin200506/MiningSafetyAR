@@ -30,11 +30,14 @@ namespace MiningSafetyAR.AR
         [SerializeField] private StepTrackerState currentState = StepTrackerState.Idle;
         public StepTrackerState CurrentState => currentState;
 
-        [SerializeField] private int minRequiredSteps = 5;
-        [SerializeField] private int maxRequiredSteps = 15;
+        [SerializeField] private int minRequiredSteps = 7;
+        [SerializeField] private int maxRequiredSteps = 13;
         [SerializeField] private float averageStepLengthMeters = 0.65f; // ~65cm per step
 
-        private int targetSteps = 8;
+        [Header("Prefabs")]
+        [SerializeField] private GameObject fireExtinguisherPrefab;
+
+        private int targetSteps = 10;
         private int currentStepCount = 0;
         private float totalDistanceWalkedMeters = 0f;
         private float scanRemainingTime = 5.0f;
@@ -103,7 +106,7 @@ namespace MiningSafetyAR.AR
                 wallScanCoroutine = null;
             }
 
-            // Randomize target steps between minRequiredSteps (5) and maxRequiredSteps (15)
+            // Randomize target steps between 7 and 13
             targetSteps = UnityEngine.Random.Range(minRequiredSteps, maxRequiredSteps + 1);
             currentStepCount = 0;
             totalDistanceWalkedMeters = 0f;
@@ -182,6 +185,7 @@ namespace MiningSafetyAR.AR
             currentStepCount++;
             totalDistanceWalkedMeters += averageStepLengthMeters;
             lastStepTime = Time.time;
+            ARSimulationLogger.LogKey("W/Space", $"Simulated Walking Step {currentStepCount}/{targetSteps}");
             Debug.Log($"[ARStepCounterTracker] [SIMULATED STEP] Step {currentStepCount}/{targetSteps}");
             OnStepCountUpdated?.Invoke(currentStepCount, targetSteps);
 
@@ -193,114 +197,148 @@ namespace MiningSafetyAR.AR
 
         /// <summary>
         /// Called when the player reaches the required steps.
-        /// Initiates a 5-second scan for a vertical wall plane. If found, places the extinguisher on the wall;
-        /// otherwise places it on the floor using the exact original coordinates.
+        /// Enters scanning state — waits for user to tap on a vertical wall plane.
         /// </summary>
         private void TriggerExtinguisherDiscovery()
         {
-            if (wallScanCoroutine != null)
+            currentState = StepTrackerState.ScanningForWall;
+            if (ARPlacementManager.Instance != null)
             {
-                StopCoroutine(wallScanCoroutine);
+                ARPlacementManager.Instance.ActivePlacementMode = ARPlacementManager.PlacementTargetMode.WallFireExtinguisher;
             }
-            wallScanCoroutine = StartCoroutine(ScanForWallThenSpawnCoroutine(5.0f));
+            Debug.Log($"[ARStepCounterTracker] Step target reached ({currentStepCount}/{targetSteps})! Ready to place extinguisher on wall. ActivePlacementMode set to WallFireExtinguisher.");
         }
 
-        private IEnumerator ScanForWallThenSpawnCoroutine(float scanDuration)
+        [ContextMenu("Simulate 1 Step Test")]
+        public void SimulateStepTest()
         {
-            currentState = StepTrackerState.ScanningForWall;
-            float startTime = Time.time;
-            ARPlaneManager planeMgr = FindFirstObjectByType<ARPlaneManager>();
-            ARRaycastManager raycastMgr = ARRaycastManagerReference;
-            var hits = new List<ARRaycastHit>();
-            bool wallFound = false;
-            Vector3 spawnPos = Vector3.zero;
-            Quaternion spawnRot = Quaternion.identity;
+            RegisterSimulatedStep();
+        }
 
-            Debug.Log($"[ARStepCounterTracker] Step target reached ({currentStepCount}/{targetSteps})! Initiating 5-second wall detection scan...");
+        [ContextMenu("Simulate Wall Scanning Mode Test")]
+        public void SimulateWallScanningModeTest()
+        {
+            currentStepCount = targetSteps;
+            TriggerExtinguisherDiscovery();
+        }
 
-            while (Time.time - startTime < scanDuration)
+        /// <summary>
+        /// Called by ARPlacementManager when user taps on a vertical plane.
+        /// Spawns the extinguisher at the tapped position.
+        /// </summary>
+        public void SpawnExtinguisherOnWall(Vector3 spawnPos, Quaternion spawnRot)
+        {
+            if (currentState != StepTrackerState.ScanningForWall) return;
+
+            GameObject extinguisherInstance;
+
+            if (fireExtinguisherPrefab == null)
             {
-                scanRemainingTime = Mathf.Max(0f, scanDuration - (Time.time - startTime));
-                Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
+                fireExtinguisherPrefab = Resources.Load<GameObject>("Prefabs/FireExtinguisherModel") ??
+                                         Resources.Load<GameObject>("FireExtinguisherModel") ??
+                                         Resources.Load<GameObject>("SafetyStation");
+            }
 
-                if (!wallFound && raycastMgr != null && raycastMgr.Raycast(screenCenter, hits, UnityEngine.XR.ARSubsystems.TrackableType.PlaneWithinPolygon | UnityEngine.XR.ARSubsystems.TrackableType.Planes))
+            if (fireExtinguisherPrefab != null)
+            {
+                // Use the existing 3D prefab with PBR materials
+                extinguisherInstance = Instantiate(fireExtinguisherPrefab, spawnPos, spawnRot);
+                extinguisherInstance.name = "Discovered_3D_FireExtinguisher";
+            }
+            else
+            {
+                // Fallback: create basic container with glTF model loader
+                extinguisherInstance = new GameObject("Discovered_3D_FireExtinguisher");
+                extinguisherInstance.transform.SetPositionAndRotation(spawnPos, spawnRot);
+
+                // Add glTF Model Loader to load real 3D model at runtime
+                extinguisherInstance.AddComponent<FireExtinguisherModelLoader>();
+
+                // Add fallback renderer with safe URP shader lookup
+                var capsule = extinguisherInstance.AddComponent<CapsuleCollider>();
+                capsule.height = 0.5f;
+                capsule.radius = 0.08f;
+                capsule.center = new Vector3(0, 0.25f, 0);
+
+                var mf = extinguisherInstance.AddComponent<MeshFilter>();
+                mf.sharedMesh = CreateCylinderMesh(0.08f, 0.5f, 12);
+
+                var mr = extinguisherInstance.AddComponent<MeshRenderer>();
+                Shader urpShader = Shader.Find("Universal Render Pipeline/Lit") ??
+                                   Shader.Find("Universal Render Pipeline/Simple Lit") ??
+                                   Shader.Find("Universal Render Pipeline/Unlit");
+
+                if (urpShader == null)
                 {
-                    foreach (var hit in hits)
+                    Renderer[] sceneRenderers = UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None);
+                    foreach (Renderer r in sceneRenderers)
                     {
-                        if (planeMgr != null && hit.trackableId != UnityEngine.XR.ARSubsystems.TrackableId.invalidId)
+                        if (r != null && r.sharedMaterial != null && r.sharedMaterial.shader != null && r.sharedMaterial.shader.name.Contains("Universal Render Pipeline"))
                         {
-                            ARPlane hitPlane = planeMgr.GetPlane(hit.trackableId);
-                            if (hitPlane != null && hitPlane.alignment == UnityEngine.XR.ARSubsystems.PlaneAlignment.Vertical)
-                            {
-                                spawnPos = hit.pose.position;
-                                spawnRot = hit.pose.rotation;
-                                wallFound = true;
-                                Debug.Log($"[ARStepCounterTracker] 🧯 VERTICAL WALL CONFIRMED during scan! Position: {spawnPos}");
-                                break;
-                            }
+                            urpShader = r.sharedMaterial.shader;
+                            break;
                         }
                     }
                 }
 
-                yield return new WaitForSeconds(0.05f);
+                if (urpShader != null)
+                {
+                    Material mat = new Material(urpShader);
+                    mat.SetColor("_BaseColor", new Color(0.85f, 0.05f, 0.05f));
+                    mat.SetFloat("_Metallic", 0.65f);
+                    mat.SetFloat("_Smoothness", 0.75f);
+                    mr.material = mat;
+                }
+
+                extinguisherInstance.AddComponent<FireExtinguisherGrabController>();
             }
 
-            if (!wallFound)
-            {
-                Debug.Log("[ARStepCounterTracker] No vertical wall plane detected after 5-second scan — falling back to original floor placement.");
-                Camera mainCam = Camera.main ?? FindFirstObjectByType<Camera>();
-
-                if (mainCam != null)
-                {
-                    Vector3 forward = mainCam.transform.forward;
-                    forward.y = 0;
-                    if (forward.sqrMagnitude < 0.01f) forward = mainCam.transform.up;
-                    forward.Normalize();
-
-                    // Spawn 1.0 meter in front of camera at ground level (exact original values)
-                    spawnPos = mainCam.transform.position + (forward * 1.0f);
-                    spawnPos.y = mainCam.transform.position.y - 0.5f;
-                    spawnRot = Quaternion.Euler(0, mainCam.transform.eulerAngles.y, 0);
-                }
-                else
-                {
-                    spawnPos = new Vector3(0, -0.5f, 1.0f);
-                    spawnRot = Quaternion.identity;
-                }
-
-                // Refine floor height if an AR plane is nearby (exact original logic)
-                if (raycastMgr != null)
-                {
-                    hits.Clear();
-                    Vector2 centerScreen = new Vector2(Screen.width / 2f, Screen.height / 2f);
-                    if (raycastMgr.Raycast(centerScreen, hits, UnityEngine.XR.ARSubsystems.TrackableType.PlaneWithinPolygon | UnityEngine.XR.ARSubsystems.TrackableType.Planes))
-                    {
-                        float dist = Vector3.Distance(mainCam != null ? mainCam.transform.position : Vector3.zero, hits[0].pose.position);
-                        if (dist <= 2.0f)
-                        {
-                            spawnPos = hits[0].pose.position;
-                        }
-                    }
-                }
-            }
-
-            // Create container and attach FireExtinguisherModelLoader
-            GameObject container = new GameObject("Discovered_3D_FireExtinguisher");
-            container.transform.SetPositionAndRotation(spawnPos, spawnRot);
-            FireExtinguisherModelLoader loader = container.AddComponent<FireExtinguisherModelLoader>();
-
-            spawnedExtinguisherInstance = container;
+            spawnedExtinguisherInstance = extinguisherInstance;
             currentState = StepTrackerState.ExtinguisherDiscovered;
-            string placementType = wallFound ? "VERTICAL WALL" : "FLOOR";
-            Debug.Log($"[ARStepCounterTracker] 🧯 DISCOVERY SUCCESS ({placementType})! 3D Fire Extinguisher spawned at {spawnPos}!");
-            
+            Debug.Log($"[ARStepCounterTracker] EXTINGUISHER SPAWNED on wall at {spawnPos}!");
+
             if (FireExtinguisherGrabController.Instance != null)
             {
-                FireExtinguisherGrabController.Instance.SetupExtinguisherForGrabbing(container);
+                FireExtinguisherGrabController.Instance.SetupExtinguisherForGrabbing(extinguisherInstance);
             }
 
             OnExtinguisherDiscovered?.Invoke(spawnPos);
-            wallScanCoroutine = null;
+        }
+
+        private static Mesh CreateCylinderMesh(float radius, float height, int segments)
+        {
+            Mesh mesh = new Mesh();
+            mesh.name = "ExtinguisherCylinder";
+            Vector3[] vertices = new Vector3[(segments + 1) * 2];
+            int[] triangles = new int[segments * 6];
+            Vector3[] normals = new Vector3[(segments + 1) * 2];
+
+            for (int i = 0; i <= segments; i++)
+            {
+                float angle = (float)i / segments * Mathf.PI * 2f;
+                float x = Mathf.Cos(angle) * radius;
+                float z = Mathf.Sin(angle) * radius;
+                vertices[i] = new Vector3(x, 0, z);
+                vertices[i + segments + 1] = new Vector3(x, height, z);
+                normals[i] = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
+                normals[i + segments + 1] = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
+            }
+
+            for (int i = 0; i < segments; i++)
+            {
+                int ti = i * 6;
+                triangles[ti] = i;
+                triangles[ti + 1] = i + segments + 1;
+                triangles[ti + 2] = i + 1;
+                triangles[ti + 3] = i + 1;
+                triangles[ti + 4] = i + segments + 1;
+                triangles[ti + 5] = i + segments + 2;
+            }
+
+            mesh.vertices = vertices;
+            mesh.triangles = triangles;
+            mesh.normals = normals;
+            return mesh;
         }
 
         private ARRaycastManager ARRaycastManagerReference => FindFirstObjectByType<ARRaycastManager>();
@@ -330,11 +368,11 @@ namespace MiningSafetyAR.AR
 
             if (currentState == StepTrackerState.SearchingForExtinguisher)
             {
-                style.normal.textColor = new Color(1.0f, 0.85f, 0.0f); // Vivid Gold
+                style.normal.textColor = new Color(1.0f, 0.85f, 0.0f);
                 int remaining = Mathf.Max(0, targetSteps - currentStepCount);
-                string text = $"<b>🚶 SEARCHING FOR EXTINGUISHER</b>\n" +
+                string text = $"<b>SEARCHING FOR EXTINGUISHER</b>\n" +
                               $"<size=24>Steps Taken: <color=#00FF00>{currentStepCount} / {targetSteps}</color> ({totalDistanceWalkedMeters:F1}m walked)</size>\n" +
-                              $"<size=20><color=#00E5FF>Walk {remaining} more steps around room to find Extinguisher!</color></size>";
+                              $"<size=20><color=#00E5FF>Walk {remaining} more steps to find Extinguisher!</color></size>";
 #if UNITY_EDITOR
                 text += "\n<size=18><color=#00FF00>[EDITOR: Press 'W' or Spacebar to simulate steps]</color></size>";
 #endif
@@ -342,18 +380,21 @@ namespace MiningSafetyAR.AR
             }
             else if (currentState == StepTrackerState.ScanningForWall)
             {
-                style.normal.textColor = new Color(0.2f, 0.9f, 1.0f); // Bright Cyan
-                string text = $"<b>🔍 SCANNING FOR WALL ({scanRemainingTime:F1}s)</b>\n" +
-                              $"<size=22>Point camera at a wall to mount Extinguisher on wall!</size>\n" +
-                              $"<size=18><color=#FFCC00>(If no wall detected in {scanRemainingTime:F1}s, places on floor)</color></size>";
+                style.normal.textColor = new Color(0.2f, 0.9f, 1.0f);
+                string text = $"<b>READY TO PLACE EXTINGUISHER</b>\n" +
+                              $"<size=22>Point camera at a vertical wall and TAP to place extinguisher!</size>\n" +
+                              $"<size=18><color=#FFCC00>Extinguisher will spawn where you tap on the wall.</color></size>";
+#if UNITY_EDITOR
+                text += "\n<size=18><color=#00FF00>[EDITOR: Click on a wall plane]</color></size>";
+#endif
                 GUI.Box(rect, text, style);
             }
             else if (currentState == StepTrackerState.ExtinguisherDiscovered)
             {
-                style.normal.textColor = new Color(0.2f, 1.0f, 0.4f); // Vivid Green
-                string text = $"<b>🧯 EXTINGUISHER DISCOVERED!</b>\n" +
+                style.normal.textColor = new Color(0.2f, 1.0f, 0.4f);
+                string text = $"<b>EXTINGUISHER DISCOVERED!</b>\n" +
                               $"<size=24>Walked <color=#00FF00>{currentStepCount} steps</color> ({totalDistanceWalkedMeters:F1}m)</size>\n" +
-                              $"<size=20><color=#00FF00>3D Fire Extinguisher spawned in front of you!</color></size>";
+                              $"<size=20><color=#00FF00>Grab the extinguisher and put out the fire!</color></size>";
                 GUI.Box(rect, text, style);
             }
         }

@@ -56,6 +56,10 @@ namespace MiningSafetyAR.AR
         private ARAnchor spawnedAnchor;
         public GameObject SpawnedObject => spawnedObject;
 
+        public event Action OnFireHazardConfirmed;
+        public bool IsFloorPlacementActive => spawnedObject != null && isPlacementLocked;
+        public Transform FireHazardTransform => spawnedObject?.transform;
+
         private GameObject spawnedWallObject;
         private ARAnchor spawnedWallAnchor;
         public GameObject SpawnedWallObject => spawnedWallObject;
@@ -83,6 +87,14 @@ namespace MiningSafetyAR.AR
         public bool IsPlacementLocked => isPlacementLocked;
         public float RemainingPlacementTime => hasFirstPlacementOccurred && !isPlacementLocked ? 
             Mathf.Max(0f, placementWindowDuration - (Time.time - placementStartTime)) : 0f;
+
+        [Header("Reposition & Rescale")]
+        [SerializeField] private float rescaleStep = 0.05f;
+        [SerializeField] private float minScale = 0.02f;
+        [SerializeField] private float maxScale = 1.0f;
+        public bool RepositionMode { get; set; }
+        public bool RescaleMode { get; set; }
+        public event Action<GameObject, float> OnObjectRescaled;
 
         private float nextPlaneLogTime = 0f;
         private InputAction pressAction;
@@ -311,10 +323,10 @@ namespace MiningSafetyAR.AR
             // [C] -> Clear All Objects
             if (Keyboard.current != null)
             {
-                if (Keyboard.current.fKey.wasPressedThisFrame)
+                if (Keyboard.current.iKey.wasPressedThisFrame || Keyboard.current.fKey.wasPressedThisFrame)
                 {
                     Vector2 mousePos = Pointer.current != null ? Pointer.current.position.ReadValue() : Vector2.zero;
-                    Debug.Log($"[EDITOR_HOTKEY] 'F' key pressed — Igniting Fire Hazard at mouse position {mousePos}");
+                    Debug.Log($"[EDITOR_HOTKEY] 'I'/'F' key pressed — Igniting Fire Hazard at mouse position {mousePos}");
                     PerformPlacementRaycast(mousePos);
                 }
                 if (Keyboard.current.eKey.wasPressedThisFrame)
@@ -339,9 +351,33 @@ namespace MiningSafetyAR.AR
                 float elapsedTime = Time.time - placementStartTime;
                 if (elapsedTime >= placementWindowDuration)
                 {
-                    isPlacementLocked = true;
-                    Debug.Log($"[INFO] [ARPlacementManager] 3-second placement window expired! Surface placement is now LOCKED.");
+                    ConfirmPlacementLock();
                 }
+            }
+        }
+
+        /// <summary>
+        /// Instantly locks ground placement, triggers placement confirmation event,
+        /// enables proximity safety checking, and starts the fire safety module drill.
+        /// </summary>
+        public void ConfirmPlacementLock()
+        {
+            if (isPlacementLocked) return;
+
+            isPlacementLocked = true;
+            Debug.Log($"[INFO] [ARPlacementManager] Surface placement is now LOCKED.");
+            OnFireHazardConfirmed?.Invoke();
+
+            // Enable proximity safety check around the placed fire
+            if (ARProximitySafetyValidator.Instance != null && spawnedObject != null)
+            {
+                ARProximitySafetyValidator.Instance.EnableChecking(spawnedObject.transform);
+            }
+
+            // Start the fire safety module
+            if (FireSafetyModuleManager.Instance != null)
+            {
+                FireSafetyModuleManager.Instance.StartModule();
             }
         }
 
@@ -414,50 +450,12 @@ namespace MiningSafetyAR.AR
                         Debug.Log($"[DIAG] [ARPlacementManager] Tier 2 Hit: Depth Map at pose {hitPose.position}, hitDistance={hits[0].distance:F2}m");
                     }
                 }
-                // Tier 3: Instant Placement Fallback
-                else
-                {
-                    try
-                    {
-                        ARRaycast instantRaycast = raycastManager != null ? raycastManager.AddRaycast(touchPosition, 1.5f) : null;
-                        if (instantRaycast != null)
-                        {
-                            hitPose = instantRaycast.pose;
-                            hitSuccess = true;
-                            hitTypeString = "Instant Placement";
-                            Debug.Log($"[DIAG] [ARPlacementManager] Tier 3 Hit: Instant Placement at pose {hitPose.position}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogWarning($"[WARN] [ARPlacementManager] Instant Placement fallback exception: {ex.Message}");
-                    }
-                }
-
-#if UNITY_EDITOR
-                // Tier 4: Unity Editor Play Mode Virtual Floor Raycast Fallback (Simulated Floor at y = -0.5m)
-                if (!hitSuccess)
-                {
-                    Camera cam = Camera.main ?? FindFirstObjectByType<Camera>();
-                    if (cam != null)
-                    {
-                        Ray ray = cam.ScreenPointToRay(touchPosition);
-                        Plane groundPlane = new Plane(Vector3.up, new Vector3(0, -0.5f, 0));
-                        if (groundPlane.Raycast(ray, out float enterDistance))
-                        {
-                            hitPose = new Pose(ray.GetPoint(enterDistance), Quaternion.identity);
-                            hitSuccess = true;
-                            hitTypeString = "Unity Editor Simulated Ground Plane";
-                            Debug.Log($"[EDITOR_SIM] Mouse Raycast intersected virtual Editor floor plane at {hitPose.position}");
-                        }
-                    }
-                }
-#endif
+                // NO auto-placement fallbacks — fire ONLY spawns when user taps on a real detected plane
 
                 if (!hitSuccess)
                 {
                     int planesCount = planeManager != null ? planeManager.trackables.count : 0;
-                    lastPlacementErrorLog = $"Raycast tap missed plane! Active planes count: {planesCount}";
+                    lastPlacementErrorLog = $"Raycast tap missed plane surface! Active planes count: {planesCount}";
                     Debug.LogWarning($"[FAIL_DIAG] [ARPlacementManager] {lastPlacementErrorLog}");
                     return false;
                 }
@@ -497,10 +495,37 @@ namespace MiningSafetyAR.AR
                 bool isWallPlacement = (hitPlane != null && isVerticalPlane) || (hitPlane == null && placementMode == PlacementTargetMode.WallFireExtinguisher);
 
                 // Requirement 6: Apply 3-second placement lockout ONLY to Ground Fire Hazard
-                if (!isWallPlacement && isPlacementLocked)
+                // Allow reposition and rescale modes to bypass the lock
+                if (!isWallPlacement && isPlacementLocked && !RepositionMode && !RescaleMode)
                 {
                     Debug.LogWarning("[WARN] [ARPlacementManager] Ground fire hazard placement tap blocked — 3-second placement window has expired.");
                     return false;
+                }
+
+                // Rescale mode: tap on existing objects to scale them
+                if (RescaleMode && (spawnedObject != null || spawnedWallObject != null))
+                {
+                    return PerformRescale(hitPose);
+                }
+
+                // Step counter mode: if in ScanningForWall state and tapping on vertical plane, spawn extinguisher
+                if (isVerticalPlane || isWallPlacement)
+                {
+                    bool alreadySpawned = (spawnedWallObject != null) || 
+                                          (AR.ARStepCounterTracker.Instance != null && AR.ARStepCounterTracker.Instance.SpawnedExtinguisherInstance != null);
+
+                    if (alreadySpawned)
+                    {
+                        Debug.LogWarning("[WARN] [ARPlacementManager] Wall Fire Extinguisher is already spawned! Blocking duplicate wall spawn.");
+                        return false;
+                    }
+
+                    if (AR.ARStepCounterTracker.Instance != null && 
+                        AR.ARStepCounterTracker.Instance.CurrentState == AR.ARStepCounterTracker.StepTrackerState.ScanningForWall)
+                    {
+                        AR.ARStepCounterTracker.Instance.SpawnExtinguisherOnWall(hitPose.position, hitPose.rotation);
+                        return true;
+                    }
                 }
 
                 Camera mainCamera = Camera.main ?? FindFirstObjectByType<Camera>();
@@ -599,11 +624,13 @@ namespace MiningSafetyAR.AR
 
                     // Ignite Fire Hazard
                     GroundFireController fireController = spawnedObject.GetComponent<GroundFireController>() ?? spawnedObject.GetComponentInChildren<GroundFireController>();
-                    if (fireController != null)
+                    if (fireController == null)
                     {
-                        fireController.IgniteFire();
+                        fireController = spawnedObject.AddComponent<GroundFireController>();
                     }
+                    fireController.IgniteFire();
 
+                    OnFireHazardConfirmed?.Invoke();
                     lastPlacementDiagStatus = $"SUCCESS: Ignited Ground Fire hazard at {hitPose.position}";
                     lastPlacementErrorLog = "";
                 }
@@ -620,6 +647,72 @@ namespace MiningSafetyAR.AR
             }
         }
 
+        /// <summary>
+        /// Guarantees fire visibility on mobile by placing the fire 2 meters in front of the camera at ground level.
+        /// Auto-adds SphereCollider (trigger) to the fire and ignites it immediately.
+        /// </summary>
+        public GameObject SpawnFireAtCamera()
+        {
+            if (spawnedObject != null)
+            {
+                Debug.Log("[ARPlacementManager] Fire hazard already exists in scene.");
+                return spawnedObject;
+            }
+
+            Camera mainCam = Camera.main ?? FindFirstObjectByType<Camera>();
+            Vector3 camPos = mainCam != null ? mainCam.transform.position : Vector3.zero;
+            Vector3 camForward = mainCam != null ? mainCam.transform.forward : Vector3.forward;
+            if (camForward == Vector3.zero) camForward = Vector3.forward;
+
+            // Place fire 1.6 meters directly in front of camera, 0.4 meters down (centered on mobile screen)
+            Vector3 spawnPos = camPos + (camForward.normalized * 1.6f) + Vector3.down * 0.4f;
+            Quaternion spawnRot = Quaternion.identity;
+
+            GameObject targetPrefab = defaultPlacementPrefab;
+            if (targetPrefab == null)
+            {
+                targetPrefab = Resources.Load<GameObject>("Prefabs/FireHazard") ??
+                               Resources.Load<GameObject>("FireHazard") ??
+                               Resources.Load<GameObject>("GroundFireParticles");
+            }
+
+            if (targetPrefab != null)
+            {
+                spawnedObject = Instantiate(targetPrefab, spawnPos, spawnRot);
+            }
+            else
+            {
+                spawnedObject = new GameObject("GroundFireHazard");
+                spawnedObject.transform.position = spawnPos;
+                spawnedObject.AddComponent<GroundFireController>();
+            }
+
+            spawnedObject.name = "GroundFireHazard_MobileSpawn";
+
+            var col = spawnedObject.GetComponentInChildren<Collider>();
+            if (col == null)
+            {
+                var sc = spawnedObject.AddComponent<SphereCollider>();
+                sc.isTrigger = true;
+                sc.radius = 1.2f;
+                sc.center = new Vector3(0f, 0.5f, 0f);
+            }
+
+            GroundFireController fireCtrl = spawnedObject.GetComponentInChildren<GroundFireController>();
+            if (fireCtrl != null)
+            {
+                fireCtrl.IgniteFire();
+            }
+
+            hasFirstPlacementOccurred = true;
+            ConfirmPlacementLock();
+            OnObjectPlaced?.Invoke(spawnPos, spawnRot);
+            OnFireHazardConfirmed?.Invoke();
+
+            Debug.Log($"[ARPlacementManager] 🔥 Spawned Fire at Camera Forward: Pos={spawnPos}");
+            return spawnedObject;
+        }
+
         public void SetPlanesVisible(bool visible)
         {
             if (planeManager == null) return;
@@ -629,6 +722,46 @@ namespace MiningSafetyAR.AR
                 plane.gameObject.SetActive(visible);
             }
             Debug.Log($"[INFO] [ARPlacementManager] Set plane visibility to: {visible}");
+        }
+
+        /// <summary>
+        /// Rescale mode: tap on a placed object to cycle its scale.
+        /// First tap: scale up by rescaleStep. Second tap: scale down. Alternates.
+        /// </summary>
+        private bool PerformRescale(Pose hitPose)
+        {
+            // Find which spawned object is closer to the tap
+            GameObject target = null;
+            if (spawnedObject != null)
+            {
+                float distGround = Vector3.Distance(hitPose.position, spawnedObject.transform.position);
+                if (spawnedWallObject != null)
+                {
+                    float distWall = Vector3.Distance(hitPose.position, spawnedWallObject.transform.position);
+                    target = distGround <= distWall ? spawnedObject : spawnedWallObject;
+                }
+                else
+                {
+                    target = spawnedObject;
+                }
+            }
+            else if (spawnedWallObject != null)
+            {
+                target = spawnedWallObject;
+            }
+
+            if (target == null) return false;
+
+            // Scale up by step, wrap around to min when exceeding max
+            Vector3 currentScale = target.transform.localScale;
+            float nextScale = currentScale.x + rescaleStep;
+            if (nextScale > maxScale)
+                nextScale = minScale;
+
+            target.transform.localScale = Vector3.one * nextScale;
+            OnObjectRescaled?.Invoke(target, nextScale);
+            Debug.Log($"[INFO] [ARPlacementManager] Rescaled '{target.name}' to {nextScale:F3}");
+            return true;
         }
 
         public void ResetPlacementTimer()
@@ -655,6 +788,13 @@ namespace MiningSafetyAR.AR
                 spawnedWallObject = null;
                 spawnedWallAnchor = null;
             }
+
+            // Disable proximity check when fire is cleared
+            if (ARProximitySafetyValidator.Instance != null)
+            {
+                ARProximitySafetyValidator.Instance.DisableChecking();
+            }
+
             ResetPlacementTimer();
         }
 
@@ -777,6 +917,70 @@ namespace MiningSafetyAR.AR
                                  (!string.IsNullOrEmpty(lastPlacementErrorLog) ? $"<color=#FF4444>• ERROR: {lastPlacementErrorLog}</color>" : "<color=#00FF00>• System OK — Tap floor to ignite fire</color>");
 
             GUI.Box(bottomBoxRect, diagContent, bottomStyle);
+        }
+
+        /// <summary>
+        /// Spawns fire hazard directly in front of the camera at ground level.
+        /// Used as fallback when AR plane detection fails or for mobile-first flow.
+        /// </summary>
+        public GameObject SpawnFireAtCamera(float distanceInFront = 2f)
+        {
+            if (defaultPlacementPrefab == null)
+            {
+                Debug.LogError("[ARPlacementManager] Cannot spawn fire — defaultPlacementPrefab is null!");
+                return null;
+            }
+
+            Camera cam = Camera.main ?? FindFirstObjectByType<Camera>();
+            if (cam == null)
+            {
+                Debug.LogError("[ARPlacementManager] Cannot spawn fire — no camera found!");
+                return null;
+            }
+
+            Vector3 spawnPos = cam.transform.position + cam.transform.forward * distanceInFront;
+            spawnPos.y = 0f; // Place on ground level
+
+            Quaternion spawnRot = Quaternion.Euler(0, cam.transform.eulerAngles.y, 0);
+
+            if (spawnedObject != null)
+            {
+                Destroy(spawnedObject);
+            }
+
+            spawnedObject = Instantiate(defaultPlacementPrefab, spawnPos, spawnRot);
+            spawnedObject.name = "FireHazard_Spawned";
+
+            // Ensure collider exists
+            var col = spawnedObject.GetComponent<Collider>();
+            if (col == null)
+            {
+                var sc = spawnedObject.AddComponent<SphereCollider>();
+                sc.isTrigger = true;
+                sc.radius = 0.5f;
+            }
+
+            if (!Application.isEditor)
+            {
+                var anchor = spawnedObject.AddComponent<ARAnchor>();
+                spawnedAnchor = anchor;
+            }
+
+            hasFirstPlacementOccurred = true;
+
+            // Ignite
+            var fireController = spawnedObject.GetComponent<GroundFireController>()
+                               ?? spawnedObject.GetComponentInChildren<GroundFireController>();
+            if (fireController != null)
+            {
+                fireController.IgniteFire();
+            }
+
+            Debug.Log($"[ARPlacementManager] Spawned fire at camera forward: {spawnPos}, distance={distanceInFront}m");
+            OnObjectPlaced?.Invoke(spawnPos, spawnRot);
+            OnFireHazardConfirmed?.Invoke();
+
+            return spawnedObject;
         }
     }
 }

@@ -10,7 +10,8 @@ GameObject:
   m_Component:
   - component: {fileID: 8293509840676475706}
   - component: {fileID: 5396412708392511699}
-  m_Layer: 0
+  - component: {fileID: -8916179362593275096}
+  m_Layer: 8
   m_Name: FireExtinguisherModel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -29,7 +30,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 2997035015923250743}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5396412708392511699
@@ -46,3 +48,69 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.AR.FireExtinguisherModelLoader
   modelScaleMultiplier: 1
   loadOnStart: 1
+--- !u!114 &-8916179362593275096
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6134629332891498935}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db1a749dc1c444020ba421fd5481c564, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.AR.FireExtinguisherGrabController
+  currentState: 0
+  currentPassState: 0
+  heldItemSlot: {fileID: 0}
+  extinguisherScale: 0.15
+  grabbableLayerMask:
+    serializedVersion: 2
+    m_Bits: 0
+  heldItemLayerMask:
+    serializedVersion: 2
+    m_Bits: 1
+  fireLayerMask:
+    serializedVersion: 2
+    m_Bits: 2
+  grabDuration: 0.4
+  maxGrabDistance: 6
+  maxRaycastDistance: 15
+  arrivalDistanceMeters: 1.2
+  cameraOffset: {x: 0.25, y: -0.3, z: 0.6}
+  holdingRotationOffset: {x: 0, y: 0, z: 0}
+  lerpSpeed: 5
+  maxSprayRange: 3
+  nozzleTip: {fileID: 2997035015923250743}
+  maxFoamCapacity: 15
+--- !u!1 &6225765124019813008
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2997035015923250743}
+  m_Layer: 0
+  m_Name: NozzleTip
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2997035015923250743
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6225765124019813008}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.5, z: 0.3}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8293509840676475706}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

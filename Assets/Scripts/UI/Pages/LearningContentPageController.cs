@@ -141,7 +141,7 @@ namespace MiningSafetyAR.UI.Pages
 
         void PrevSlide() { if (currentSlide > 0) { currentSlide--; RefreshSlide(); } }
         void NextSlide() { if (currentSlide < slides.Length - 1) { currentSlide++; RefreshSlide(); } }
-        void OnReady() => NavigationManager.Instance.NavigateTo("AR Plane Detection Placement", moduleId);
+        void OnReady() => NavigationManager.Instance.NavigateTo("ar_fire_safety", moduleId);
 
         #region IVoiceCommandTarget Implementation
         public void VoiceNext()
