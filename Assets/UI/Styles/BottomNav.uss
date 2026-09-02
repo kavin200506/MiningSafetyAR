@@ -29,6 +29,7 @@
     width: 24px;
     height: 24px;
     margin-bottom: 2px;
+    -unity-background-image-tint-color: var(--text-muted);
 }
 
 .bottom-nav__tab-label {
@@ -42,6 +43,7 @@
 
 .bottom-nav__tab--active .bottom-nav__tab-icon {
     color: var(--accent);
+    -unity-background-image-tint-color: var(--accent);
 }
 
 .bottom-nav__tab--active .bottom-nav__tab-label {

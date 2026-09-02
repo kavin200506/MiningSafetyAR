@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: f7cded3d507007b4f9ebfafd6257555c
+guid: b688c3857d3b26543b3b80a5b17192a3
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -461434991869414348
-    second: icon_settings_0
+      213: 5484894771084616396
+    second: nav_progress_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: icon_settings_0
+      name: nav_progress_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 447
-        height: 447
+        width: 96
+        height: 96
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 43430b6d157a899f0800000000000000
-      internalID: -461434991869414348
+      spriteID: cc265ecebb24e1c40800000000000000
+      internalID: 5484894771084616396
       vertices: []
       indices: 
       edges: []

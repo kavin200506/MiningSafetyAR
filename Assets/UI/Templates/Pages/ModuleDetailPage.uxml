@@ -25,7 +25,7 @@
             <ui:VisualElement style="padding: 0 16px; margin-top: -64px;">
                 <ui:VisualElement class="card" name="hero-section" style="background-color: rgb(255, 255, 255); border-radius: 24px; padding: 24px; border-width: 1px; border-color: rgb(230, 230, 230); box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.05); margin-bottom: 24px; align-items: center;">
                     <ui:VisualElement style="width: 80px; height: 80px; border-radius: 40px; background-color: rgb(255, 243, 224); align-items: center; justify-content: center; margin-bottom: 16px; border-width: 4px; border-color: rgb(255, 255, 255); box-shadow: 0px 4px 10px rgba(255, 109, 0, 0.2);">
-                        <ui:VisualElement class="module-hero__emoji" name="hero-emoji" style="width: 48px; height: 48px;" />
+                        <ui:VisualElement class="module-hero__emoji" name="hero-emoji" style="width: 70px; height: 70px; -unity-background-scale-mode: scale-to-fit;" />
                     </ui:VisualElement>
                     
                     <ui:Label class="badge" name="hero-badge" text="REQUIRED" style="background-color: rgb(232, 245, 233); color: rgb(76, 175, 80); padding: 6px 16px; border-radius: 12px; font-size: 11px; font-weight: 700; -unity-font-style: bold; margin-bottom: 16px;" />
