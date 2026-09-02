@@ -217,6 +217,9 @@ namespace MiningSafetyAR.AR
 
                 if (tapDetected)
                 {
+                    if (IsPointerOverUI(tapPosition))
+                        return;
+
                     Debug.Log($"[DIAG] [ARPlacementManager] Tap Detected at {tapPosition}! HasDetectedPlane={HasDetectedPlane}");
 
                     // 1. Try direct tap position raycast
@@ -243,6 +246,25 @@ namespace MiningSafetyAR.AR
             }
         }
 
+        private bool IsPointerOverUI(Vector2 tapPosition)
+        {
+            if (Localization.VoiceCommandManager.Instance != null &&
+                Localization.VoiceCommandManager.Instance.IsTouchOverVoiceUI(tapPosition))
+            {
+                Debug.Log($"[DIAG] [ARPlacementManager] Tap at {tapPosition} blocked — touch is over Voice UI / Mic button.");
+                return true;
+            }
+
+            if (UnityEngine.EventSystems.EventSystem.current != null &&
+                UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
+            {
+                Debug.Log($"[DIAG] [ARPlacementManager] Tap at {tapPosition} blocked — touch is over UI element.");
+                return true;
+            }
+
+            return false;
+        }
+
         private void OnPointerPressBegan(InputAction.CallbackContext context)
         {
             try
@@ -250,6 +272,10 @@ namespace MiningSafetyAR.AR
                 if (context.control.device is Pointer pointerDevice)
                 {
                     Vector2 tapPosition = pointerDevice.position.ReadValue();
+
+                    if (IsPointerOverUI(tapPosition))
+                        return;
+
                     Debug.Log($"[DIAG] [ARPlacementManager] Pointer Press Began at {tapPosition}!");
 
                     bool placed = PerformPlacementRaycast(tapPosition);
@@ -635,9 +661,23 @@ namespace MiningSafetyAR.AR
         private string lastPlacementDiagStatus = "Ready — Tap plane to ignite Fire hazard";
         private string lastPlacementErrorLog = "";
 
+        private static bool IsARScene(string sceneName)
+        {
+            if (string.IsNullOrEmpty(sceneName)) return false;
+            return sceneName == "AR Plane Detection Placement" ||
+                   sceneName == "UI_ARSimulation" ||
+                   sceneName == "AR Image Tracking" ||
+                   sceneName == "AR Occlusion" ||
+                   sceneName == "AR_Placement_Demo" ||
+                   sceneName == "AR_Simulation_Demo";
+        }
+
         private void OnGUI()
         {
             if (!showTimerUI) return;
+
+            string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+            if (!IsARScene(sceneName)) return;
 
             float screenWidth = Screen.width;
             float margin = 30f;

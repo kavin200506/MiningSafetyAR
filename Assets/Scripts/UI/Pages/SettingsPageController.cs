@@ -12,7 +12,7 @@ namespace MiningSafetyAR.UI.Pages
         Label profileName, profileId, profileOrg;
         ToggleSwitchController soundToggle, voiceToggle, locationToggle;
         Button logoutBtn;
-        Button langEn, langHi, langSat;
+        Button langEn, langHi, langSat, langTa;
 
         protected override void BindUI()
         {
@@ -23,6 +23,7 @@ namespace MiningSafetyAR.UI.Pages
             langEn = root.Q<Button>("lang-en");
             langHi = root.Q<Button>("lang-hi");
             langSat = root.Q<Button>("lang-sat");
+            langTa = root.Q<Button>("lang-ta") ?? root.Q<Button>("lang-tamil");
 
             var soundEl = root.Q("toggle-sound");
             var voiceEl = root.Q("toggle-voice");
@@ -32,9 +33,10 @@ namespace MiningSafetyAR.UI.Pages
             if (locationEl != null) locationToggle = new ToggleSwitchController(locationEl);
 
             if (logoutBtn != null) logoutBtn.RegisterCallback<ClickEvent>(e => OnLogout());
-            if (langEn != null) langEn.RegisterCallback<ClickEvent>(e => SetLanguage("English", langEn));
-            if (langHi != null) langHi.RegisterCallback<ClickEvent>(e => SetLanguage("Hindi", langHi));
-            if (langSat != null) langSat.RegisterCallback<ClickEvent>(e => SetLanguage("Santali", langSat));
+            if (langEn != null) langEn.RegisterCallback<ClickEvent>(e => SetLanguage("English", Data.Language.English, langEn));
+            if (langHi != null) langHi.RegisterCallback<ClickEvent>(e => SetLanguage("Hindi", Data.Language.Hindi, langHi));
+            if (langSat != null) langSat.RegisterCallback<ClickEvent>(e => SetLanguage("Santali", Data.Language.Santali, langSat));
+            if (langTa != null) langTa.RegisterCallback<ClickEvent>(e => SetLanguage("Tamil", Data.Language.Tamil, langTa));
 
             var tabHome = root.Q<Button>("tab-home");
             var tabTraining = root.Q<Button>("tab-training");
@@ -73,20 +75,33 @@ namespace MiningSafetyAR.UI.Pages
             NavigationManager.Instance.NavigateToRoot("UI_Login");
         }
 
-        void SetLanguage(string lang, Button activeBtn)
+        void SetLanguage(string langStr, Data.Language langEnum, Button activeBtn)
         {
-            PlayerPrefs.SetString("SelectedLanguage", lang);
+            PlayerPrefs.SetString("SelectedLanguage", langStr);
             PlayerPrefs.Save();
-            SetLanguageUI(lang);
+            if (Localization.LanguageManager.Instance != null)
+                Localization.LanguageManager.Instance.SetLanguage(langEnum);
+            SetLanguageUI(langStr);
         }
 
         void SetLanguageUI(string lang)
         {
-            if (langEn != null) { langEn.RemoveFromClassList("lang-btn--active"); langEn.style.backgroundColor = new StyleColor(new Color(0.96f,0.96f,0.96f)); langEn.style.color = new StyleColor(new Color(0.1f,0.1f,0.1f)); }
-            if (langHi != null) { langHi.RemoveFromClassList("lang-btn--active"); langHi.style.backgroundColor = new StyleColor(new Color(0.96f,0.96f,0.96f)); langHi.style.color = new StyleColor(new Color(0.1f,0.1f,0.1f)); }
-            if (langSat != null) { langSat.RemoveFromClassList("lang-btn--active"); langSat.style.backgroundColor = new StyleColor(new Color(0.96f,0.96f,0.96f)); langSat.style.color = new StyleColor(new Color(0.1f,0.1f,0.1f)); }
-            Button target = lang == "Hindi" ? langHi : lang == "Santali" ? langSat : langEn;
-            if (target != null) { target.AddToClassList("lang-btn--active"); target.style.backgroundColor = new StyleColor(new Color(1f,0.42f,0f)); target.style.color = new StyleColor(Color.white); }
+            foreach (var b in new[] { langEn, langHi, langSat, langTa })
+            {
+                if (b != null)
+                {
+                    b.RemoveFromClassList("lang-btn--active");
+                    b.style.backgroundColor = new StyleColor(new Color(0.96f, 0.96f, 0.96f));
+                    b.style.color = new StyleColor(new Color(0.1f, 0.1f, 0.1f));
+                }
+            }
+            Button target = lang == "Hindi" ? langHi : lang == "Santali" ? langSat : lang == "Tamil" ? langTa : langEn;
+            if (target != null)
+            {
+                target.AddToClassList("lang-btn--active");
+                target.style.backgroundColor = new StyleColor(new Color(1f, 0.42f, 0f));
+                target.style.color = new StyleColor(Color.white);
+            }
         }
     }
 }

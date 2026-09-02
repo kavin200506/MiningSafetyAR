@@ -5,7 +5,7 @@ using MiningSafetyAR.UI.Helpers;
 namespace MiningSafetyAR.UI
 {
     [RequireComponent(typeof(UIDocument))]
-    public abstract class PageController : MonoBehaviour
+    public abstract class PageController : MonoBehaviour, Localization.IVoiceCommandTarget
     {
         protected UIDocument document;
         protected VisualElement root;
@@ -78,5 +78,32 @@ namespace MiningSafetyAR.UI
         protected abstract void BindUI();
         public virtual void OnPageEnter() { }
         public virtual void OnPageExit() { }
+
+        #region IVoiceCommandTarget Default Virtual Implementations
+        /// <summary>Default voice 'Next' handler — can be overridden by subclasses.</summary>
+        public virtual void VoiceNext() { }
+
+        /// <summary>Default voice 'Option 1-4' handler — can be overridden by subclasses.</summary>
+        public virtual void VoiceSelectOption(int oneBasedIndex) { }
+
+        /// <summary>Default voice 'Start' handler — can be overridden by subclasses.</summary>
+        public virtual void VoiceStart() { }
+
+        /// <summary>Default voice 'Yes' / 'Confirm' handler — can be overridden by subclasses.</summary>
+        public virtual void VoiceConfirm() { }
+
+        /// <summary>Default voice 'No' / 'Cancel' handler — defaults to NavigationManager GoBack().</summary>
+        public virtual void VoiceCancel()
+        {
+            if (Navigation.NavigationManager.Instance != null)
+                Navigation.NavigationManager.Instance.GoBack();
+        }
+
+        /// <summary>Default voice 'Repeat' handler — defaults to re-triggering OnPageEnter().</summary>
+        public virtual void VoiceRepeat() => OnPageEnter();
+
+        /// <summary>Default voice PASS step handler (Pull/Aim/Spray/Sweep) — for AR modules.</summary>
+        public virtual void VoicePassStep(string step) { }
+        #endregion
     }
 }

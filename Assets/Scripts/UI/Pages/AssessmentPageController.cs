@@ -9,7 +9,7 @@ using MiningSafetyAR.UI.Helpers;
 
 namespace MiningSafetyAR.UI.Pages
 {
-    public class AssessmentPageController : PageController
+    public class AssessmentPageController : PageController, MiningSafetyAR.Localization.IVoiceCommandTarget
     {
         string moduleId;
         List<QuizQuestionData> questions;
@@ -221,5 +221,34 @@ namespace MiningSafetyAR.UI.Pages
                 }
             }
         }
+
+        #region IVoiceCommandTarget Implementation
+        public void VoiceNext()
+        {
+            if (nextBtn != null && nextBtn.style.display != DisplayStyle.None) NextQuestion();
+            else if (resultsBtn != null && resultsBtn.style.display != DisplayStyle.None) ShowResults();
+        }
+
+        public void VoiceSelectOption(int oneBasedIndex)
+        {
+            if (optionsList == null) return;
+            int idx = oneBasedIndex - 1;
+            var options = optionsList.Children().ToList();
+            if (idx >= 0 && idx < options.Count)
+            {
+                var btn = options[idx] as Button;
+                if (btn != null && currentQ < questions.Count)
+                {
+                    OnOptionSelected(idx, questions[currentQ].correctIndex, btn);
+                }
+            }
+        }
+
+        public void VoiceStart() => VoiceNext();
+        public void VoiceConfirm() => VoiceNext();
+        public void VoiceCancel() => NavigationManager.Instance.GoBack();
+        public void VoiceRepeat() => RefreshQuestion();
+        public void VoicePassStep(string step) { }
+        #endregion
     }
 }

@@ -86,6 +86,18 @@ namespace MiningSafetyAR.UI.Language
             PlayerPrefs.SetString("SelectedLanguage", currentSelectedLanguage.ToString());
             PlayerPrefs.Save();
 
+            if (MiningSafetyAR.Localization.LanguageManager.Instance != null)
+            {
+                MiningSafetyAR.Data.Language langEnum = currentSelectedLanguage switch
+                {
+                    SupportedLanguage.Hindi   => MiningSafetyAR.Data.Language.Hindi,
+                    SupportedLanguage.Santali => MiningSafetyAR.Data.Language.Santali,
+                    SupportedLanguage.Tamil   => MiningSafetyAR.Data.Language.Tamil,
+                    _                         => MiningSafetyAR.Data.Language.English
+                };
+                MiningSafetyAR.Localization.LanguageManager.Instance.SetLanguage(langEnum);
+            }
+
             Debug.Log($"Language saved: {currentSelectedLanguage}. Loading scene: {loginSceneName}");
 
             // Load the next scene (Login)

@@ -7,9 +7,10 @@ namespace MiningSafetyAR.Data
     [Serializable]
     public enum Language
     {
-        English,
-        Hindi,
-        Santali
+        English  = 0,   // PlayerPrefs int value — DO NOT renumber existing values
+        Hindi    = 1,   // PlayerPrefs int value — DO NOT renumber existing values
+        Santali  = 2,   // PlayerPrefs int value — DO NOT renumber existing values
+        Tamil    = 3    // Added for voice command & TTS support (v2.0)
     }
 
     [Serializable]

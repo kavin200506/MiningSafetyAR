@@ -7,7 +7,7 @@ using MiningSafetyAR.UI.Helpers;
 
 namespace MiningSafetyAR.UI.Pages
 {
-    public class DashboardPageController : PageController
+    public class DashboardPageController : PageController, MiningSafetyAR.Localization.IVoiceCommandTarget
     {
         [SerializeField] VisualTreeAsset moduleCardTemplate;
 
@@ -113,5 +113,23 @@ namespace MiningSafetyAR.UI.Pages
         {
             NavigationManager.Instance.NavigateTo("UI_ModuleDetail", mod.id);
         }
+
+        #region IVoiceCommandTarget Implementation
+        public void VoiceNext() => NavigationManager.Instance.NavigateTo("UI_TrainingCatalogue");
+        public void VoiceSelectOption(int oneBasedIndex)
+        {
+            var app = AppDataService.Instance;
+            if (app == null) return;
+            var modules = app.GetAllModulesWithProgress();
+            int idx = oneBasedIndex - 1;
+            if (idx >= 0 && idx < modules.Count)
+                OnModuleClicked(modules[idx]);
+        }
+        public void VoiceStart() => NavigationManager.Instance.NavigateTo("UI_TrainingCatalogue");
+        public void VoiceConfirm() => VoiceNext();
+        public void VoiceCancel() { }
+        public void VoiceRepeat() => Refresh();
+        public void VoicePassStep(string step) { }
+        #endregion
     }
 }

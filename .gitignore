@@ -42,6 +42,8 @@ device_logs.txt.tmp
 extinguisher_logs.txt
 extinguisher_logs.txt.tmp
 location_monitor_logs.txt
+voicelogs.txt
+voicelogs.txt.tmp
 MiningSafetyAR_AllCodeSummary.txt
 
 # XR Temp

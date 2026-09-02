@@ -7,7 +7,7 @@ using MiningSafetyAR.UI.Helpers;
 
 namespace MiningSafetyAR.UI.Pages
 {
-    public class LearningContentPageController : PageController
+    public class LearningContentPageController : PageController, MiningSafetyAR.Localization.IVoiceCommandTarget
     {
         string moduleId;
         int currentSlide = 0;
@@ -142,5 +142,20 @@ namespace MiningSafetyAR.UI.Pages
         void PrevSlide() { if (currentSlide > 0) { currentSlide--; RefreshSlide(); } }
         void NextSlide() { if (currentSlide < slides.Length - 1) { currentSlide++; RefreshSlide(); } }
         void OnReady() => NavigationManager.Instance.NavigateTo("AR Plane Detection Placement", moduleId);
+
+        #region IVoiceCommandTarget Implementation
+        public void VoiceNext()
+        {
+            if (currentSlide < slides.Length - 1) NextSlide();
+            else OnReady();
+        }
+
+        public void VoiceSelectOption(int oneBasedIndex) { }
+        public void VoiceStart() => OnReady();
+        public void VoiceConfirm() => VoiceNext();
+        public void VoiceCancel() => NavigationManager.Instance.GoBack();
+        public void VoiceRepeat() => RefreshSlide();
+        public void VoicePassStep(string step) { }
+        #endregion
     }
 }

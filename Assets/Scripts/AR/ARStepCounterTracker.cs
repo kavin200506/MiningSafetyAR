@@ -307,6 +307,10 @@ namespace MiningSafetyAR.AR
 
         private void OnGUI()
         {
+            string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+            if (sceneName.Contains("Splash") || sceneName.Contains("Login") || (sceneName.StartsWith("UI_") && sceneName != "UI_ARSimulation"))
+                return;
+
             if (currentState == StepTrackerState.Idle)
                 return;
 

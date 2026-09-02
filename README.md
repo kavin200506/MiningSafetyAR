@@ -113,6 +113,7 @@ UI_TrainingCatalogue   UI_Progress      UI_Settings       UI_ModuleDetail
 | **"Resolving Android Dependencies" progress bar freezes** | Network timeout or initial resolution block. | Close the dialog and run *Assets ➔ External Dependency Manager ➔ Android Resolver ➔ Force Resolve*. |
 | **Typed input text invisible in Login / Register** | USS CSS selector conflict. | Fixed in `Forms.uss` by explicitly targeting `#unity-text-input`. |
 | **Right-side Scrollbar visible on pages** | Default UI Toolkit scroller track. | Hidden visually in `Reset.uss` while preserving touch/drag scrollability. |
+| **AR Narration Audio Clips missing** | Scene instances destroyed by singleton `AutoSpawn()`. | Assign narration clips on prefab at `Assets/Resources/Prefabs/ARNarrationController.prefab` or in `Assets/Resources/Audio/Narration/{lang}/{event}.wav`. Do not place instances in scene. |
 
 ---
 

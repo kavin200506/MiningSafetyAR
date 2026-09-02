@@ -8,7 +8,7 @@ using MiningSafetyAR.UI.Helpers;
 
 namespace MiningSafetyAR.UI.Pages
 {
-    public class ModuleDetailPageController : PageController
+    public class ModuleDetailPageController : PageController, MiningSafetyAR.Localization.IVoiceCommandTarget
     {
         [SerializeField] VisualTreeAsset scoreBarTemplate;
 
@@ -272,5 +272,15 @@ namespace MiningSafetyAR.UI.Pages
             ScoreBarHelper.Configure(target, label, value);
             scoreBars.Add(bar);
         }
+
+        #region IVoiceCommandTarget Implementation
+        public void VoiceNext() => OnActionClicked();
+        public void VoiceSelectOption(int oneBasedIndex) { }
+        public void VoiceStart() => OnActionClicked();
+        public void VoiceConfirm() => OnActionClicked();
+        public void VoiceCancel() => NavigationManager.Instance.GoBack();
+        public void VoiceRepeat() => Refresh();
+        public void VoicePassStep(string step) { }
+        #endregion
     }
 }
