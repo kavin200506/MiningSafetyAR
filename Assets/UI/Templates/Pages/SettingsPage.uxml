@@ -75,6 +75,11 @@
                     </ui:VisualElement>
                 </ui:VisualElement>
 
+                <!-- Certifications Section -->
+                <ui:Label text="Certifications" style="font-size: 16px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold; margin-bottom: 12px; padding-left: 4px;" />
+                <ui:VisualElement class="card" name="certifications-list" style="background-color: rgb(255, 255, 255); border-radius: 20px; padding: 16px; margin-bottom: 32px; border-width: 1px; border-color: rgb(230, 230, 230); flex-direction: column;">
+                </ui:VisualElement>
+
                 <!-- Logout -->
                 <ui:Button class="btn-danger" name="logout-btn" text="LOG OUT" style="background-color: rgb(255, 235, 238); color: rgb(244, 67, 54); font-size: 15px; font-weight: 700; -unity-font-style: bold; padding: 16px; border-radius: 16px; border-width: 0;" />
                 

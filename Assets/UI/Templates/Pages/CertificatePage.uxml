@@ -32,7 +32,7 @@
                         <ui:Label text="SAFETY CERTIFICATE" style="font-size: 22px; font-weight: 700; color: rgb(255, 255, 255); letter-spacing: 1px; -unity-font-style: bold;"/>
                     </ui:VisualElement>
                     <ui:VisualElement style="padding: 32px 16px; align-items: center;">
-                        <ui:Label text="This certifies that" style="font-size: 14px; color: rgb(102, 102, 102); height: 12px; width: 232px;"/>
+                        <ui:Label text="This certifies that" style="font-size: 14px; color: rgb(102, 102, 102); height: 12px; width: 236px;"/>
                         <ui:Label name="worker-name" text="" style="font-size: 20px; font-weight: 700; color: rgb(26, 26, 26); margin-top: 4px; margin-bottom: 4px; -unity-font-style: bold;"/>
                         <ui:Label text="has successfully completed" style="font-size: 14px; color: rgb(102, 102, 102); height: 15px; width: 233px;"/>
                         <ui:Label name="module-title" text="" style="font-size: 16px; font-weight: 700; color: rgb(26, 26, 26); margin-top: 4px; margin-bottom: 16px; text-align: center; -unity-font-style: bold;"/>
