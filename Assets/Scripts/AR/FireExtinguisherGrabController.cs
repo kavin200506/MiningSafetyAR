@@ -68,8 +68,9 @@ namespace MiningSafetyAR.AR
         [SerializeField] private float arrivalDistanceMeters = 1.2f;
 
         [Header("P.A.S.S. Configuration")]
-        [SerializeField] private Vector3 cameraOffset = new Vector3(0.10f, -0.15f, 0.45f);
-        [SerializeField] private Vector3 holdingRotationOffset = Vector3.zero;
+        [SerializeField] private Vector3 cameraOffset = new Vector3(-1.677f, 0.129f, -0.459f);
+        [SerializeField] private Vector3 holdingRotationOffset = new Vector3(0f, 176.168f, 0f);
+        [SerializeField] private Vector3 holdingScaleOffset = new Vector3(1.817324f, 1.7034f, 1.0f);
         [SerializeField] private float lerpSpeed = 5f;
         [SerializeField] private float maxSprayRange = 8.0f;
         [SerializeField] private Transform nozzleTip;
@@ -515,20 +516,14 @@ namespace MiningSafetyAR.AR
         {
             if (targetExtinguisher == null || heldItemSlot == null) return;
 
-            Camera mainCam = Camera.main ?? FindFirstObjectByType<Camera>();
-            if (mainCam == null) return;
-
-            Vector3 targetPosition = mainCam.transform.TransformPoint(cameraOffset);
-            Quaternion targetRotation = mainCam.transform.rotation * Quaternion.Euler(holdingRotationOffset);
-
-            targetExtinguisher.transform.position = Vector3.Lerp(targetExtinguisher.transform.position, targetPosition, Time.deltaTime * lerpSpeed);
-            targetExtinguisher.transform.rotation = Quaternion.Slerp(targetExtinguisher.transform.rotation, targetRotation, Time.deltaTime * lerpSpeed);
-
-            // Maintain correct scale
-            if (targetExtinguisher.transform.localScale != Vector3.one * extinguisherScale)
+            if (targetExtinguisher.transform.parent != heldItemSlot)
             {
-                targetExtinguisher.transform.localScale = Vector3.one * extinguisherScale;
+                targetExtinguisher.transform.SetParent(heldItemSlot, false);
             }
+
+            targetExtinguisher.transform.localPosition = Vector3.Lerp(targetExtinguisher.transform.localPosition, cameraOffset, Time.deltaTime * lerpSpeed);
+            targetExtinguisher.transform.localRotation = Quaternion.Slerp(targetExtinguisher.transform.localRotation, Quaternion.Euler(holdingRotationOffset), Time.deltaTime * lerpSpeed);
+            targetExtinguisher.transform.localScale = holdingScaleOffset;
         }
 
         private void CheckTouchInput()
@@ -681,10 +676,10 @@ namespace MiningSafetyAR.AR
 
             if (heldItemSlot != null)
             {
-                targetExtinguisher.transform.SetParent(heldItemSlot, true);
-                targetExtinguisher.transform.localPosition = Vector3.zero;
-                targetExtinguisher.transform.localRotation = Quaternion.identity;
-                targetExtinguisher.transform.localScale = Vector3.one * extinguisherScale;
+                targetExtinguisher.transform.SetParent(heldItemSlot, false);
+                targetExtinguisher.transform.localPosition = cameraOffset;
+                targetExtinguisher.transform.localRotation = Quaternion.Euler(holdingRotationOffset);
+                targetExtinguisher.transform.localScale = holdingScaleOffset;
             }
 
             ARAnchor anchor = targetExtinguisher.GetComponent<ARAnchor>() ?? targetExtinguisher.GetComponentInParent<ARAnchor>();
