@@ -72,7 +72,7 @@ namespace MiningSafetyAR.AR
             set => placementWindowDuration = value;
         }
 
-        [SerializeField] private bool showTimerUI = true;
+        [SerializeField] private bool showTimerUI = false;
         public bool ShowTimerUI
         {
             get => showTimerUI;
@@ -208,6 +208,13 @@ namespace MiningSafetyAR.AR
         {
             try
             {
+                // Ignore touches over UI elements
+                if (UnityEngine.EventSystems.EventSystem.current != null && 
+                    UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
+                {
+                    return;
+                }
+
                 Vector2 tapPosition = Vector2.zero;
                 bool tapDetected = false;
 
@@ -241,20 +248,12 @@ namespace MiningSafetyAR.AR
 
                     Debug.Log($"[DIAG] [ARPlacementManager] Tap Detected at {tapPosition}! HasDetectedPlane={HasDetectedPlane}");
 
-                    // 1. Try direct tap position raycast
+                    // Perform placement raycast strictly at the tapped screen position
                     bool placed = PerformPlacementRaycast(tapPosition);
-                    
-                    // 2. Fallback to screen-center reticle position if direct tap raycast missed plane polygon
-                    if (!placed)
-                    {
-                        Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
-                        Debug.Log($"[DIAG] [ARPlacementManager] Direct tap at {tapPosition} missed plane polygon — trying screen-center reticle fallback at {screenCenter}");
-                        placed = PerformPlacementRaycast(screenCenter);
-                    }
 
                     if (!placed)
                     {
-                        Debug.LogWarning("[WARN] [ARPlacementManager] Placement raycast was unhandled or failed — firing OnNoPlaneDetected event.");
+                        Debug.LogWarning("[WARN] [ARPlacementManager] Placement raycast missed detected plane surface.");
                         OnNoPlaneDetected?.Invoke();
                     }
                 }
@@ -288,6 +287,12 @@ namespace MiningSafetyAR.AR
         {
             try
             {
+                if (UnityEngine.EventSystems.EventSystem.current != null && 
+                    UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
+                {
+                    return;
+                }
+
                 if (context.control.device is Pointer pointerDevice)
                 {
                     Vector2 tapPosition = pointerDevice.position.ReadValue();
@@ -300,14 +305,7 @@ namespace MiningSafetyAR.AR
                     bool placed = PerformPlacementRaycast(tapPosition);
                     if (!placed)
                     {
-                        Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
-                        Debug.Log($"[DIAG] [ARPlacementManager] Direct tap at {tapPosition} missed plane polygon — trying screen-center reticle fallback at {screenCenter}");
-                        placed = PerformPlacementRaycast(screenCenter);
-                    }
-
-                    if (!placed)
-                    {
-                        Debug.LogWarning("[WARN] [ARPlacementManager] Placement raycast was unhandled or failed — firing OnNoPlaneDetected event.");
+                        Debug.LogWarning("[WARN] [ARPlacementManager] Placement raycast missed detected plane surface.");
                         OnNoPlaneDetected?.Invoke();
                     }
                 }
@@ -822,109 +820,7 @@ namespace MiningSafetyAR.AR
 
         private void OnGUI()
         {
-            if (!showTimerUI) return;
-
-            string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
-            if (!IsARScene(sceneName)) return;
-
-            float screenWidth = Screen.width;
-            float margin = 30f;
-
-            // --- 1. TOP-RIGHT CORNER: PLACEMENT WINDOW TIMER HUD ---
-            float topRightWidth = 560f;
-            float topRightHeight = 130f;
-            Rect topRightBoxRect = new Rect(screenWidth - topRightWidth - margin, margin, topRightWidth, topRightHeight);
-
-            GUIStyle topRightStyle = new GUIStyle(GUI.skin.box)
-            {
-                fontSize = 28,
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                richText = true
-            };
-
-            string timerTitle;
-            string timerSubtitle;
-
-            if (!hasFirstPlacementOccurred)
-            {
-                topRightStyle.normal.textColor = new Color(1.0f, 0.85f, 0.0f); // Amber / Gold
-                timerTitle = "🔥 FIRE HAZARD PLACEMENT READY";
-                timerSubtitle = "Tap floor to ignite fire hazard (3s window)";
-            }
-            else if (!isPlacementLocked)
-            {
-                float remainingSec = Mathf.Max(0f, placementWindowDuration - (Time.time - placementStartTime));
-                topRightStyle.normal.textColor = new Color(0.2f, 1.0f, 0.4f); // Vivid Green
-                timerTitle = $"⏱️ PLACEMENT WINDOW: {remainingSec:F1}s";
-                timerSubtitle = "Tap other floor regions to adjust fire position";
-            }
-            else
-            {
-                topRightStyle.normal.textColor = new Color(1.0f, 0.35f, 0.35f); // Vivid Red
-                timerTitle = "🔒 PLACEMENT LOCKED";
-                timerSubtitle = "(3s Placement Window Expired)";
-            }
-
-            GUI.Box(topRightBoxRect, $"{timerTitle}\n<size=22>{timerSubtitle}</size>", topRightStyle);
-
-            // --- 2. TOP-LEFT CORNER: TRAINING INSTRUCTION BOX ---
-            float topLeftWidth = 640f;
-            float topLeftHeight = 130f;
-            Rect topLeftBoxRect = new Rect(margin, margin, topLeftWidth, topLeftHeight);
-
-            GUIStyle topLeftStyle = new GUIStyle(GUI.skin.box)
-            {
-                fontSize = 26,
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                richText = true
-            };
-
-            string hintTitle;
-            string hintContent;
-
-            if (!hasFirstPlacementOccurred)
-            {
-                topLeftStyle.normal.textColor = new Color(0.2f, 0.9f, 1.0f); // Bright Cyan
-                hintTitle = "💡 SAFETY SIMULATION";
-                hintContent = "Tap floor plane to start emergency fire simulation";
-            }
-            else
-            {
-                topLeftStyle.normal.textColor = new Color(1.0f, 0.85f, 0.0f); // Vivid Gold
-                hintTitle = "🧯 EMERGENCY SAFETY HINT";
-                hintContent = "Scan 2D Fire Extinguisher image to load 3D Fire Extinguisher";
-            }
-
-#if UNITY_EDITOR
-            hintContent += "\n<color=#00FF00>[EDITOR SIM: Click Mouse / Key 'F'=Fire, Key 'E'=3D Extinguisher, Key 'C'=Clear]</color>";
-#endif
-
-            GUI.Box(topLeftBoxRect, $"<b>{hintTitle}</b>\n<size=22>{hintContent}</size>", topLeftStyle);
-
-            // --- 3. BOTTOM-CENTER: LIVE PLACEMENT DIAGNOSTICS LOG HUD ---
-            float bottomWidth = screenWidth - (margin * 2f);
-            float bottomHeight = 160f;
-            Rect bottomBoxRect = new Rect(margin, Screen.height - bottomHeight - margin, bottomWidth, bottomHeight);
-
-            GUIStyle bottomStyle = new GUIStyle(GUI.skin.box)
-            {
-                fontSize = 22,
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.UpperLeft,
-                richText = true
-            };
-
-            int detectedPlanesCount = planeManager != null ? planeManager.trackables.count : 0;
-            string planesStatusStr = detectedPlanesCount > 0 ? $"<color=#00FF00>{detectedPlanesCount} Detected</color>" : "<color=#FFCC00>0 (Scanning floor...)</color>";
-
-            string diagContent = $"<b>🧯 SAFETY AR SIMULATION STATUS:</b>\n" +
-                                 $"• Mode: Fire Hazard Plane Placement | AR Planes: {planesStatusStr}\n" +
-                                 $"• Status: <color=#00E5FF>{lastPlacementDiagStatus}</color>\n" +
-                                 (!string.IsNullOrEmpty(lastPlacementErrorLog) ? $"<color=#FF4444>• ERROR: {lastPlacementErrorLog}</color>" : "<color=#00FF00>• System OK — Tap floor to ignite fire</color>");
-
-            GUI.Box(bottomBoxRect, diagContent, bottomStyle);
+            // Debug UI overlay text boxes completely disabled per user request
         }
 
         /// <summary>

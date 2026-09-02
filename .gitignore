@@ -68,4 +68,6 @@ Assets/Firebase/m2repository.meta
 Assets/GeneratedLocalRepo/
 Assets/GeneratedLocalRepo.meta
 
-
+# Large media & debug recordings
+documents/debug/
+*.mp4
