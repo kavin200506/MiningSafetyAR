@@ -6,20 +6,29 @@ namespace MiningSafetyAR.UI.Helpers
 {
     public static class IconLoader
     {
-        static readonly Dictionary<string, Sprite> cache = new Dictionary<string, Sprite>();
+        static readonly Dictionary<string, Texture2D> cache = new Dictionary<string, Texture2D>();
 
-        public static Sprite Get(string iconName)
+        public static Texture2D Get(string iconName)
         {
             if (string.IsNullOrEmpty(iconName)) return null;
             if (cache.TryGetValue(iconName, out var cached)) return cached;
-            var sprite = Resources.Load<Sprite>("Icons/" + iconName);
-            if (sprite != null) cache[iconName] = sprite;
-            return sprite;
+            var texture = Resources.Load<Texture2D>("Icons/" + iconName);
+            if (texture != null) cache[iconName] = texture;
+            return texture;
         }
 
         public static void ApplyTo(VisualElement element, string iconName)
         {
-            Clear(element);
+            if (element == null) return;
+            var sprite = Get(iconName);
+            if (sprite != null)
+            {
+                element.style.backgroundImage = new StyleBackground(sprite);
+            }
+            else
+            {
+                Clear(element);
+            }
         }
 
         public static void Clear(VisualElement element)
@@ -30,19 +39,19 @@ namespace MiningSafetyAR.UI.Helpers
 
         static readonly Dictionary<string, string> ModuleIcons = new Dictionary<string, string>
         {
-            { "fire_safety", "module_fire" },
-            { "gas_safety", "module_gas" },
-            { "machinery_safety", "module_machinery" },
-            { "electrical_safety", "module_electrical" },
-            { "heights_safety", "module_heights" }
+            { "fire_safety", "Module_fire" },
+            { "gas_safety", "moduleGas" },
+            { "machinery_safety", "module_machine" },
+            { "electrical_safety", "model_electrical" },
+            { "heights_safety", "module_height" }
         };
 
         static readonly Dictionary<string, string> SlideIcons = new Dictionary<string, string>
         {
-            { "slide-icon-fire", "slide_fire" },
+            { "slide-icon-fire", "Module_fire" },
             { "slide-icon-extinguisher", "slide_extinguisher" },
             { "slide-icon-evacuation", "slide_evacuation" },
-            { "slide-icon-gas", "slide_gas" },
+            { "slide-icon-gas", "moduleGas" },
             { "slide-icon-ppe", "slide_ppe" },
             { "slide-icon-confined", "slide_confined" },
             { "slide-icon-lockout", "slide_lockout" },
@@ -83,12 +92,36 @@ namespace MiningSafetyAR.UI.Helpers
 
         public static void ApplyModuleIcon(VisualElement element, string moduleId)
         {
-            Clear(element);
+            if (element == null) return;
+            string iconName = GetModuleName(moduleId);
+            var sprite = Get(iconName);
+            if (sprite != null)
+            {
+                element.style.backgroundImage = new StyleBackground(sprite);
+            }
+            else
+            {
+                Clear(element);
+            }
         }
 
         public static void ApplyByClass(VisualElement element, string iconClass)
         {
-            Clear(element);
+            if (element == null) return;
+            string iconName = GetSlideIcon(iconClass);
+            if (iconName == "slide_fire" && !SlideIcons.ContainsKey(iconClass)) 
+            {
+                iconName = GetArIcon(iconClass);
+            }
+            var sprite = Get(iconName);
+            if (sprite != null)
+            {
+                element.style.backgroundImage = new StyleBackground(sprite);
+            }
+            else
+            {
+                Clear(element);
+            }
         }
 
         public static void ApplyBottomNavIcons(VisualElement root)

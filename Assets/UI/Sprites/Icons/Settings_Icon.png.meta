@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 7f17545b50ee84944987b49b54958787
+guid: 004b93b6e5d23cd448b1b0fb1d9f3d4f
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -5634292948718021524
-    second: icon_training_0
+      213: -2511906293500690160
+    second: Settings_Icon_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: icon_training_0
+      name: Settings_Icon_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 447
-        height: 447
+        width: 1305
+        height: 1205
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: c649c273a68fec1b0800000000000000
-      internalID: -5634292948718021524
+      spriteID: 011c2d2e88ae32dd0800000000000000
+      internalID: -2511906293500690160
       vertices: []
       indices: 
       edges: []

@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 8c7609f9d4b24c04db336f1d9d3accad
+guid: 6adca1b309c85d54bb31c5d3270a2ac6
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -6457424416464026002
-    second: Module_fire_0
+      213: -8839158231328230926
+    second: model_electrical_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Module_fire_0
+      name: model_electrical_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 1312
-        height: 1199
+        width: 1292
+        height: 1217
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: e664ab4c4be9266a0800000000000000
-      internalID: -6457424416464026002
+      spriteID: 2f1f534ab60055580800000000000000
+      internalID: -8839158231328230926
       vertices: []
       indices: 
       edges: []
