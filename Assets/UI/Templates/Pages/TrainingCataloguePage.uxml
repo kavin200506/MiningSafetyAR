@@ -21,8 +21,11 @@
             <ui:VisualElement style="padding: 0 16px; margin-top: -32px; margin-bottom: 24px;">
                 <ui:VisualElement style="flex-direction: row; align-items: center; background-color: rgb(255, 255, 255); border-radius: 20px; border-width: 1px; border-color: rgb(230, 230, 230); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05); width: 100%; padding: 0 20px; height: 64px;">
                     <ui:VisualElement class="icon-search" style="width: 24px; height: 24px; -unity-background-image-tint-color: rgb(255, 109, 0); margin-right: 12px;"/>
-                    <ui:TextField name="search-field" style="flex: 1; background-color: transparent; border-width: 0; font-size: 15px; color: rgb(26,26,26);" />
-                    <ui:VisualElement style="width: 32px; height: 32px; background-color: rgb(255, 243, 224); border-radius: 8px; align-items: center; justify-content: center;">
+                    <ui:VisualElement style="flex: 1; justify-content: center;">
+                        <ui:Label name="search-placeholder" text="Search modules..." style="position: absolute; font-size: 15px; font-weight: 600; color: rgb(153, 153, 153); -unity-font-style: italic; padding-left: 2px;"/>
+                        <ui:TextField name="search-field" style="background-color: transparent; border-width: 0; font-size: 15px; color: rgb(26, 26, 26);"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="search-icon-btn" style="width: 32px; height: 32px; background-color: rgb(255, 243, 224); border-radius: 8px; align-items: center; justify-content: center; cursor: link;">
                         <ui:VisualElement class="icon-settings" style="width: 20px; height: 16px; -unity-background-image-tint-color: rgb(255, 109, 0); background-image: url(&quot;project://database/Assets/UI/Sprites/Icons/Search_box.png?fileID=2800000&amp;guid=a61db5bbdcb125d4b8ab7831a011baad&amp;type=3#Search_box&quot;);"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
@@ -47,20 +50,20 @@
         </ui:ScrollView>
         <ui:VisualElement name="bottom-nav" class="bottom-nav">
             <ui:Button name="tab-home" class="bottom-nav__tab">
-                <ui:VisualElement class="icon-home" style="margin-bottom: 2px;"/>
-                <ui:Label text="Home" class="bottom-nav__tab-label"/>
+                <ui:VisualElement class="icon-home" style="margin-bottom: 2px; width: 32px;"/>
+                <ui:Label text="Home" class="bottom-nav__tab-label" style="-unity-font-style: bold; -unity-font-definition: url(&quot;project://database/Assets/TextMesh%20Pro/Fonts/Rajdhani/Rajdhani-Medium.ttf?fileID=12800000&amp;guid=e667d5aeff8d1314eb115a34c389a259&amp;type=3#Rajdhani-Medium&quot;);"/>
             </ui:Button>
             <ui:Button name="tab-training" class="bottom-nav__tab bottom-nav__tab--active">
-                <ui:VisualElement class="icon-training" style="margin-bottom: 2px;"/>
-                <ui:Label text="Training" class="bottom-nav__tab-label"/>
+                <ui:VisualElement class="icon-training" style="margin-bottom: 2px; width: 30px;"/>
+                <ui:Label text="Training" class="bottom-nav__tab-label" style="-unity-font-style: bold; -unity-font-definition: url(&quot;project://database/Assets/TextMesh%20Pro/Fonts/Rajdhani/Rajdhani-Medium.ttf?fileID=12800000&amp;guid=e667d5aeff8d1314eb115a34c389a259&amp;type=3#Rajdhani-Medium&quot;);"/>
             </ui:Button>
             <ui:Button name="tab-progress" class="bottom-nav__tab">
                 <ui:VisualElement class="icon-progress" style="margin-bottom: 2px;"/>
-                <ui:Label text="Progress" class="bottom-nav__tab-label"/>
+                <ui:Label text="Progress" class="bottom-nav__tab-label" style="-unity-font-style: bold; -unity-font-definition: url(&quot;project://database/Assets/TextMesh%20Pro/Fonts/Rajdhani/Rajdhani-Medium.ttf?fileID=12800000&amp;guid=e667d5aeff8d1314eb115a34c389a259&amp;type=3#Rajdhani-Medium&quot;);"/>
             </ui:Button>
             <ui:Button name="tab-settings" class="bottom-nav__tab">
                 <ui:VisualElement class="icon-settings" style="margin-bottom: 2px;"/>
-                <ui:Label text="Settings" class="bottom-nav__tab-label"/>
+                <ui:Label text="Settings" class="bottom-nav__tab-label" style="-unity-font-style: bold; -unity-font-definition: url(&quot;project://database/Assets/TextMesh%20Pro/Fonts/Rajdhani/Rajdhani-Medium.ttf?fileID=12800000&amp;guid=e667d5aeff8d1314eb115a34c389a259&amp;type=3#Rajdhani-Medium&quot;);"/>
             </ui:Button>
         </ui:VisualElement>
     </ui:VisualElement>

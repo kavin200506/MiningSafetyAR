@@ -16,9 +16,9 @@
                         <ui:Label class="greeting__text" name="greeting-text" text="Hello, User" style="font-size: 24px; font-weight: 700; color: rgb(255, 255, 255); -unity-font-style: bold;" />
                         <ui:Label class="greeting__sub" name="greeting-sub" text="Stay safe, stay certified" style="font-size: 14px; color: rgb(255, 224, 178); margin-top: 4px;" />
                     </ui:VisualElement>
-                    <ui:VisualElement class="greeting__avatar" name="avatar" style="width: 56px; height: 56px; border-radius: 28px; background-color: rgb(255, 255, 255); align-items: center; justify-content: center; border-width: 3px; border-color: rgba(255, 255, 255, 0.5);">
-                        <ui:VisualElement class="avatar-worker" style="width: 32px; height: 32px; -unity-background-image-tint-color: rgb(255, 109, 0);" />
-                    </ui:VisualElement>
+                    <ui:Button class="greeting__avatar" name="avatar-btn" style="width: 56px; height: 56px; border-radius: 28px; background-color: rgb(255, 255, 255); align-items: center; justify-content: center; border-width: 3px; border-color: rgba(255, 255, 255, 0.5); padding: 0;">
+                        <ui:Label text="U" style="font-size: 28px; font-weight: 700; color: rgb(255, 109, 0); -unity-font-style: bold;" />
+                    </ui:Button>
                 </ui:VisualElement>
             </ui:VisualElement>
 

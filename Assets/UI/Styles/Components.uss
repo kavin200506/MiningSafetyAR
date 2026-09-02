@@ -172,10 +172,16 @@
 }
 
 /* --- Search Input Override --- */
-#search-field > .unity-text-field__input {
+#search-field {
     background-color: transparent;
     border-width: 0;
+}
+#search-field > .unity-text-field__input {
+    background-color: transparent !important;
+    border-width: 0 !important;
     margin: 0;
     padding: 0;
+    flex: 1;
+    height: 100%;
 }
 
