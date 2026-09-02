@@ -1207,47 +1207,105 @@ namespace MiningSafetyAR.AR
 
         private void OnGUI()
         {
-            if (!isSqueezing) return;
+            string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+            if (sceneName.Contains("Splash") || sceneName.Contains("Login") || (sceneName.StartsWith("UI_") && sceneName != "UI_ARSimulation"))
+                return;
 
-            GroundFireController fire = null;
-            var allFires = FindObjectsByType<GroundFireController>(FindObjectsSortMode.None);
-            foreach (var f in allFires)
+            // 1. Draw Extinguisher Grab Status Banner
+            if (currentState != GrabState.Unbound || targetExtinguisher != null)
             {
-                if (f != null && f.IsFireActive) { fire = f; break; }
+                float screenWidth = Screen.width;
+                float boxWidth = 640f;
+                float boxHeight = 130f;
+                float margin = 30f;
+                Rect rect = new Rect((screenWidth - boxWidth) / 2f, margin + 290f, boxWidth, boxHeight);
+
+                GUIStyle style = new GUIStyle(GUI.skin.box)
+                {
+                    fontSize = 24,
+                    fontStyle = FontStyle.Bold,
+                    alignment = TextAnchor.MiddleCenter,
+                    richText = true
+                };
+
+                if (currentState == GrabState.Unbound && targetExtinguisher != null)
+                {
+                    style.normal.textColor = new Color(1.0f, 0.85f, 0.0f); // Gold
+                    string text = $"<b>🧯 3D FIRE EXTINGUISHER DISCOVERED</b>\n" +
+                                  $"<size=20><color=#00E5FF>Tap 3D Extinguisher model to GRAB & CARRY (within {maxGrabDistance:F1}m)!</color></size>";
+#if UNITY_EDITOR
+                    text += "\n<size=18><color=#00FF00>[EDITOR: Press 'G' key to simulate Grab]</color></size>";
+#endif
+                    GUI.Box(rect, text, style);
+                }
+                else if (currentState == GrabState.Grabbing)
+                {
+                    style.normal.textColor = new Color(0.2f, 0.9f, 1.0f); // Cyan
+                    GUI.Box(rect, "<b>✊ GRABBING FIRE EXTINGUISHER...</b>", style);
+                }
+                else if (currentState == GrabState.Held)
+                {
+                    style.normal.textColor = new Color(0.2f, 1.0f, 0.4f); // Vivid Green
+                    Camera mainCam = Camera.main ?? FindFirstObjectByType<Camera>();
+                    GameObject fireObj = ARPlacementManager.Instance != null ? ARPlacementManager.Instance.SpawnedObject : null;
+                    float dist = (mainCam != null && fireObj != null) 
+                        ? Vector3.Distance(new Vector3(mainCam.transform.position.x, 0, mainCam.transform.position.z), new Vector3(fireObj.transform.position.x, 0, fireObj.transform.position.z)) 
+                        : 0f;
+
+                    string text = $"<b>✊ EXTINGUISHER HELD IN HAND</b>\n" +
+                                  $"<size=20>Walk toward Fire Hazard (Distance: <color=#00FF00>{dist:F1}m</color>)</size>";
+#if UNITY_EDITOR
+                    text += "\n<size=18><color=#00FF00>[EDITOR: Press 'Space' to simulate arrival]</color></size>";
+#endif
+                    GUI.Box(rect, text, style);
+                }
+                else if (currentState == GrabState.ArrivedAtFire)
+                {
+                    style.normal.textColor = new Color(1.0f, 0.35f, 0.35f); // Red Alert
+                    GUI.Box(rect, "<b>🔥 ARRIVED AT FIRE HAZARD!</b>\n<size=20><color=#00FF00>Ready to spray & extinguish fire!</color></size>", style);
+                }
             }
-            if (fire == null) return;
 
-            float hp = fire.CurrentFireHealth;
-            float maxHp = fire.MaxFireHealth;
-            float pct = fire.FireHealthNormalized * 100f;
-
-            // Background box
-            GUI.Box(new Rect(10, 10, 260, 90), "");
-
-            GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
+            // 2. Draw Fire Health Debug Bar when Spraying
+            if (isSqueezing)
             {
-                fontSize = 16,
-                fontStyle = FontStyle.Bold,
-                normal = { textColor = Color.red }
-            };
-            GUIStyle hpStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 14,
-                normal = { textColor = Color.white }
-            };
-            GUIStyle barBg = new GUIStyle(GUI.skin.box);
-            GUIStyle barFill = new GUIStyle(GUI.skin.box);
+                GroundFireController fire = null;
+                var allFires = FindObjectsByType<GroundFireController>(FindObjectsSortMode.None);
+                foreach (var f in allFires)
+                {
+                    if (f != null && f.IsFireActive) { fire = f; break; }
+                }
+                if (fire != null)
+                {
+                    float hp = fire.CurrentFireHealth;
+                    float maxHp = fire.MaxFireHealth;
+                    float pct = fire.FireHealthNormalized * 100f;
 
-            GUI.Label(new Rect(15, 15, 250, 25), "FIRE DEBUG", titleStyle);
-            GUI.Label(new Rect(15, 40, 250, 20), $"HP: {hp:F1} / {maxHp}  ({pct:F0}%)", hpStyle);
-            GUI.Label(new Rect(15, 60, 250, 20), $"Spray Range: {maxSprayRange:F1}m", hpStyle);
+                    GUI.Box(new Rect(10, 10, 260, 90), "");
 
-            // Health bar
-            GUI.Box(new Rect(15, 82, 240, 12), "");
-            float barWidth = Mathf.Clamp01(hp / maxHp) * 238f;
-            GUI.color = hp > maxHp * 0.5f ? Color.red : (hp > maxHp * 0.25f ? Color.yellow : Color.green);
-            GUI.DrawTexture(new Rect(16, 83, barWidth, 10), Texture2D.whiteTexture);
-            GUI.color = Color.white;
+                    GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
+                    {
+                        fontSize = 16,
+                        fontStyle = FontStyle.Bold,
+                        normal = { textColor = Color.red }
+                    };
+                    GUIStyle hpStyle = new GUIStyle(GUI.skin.label)
+                    {
+                        fontSize = 14,
+                        normal = { textColor = Color.white }
+                    };
+
+                    GUI.Label(new Rect(15, 15, 250, 25), "FIRE DEBUG", titleStyle);
+                    GUI.Label(new Rect(15, 40, 250, 20), $"HP: {hp:F1} / {maxHp}  ({pct:F0}%)", hpStyle);
+                    GUI.Label(new Rect(15, 60, 250, 20), $"Spray Range: {maxSprayRange:F1}m", hpStyle);
+
+                    GUI.Box(new Rect(15, 82, 240, 12), "");
+                    float barWidth = Mathf.Clamp01(hp / maxHp) * 238f;
+                    GUI.color = hp > maxHp * 0.5f ? Color.red : (hp > maxHp * 0.25f ? Color.yellow : Color.green);
+                    GUI.DrawTexture(new Rect(16, 83, barWidth, 10), Texture2D.whiteTexture);
+                    GUI.color = Color.white;
+                }
+            }
         }
 
         private void OnDrawGizmosSelected()
@@ -1263,65 +1321,6 @@ namespace MiningSafetyAR.AR
                     Gizmos.color = Color.cyan;
                     Gizmos.DrawLine(lastRay.origin, lastRay.origin + lastRay.direction * maxGrabDistance);
                 }
-            }
-        }
-        private void OnGUI()
-        {
-            string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
-            if (sceneName.Contains("Splash") || sceneName.Contains("Login") || (sceneName.StartsWith("UI_") && sceneName != "UI_ARSimulation"))
-                return;
-
-            if (currentState == GrabState.Unbound && targetExtinguisher == null) return;
-
-            float screenWidth = Screen.width;
-            float boxWidth = 640f;
-            float boxHeight = 130f;
-            float margin = 30f;
-            Rect rect = new Rect((screenWidth - boxWidth) / 2f, margin + 290f, boxWidth, boxHeight);
-
-            GUIStyle style = new GUIStyle(GUI.skin.box)
-            {
-                fontSize = 24,
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                richText = true
-            };
-
-            if (currentState == GrabState.Unbound && targetExtinguisher != null)
-            {
-                style.normal.textColor = new Color(1.0f, 0.85f, 0.0f); // Gold
-                string text = $"<b>🧯 3D FIRE EXTINGUISHER DISCOVERED</b>\n" +
-                              $"<size=20><color=#00E5FF>Tap 3D Extinguisher model to GRAB & CARRY (within {maxGrabDistance:F1}m)!</color></size>";
-#if UNITY_EDITOR
-                text += "\n<size=18><color=#00FF00>[EDITOR: Press 'G' key to simulate Grab]</color></size>";
-#endif
-                GUI.Box(rect, text, style);
-            }
-            else if (currentState == GrabState.Grabbing)
-            {
-                style.normal.textColor = new Color(0.2f, 0.9f, 1.0f); // Cyan
-                GUI.Box(rect, "<b>✊ GRABBING FIRE EXTINGUISHER...</b>", style);
-            }
-            else if (currentState == GrabState.Held)
-            {
-                style.normal.textColor = new Color(0.2f, 1.0f, 0.4f); // Vivid Green
-                Camera mainCam = Camera.main ?? FindFirstObjectByType<Camera>();
-                GameObject fireObj = ARPlacementManager.Instance != null ? ARPlacementManager.Instance.SpawnedObject : null;
-                float dist = (mainCam != null && fireObj != null) 
-                    ? Vector3.Distance(new Vector3(mainCam.transform.position.x, 0, mainCam.transform.position.z), new Vector3(fireObj.transform.position.x, 0, fireObj.transform.position.z)) 
-                    : 0f;
-
-                string text = $"<b>✊ EXTINGUISHER HELD IN HAND</b>\n" +
-                              $"<size=20>Walk toward Fire Hazard (Distance: <color=#00FF00>{dist:F1}m</color>)</size>";
-#if UNITY_EDITOR
-                text += "\n<size=18><color=#00FF00>[EDITOR: Press 'Space' to simulate arrival]</color></size>";
-#endif
-                GUI.Box(rect, text, style);
-            }
-            else if (currentState == GrabState.ArrivedAtFire)
-            {
-                style.normal.textColor = new Color(1.0f, 0.35f, 0.35f); // Red Alert
-                GUI.Box(rect, "<b>🔥 ARRIVED AT FIRE HAZARD!</b>\n<size=20><color=#00FF00>Ready to spray & extinguish fire!</color></size>", style);
             }
         }
     }
