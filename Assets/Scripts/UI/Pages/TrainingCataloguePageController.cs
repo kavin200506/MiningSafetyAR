@@ -15,11 +15,22 @@ namespace MiningSafetyAR.UI.Pages
         VisualElement moduleList;
         Label moduleCount;
         string activeFilter = "all";
+        TextField searchField;
+        string searchQuery = "";
 
         protected override void BindUI()
         {
             moduleList = root.Q("module-list");
             moduleCount = root.Q<Label>("module-count");
+            
+            searchField = root.Q<TextField>("search-field");
+            if (searchField != null)
+            {
+                searchField.RegisterValueChangedCallback(e => {
+                    searchQuery = e.newValue?.ToLower() ?? "";
+                    Refresh();
+                });
+            }
 
             if (moduleCardTemplate == null)
             {
@@ -98,6 +109,10 @@ namespace MiningSafetyAR.UI.Pages
                     _ => ModuleStatus.NotStarted
                 };
                 modules = modules.FindAll(m => m.status == status);
+            }
+            if (!string.IsNullOrEmpty(searchQuery))
+            {
+                modules = modules.FindAll(m => m.title.ToLower().Contains(searchQuery) || m.description.ToLower().Contains(searchQuery));
             }
             if (moduleCount != null) moduleCount.text = $"{modules.Count} modules";
             if (moduleList == null) return;
