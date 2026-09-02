@@ -59,6 +59,16 @@ namespace MiningSafetyAR.AR
 
                 loadedGLTFModel = await GLTFastModelLoader.LoadFireExtinguisherModelAsync(Vector3.zero, Quaternion.identity, transform);
 
+                if (this == null || gameObject == null)
+                {
+                    Debug.LogWarning("[WARN] [FireExtinguisherModelLoader] Component or GameObject was destroyed during async glTF model loading.");
+                    if (loadedGLTFModel != null)
+                    {
+                        Destroy(loadedGLTFModel);
+                    }
+                    return null;
+                }
+
                 if (loadedGLTFModel != null)
                 {
                     loadedGLTFModel.name = "Real_3D_FireExtinguisher_GLTF";
