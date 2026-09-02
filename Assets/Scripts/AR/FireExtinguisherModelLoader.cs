@@ -71,8 +71,9 @@ namespace MiningSafetyAR.AR
                 if (loadedGLTFModel != null)
                 {
                     loadedGLTFModel.name = "Real_3D_FireExtinguisher_GLTF";
-                    loadedGLTFModel.transform.localPosition = Vector3.zero;
-                    loadedGLTFModel.transform.localRotation = Quaternion.identity;
+                    // NOTE: Do NOT reset loadedGLTFModel.transform.localPosition or localRotation to zero/identity here.
+                    // Doing so erases the intentional local offset/rotation configured inside GLTFastModelLoader.
+                    // Keep only localScale scaling if modelScaleMultiplier is specified.
                     loadedGLTFModel.transform.localScale = Vector3.one * modelScaleMultiplier;
 
                     Debug.Log($"[FireExtinguisherModelLoader] Successfully attached real 3D Fire Extinguisher glTF model to '{gameObject.name}'!");

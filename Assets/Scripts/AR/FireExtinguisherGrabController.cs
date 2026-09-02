@@ -68,9 +68,9 @@ namespace MiningSafetyAR.AR
         [SerializeField] private float arrivalDistanceMeters = 1.2f;
 
         [Header("P.A.S.S. Configuration")]
-        [SerializeField] private Vector3 cameraOffset = new Vector3(0.25f, -0.3f, 0.6f);
+        [SerializeField] private Vector3 cameraOffset = new Vector3(0f, -0.3f, 0.6f);
         [SerializeField] private Vector3 holdingRotationOffset = new Vector3(0f, 180f, 0f);
-        [SerializeField] private float extinguisherScale = 0.15f;
+        [SerializeField] private float targetCenterViewportY = 0.08f;
         [SerializeField] private float lerpSpeed = 5f;
         [SerializeField] private float maxSprayRange = 8.0f;
         [SerializeField] private Transform nozzleTip;
@@ -246,6 +246,41 @@ namespace MiningSafetyAR.AR
             Debug.Log($"[FireExtinguisherGrabController] Extinguisher registered: '{targetExtinguisher.name}' | Dist={distToCam:F2}m | Scale={extinguisherScale}");
 
             CreateNozzleAndFoamSystem();
+            AutoFrameHeldItem();
+        }
+
+        /// <summary>
+        /// Automatically calculates and applies the camera Y offset required to position
+        /// the center of the 3D extinguisher model at targetCenterViewportY (default 0.08f)
+        /// while forcing X offset to 0 (horizontally centered).
+        /// </summary>
+        public void AutoFrameHeldItem()
+        {
+            if (targetExtinguisher == null) return;
+
+            Renderer[] renderers = targetExtinguisher.GetComponentsInChildren<Renderer>();
+            if (renderers == null || renderers.Length == 0)
+            {
+                Debug.LogWarning("[WARN] [FireExtinguisherGrabController] AutoFrameHeldItem failed — no Renderers found on targetExtinguisher.");
+                return;
+            }
+
+            Camera mainCam = Camera.main ?? FindFirstObjectByType<Camera>();
+            float fov = mainCam != null ? mainCam.fieldOfView : 60f;
+            float distance = Mathf.Abs(cameraOffset.z);
+
+            // Compute Y offset so that the object's center point lands at targetCenterViewportY (default 0.08):
+            float computedY = (targetCenterViewportY - 0.5f) * 2.0f * distance * Mathf.Tan(fov * Mathf.Deg2Rad * 0.5f);
+
+            // Force X = 0 always so extinguisher is horizontally centered on screen
+            cameraOffset = new Vector3(0f, computedY, cameraOffset.z);
+
+            if (heldItemSlot != null)
+            {
+                heldItemSlot.localPosition = cameraOffset;
+            }
+
+            Debug.Log($"[INFO] FireExtinguisherGrabController Auto-framed held item center: computed Y offset={cameraOffset.y:F3}, target center viewport Y={targetCenterViewportY:F2}");
         }
 
         /// <summary>
@@ -529,6 +564,19 @@ namespace MiningSafetyAR.AR
             if (targetExtinguisher.transform.localScale != Vector3.one * extinguisherScale)
             {
                 targetExtinguisher.transform.localScale = Vector3.one * extinguisherScale;
+            }
+
+            // Runtime verification log sampling center of model bounds in Viewport Y space
+            Renderer[] renderers = targetExtinguisher.GetComponentsInChildren<Renderer>();
+            if (renderers != null && renderers.Length > 0)
+            {
+                Bounds combined = renderers[0].bounds;
+                for (int i = 1; i < renderers.Length; i++)
+                {
+                    combined.Encapsulate(renderers[i].bounds);
+                }
+                float sampledViewportY = mainCam.WorldToViewportPoint(combined.center).y;
+                Debug.Log($"[DIAG] [FireExtinguisherGrabController] Held Item Center Viewport Y = {sampledViewportY:F3} (Target: {targetCenterViewportY:F2})");
             }
         }
 
