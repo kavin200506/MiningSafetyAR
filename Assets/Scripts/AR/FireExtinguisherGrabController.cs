@@ -187,11 +187,49 @@ namespace MiningSafetyAR.AR
                 {
                     GameObject slotGO = new GameObject("HeldItemSlot");
                     slotGO.transform.SetParent(mainCam.transform, false);
-                    slotGO.transform.localPosition = cameraOffset;
-                    slotGO.transform.localRotation = Quaternion.Euler(holdingRotationOffset);
+                    slotGO.transform.localPosition = Vector3.zero;
+                    slotGO.transform.localRotation = Quaternion.identity;
+                    slotGO.transform.localScale = Vector3.one;
                     heldItemSlot = slotGO.transform;
-                    Debug.Log($"[FireExtinguisherGrabController] Auto-created HeldItemSlot at localPos={cameraOffset}");
+                    Debug.Log("[FireExtinguisherGrabController] Auto-created HeldItemSlot under AR Main Camera.");
                 }
+            }
+        }
+
+        public void ApplyHeldTransformToExtinguisher(GameObject ext)
+        {
+            if (ext == null || heldItemSlot == null) return;
+
+            if (ext.transform.parent != heldItemSlot)
+            {
+                ext.transform.SetParent(heldItemSlot, false);
+            }
+            ext.transform.localPosition = Vector3.zero;
+            ext.transform.localRotation = Quaternion.identity;
+            ext.transform.localScale = Vector3.one;
+
+            // Target the specific Real_3D_FireExtinguisher_GLTF child object to match user Inspector screenshot values exactly
+            Transform targetChild = null;
+            foreach (Transform child in ext.GetComponentsInChildren<Transform>(true))
+            {
+                if (child.name.Contains("Real_3D_FireExtinguisher_GLTF") || child.name.Contains("FireExtinguisher_3DModel"))
+                {
+                    targetChild = child;
+                    break;
+                }
+            }
+
+            if (targetChild != null)
+            {
+                targetChild.localPosition = new Vector3(-1.677f, 0.129f, -0.459f);
+                targetChild.localRotation = Quaternion.Euler(0f, 176.168f, 0f);
+                targetChild.localScale = new Vector3(1.817324f, 1.7034f, 1.0f);
+            }
+            else
+            {
+                ext.transform.localPosition = new Vector3(-1.677f, 0.129f, -0.459f);
+                ext.transform.localRotation = Quaternion.Euler(0f, 176.168f, 0f);
+                ext.transform.localScale = new Vector3(1.817324f, 1.7034f, 1.0f);
             }
         }
 
@@ -516,14 +554,7 @@ namespace MiningSafetyAR.AR
         {
             if (targetExtinguisher == null || heldItemSlot == null) return;
 
-            if (targetExtinguisher.transform.parent != heldItemSlot)
-            {
-                targetExtinguisher.transform.SetParent(heldItemSlot, false);
-            }
-
-            targetExtinguisher.transform.localPosition = Vector3.Lerp(targetExtinguisher.transform.localPosition, cameraOffset, Time.deltaTime * lerpSpeed);
-            targetExtinguisher.transform.localRotation = Quaternion.Slerp(targetExtinguisher.transform.localRotation, Quaternion.Euler(holdingRotationOffset), Time.deltaTime * lerpSpeed);
-            targetExtinguisher.transform.localScale = holdingScaleOffset;
+            ApplyHeldTransformToExtinguisher(targetExtinguisher);
         }
 
         private void CheckTouchInput()
@@ -676,10 +707,7 @@ namespace MiningSafetyAR.AR
 
             if (heldItemSlot != null)
             {
-                targetExtinguisher.transform.SetParent(heldItemSlot, false);
-                targetExtinguisher.transform.localPosition = cameraOffset;
-                targetExtinguisher.transform.localRotation = Quaternion.Euler(holdingRotationOffset);
-                targetExtinguisher.transform.localScale = holdingScaleOffset;
+                ApplyHeldTransformToExtinguisher(targetExtinguisher);
             }
 
             ARAnchor anchor = targetExtinguisher.GetComponent<ARAnchor>() ?? targetExtinguisher.GetComponentInParent<ARAnchor>();
