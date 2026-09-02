@@ -44,6 +44,9 @@ namespace MiningSafetyAR.UI.Pages
             if (tabTraining != null) tabTraining.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateToTab("UI_TrainingCatalogue"));
             if (tabProgress != null) tabProgress.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateToTab("UI_Progress"));
             if (tabSettings != null) tabSettings.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateToTab("UI_Settings"));
+
+            var avatarBtn = root.Q<Button>("avatar-btn");
+            if (avatarBtn != null) avatarBtn.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateToTab("UI_Settings"));
         }
 
         public override void OnPageEnter() => Refresh();
