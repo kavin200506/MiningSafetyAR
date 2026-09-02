@@ -111,7 +111,7 @@ namespace MiningSafetyAR.UI.Pages
 
             // Navigate to AR Simulation Scene
             Debug.Log($"[LocationCapturePage] 5s Location verification completed ('{capturedPayload?.locationName}') -> Launching AR Simulation for module '{moduleId}'...");
-            NavigationManager.Instance.NavigateTo("AR Plane Detection Placement", moduleId);
+            NavigationManager.Instance.NavigateTo("ar_fire_safety", moduleId);
         }
     }
 }

@@ -1593,7 +1593,8 @@ namespace MiningSafetyAR.AR
         private static bool IsARScene(string sceneName)
         {
             if (string.IsNullOrEmpty(sceneName)) return false;
-            return sceneName == "AR Plane Detection Placement" ||
+            return sceneName == "ar_fire_safety" ||
+                   sceneName == "AR Plane Detection Placement" ||
                    sceneName == "UI_ARSimulation" ||
                    sceneName == "AR Image Tracking" ||
                    sceneName == "AR Occlusion" ||
