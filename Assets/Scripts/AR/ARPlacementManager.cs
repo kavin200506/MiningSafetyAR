@@ -204,17 +204,14 @@ namespace MiningSafetyAR.AR
         /// <summary>
         /// Uses input handling for touch & mouse pointer events with fallback to Editor simulation.
         /// </summary>
+        private int lastProcessedTapFrame = -1;
+
         private void CheckTouchInput()
         {
+            if (Time.frameCount == lastProcessedTapFrame) return;
+
             try
             {
-                // Ignore touches over UI elements
-                if (UnityEngine.EventSystems.EventSystem.current != null && 
-                    UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
-                {
-                    return;
-                }
-
                 Vector2 tapPosition = Vector2.zero;
                 bool tapDetected = false;
 
@@ -246,6 +243,7 @@ namespace MiningSafetyAR.AR
                     if (IsPointerOverUI(tapPosition))
                         return;
 
+                    lastProcessedTapFrame = Time.frameCount;
                     Debug.Log($"[DIAG] [ARPlacementManager] Tap Detected at {tapPosition}! HasDetectedPlane={HasDetectedPlane}");
 
                     // Perform placement raycast strictly at the tapped screen position
@@ -253,7 +251,7 @@ namespace MiningSafetyAR.AR
 
                     if (!placed)
                     {
-                        Debug.LogWarning("[WARN] [ARPlacementManager] Placement raycast missed detected plane surface.");
+                        Debug.Log("[DIAG] [ARPlacementManager] Placement raycast missed detected plane surface.");
                         OnNoPlaneDetected?.Invoke();
                     }
                 }
@@ -273,11 +271,17 @@ namespace MiningSafetyAR.AR
                 return true;
             }
 
-            if (UnityEngine.EventSystems.EventSystem.current != null &&
-                UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
+            if (UnityEngine.EventSystems.EventSystem.current != null)
             {
-                Debug.Log($"[DIAG] [ARPlacementManager] Tap at {tapPosition} blocked — touch is over UI element.");
-                return true;
+                var eventData = new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current);
+                eventData.position = tapPosition;
+                var results = new List<UnityEngine.EventSystems.RaycastResult>();
+                UnityEngine.EventSystems.EventSystem.current.RaycastAll(eventData, results);
+                if (results.Count > 0)
+                {
+                    Debug.Log($"[DIAG] [ARPlacementManager] Tap at {tapPosition} blocked — touch is over UI element '{results[0].gameObject.name}'.");
+                    return true;
+                }
             }
 
             return false;
@@ -287,11 +291,7 @@ namespace MiningSafetyAR.AR
         {
             try
             {
-                if (UnityEngine.EventSystems.EventSystem.current != null && 
-                    UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
-                {
-                    return;
-                }
+                if (Time.frameCount == lastProcessedTapFrame) return;
 
                 if (context.control.device is Pointer pointerDevice)
                 {
@@ -300,12 +300,13 @@ namespace MiningSafetyAR.AR
                     if (IsPointerOverUI(tapPosition))
                         return;
 
+                    lastProcessedTapFrame = Time.frameCount;
                     Debug.Log($"[DIAG] [ARPlacementManager] Pointer Press Began at {tapPosition}!");
 
                     bool placed = PerformPlacementRaycast(tapPosition);
                     if (!placed)
                     {
-                        Debug.LogWarning("[WARN] [ARPlacementManager] Placement raycast missed detected plane surface.");
+                        Debug.Log("[DIAG] [ARPlacementManager] Placement raycast missed detected plane surface.");
                         OnNoPlaneDetected?.Invoke();
                     }
                 }

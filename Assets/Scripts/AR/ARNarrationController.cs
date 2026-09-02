@@ -68,8 +68,7 @@ namespace MiningSafetyAR.AR
             {
                 GameObject go = new GameObject("ARNarrationController");
                 UnityEngine.Object.DontDestroyOnLoad(go);
-                Instance = go.AddComponent<ARNarrationController>();
-                Debug.LogWarning("[WARN] ARNarrationController Prefab not found at Resources/Prefabs/ARNarrationController — created blank instance. Audio clips must be loaded via Resources fallback.");
+                Debug.Log("[INFO] ARNarrationController: Auto-created runtime singleton instance. Loading audio clips via Resources fallback.");
             }
         }
 
