@@ -183,12 +183,6 @@ namespace MiningSafetyAR.AR
         private void Start()
         {
             SubscribeToEvents();
-            string activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
-            if (IsARScene(activeScene) && !hasNarratedFirstPlane)
-            {
-                Debug.Log($"[INFO] ARNarrationController Direct play in AR scene '{activeScene}' — triggering FirstPlaneFound narration.");
-                TriggerFirstPlaneNarration();
-            }
         }
 
         private void OnEnable()
@@ -241,12 +235,6 @@ namespace MiningSafetyAR.AR
 
             UnsubscribeFromEvents();
             SubscribeToEvents();
-
-            if (IsARScene(scene.name) && !hasNarratedFirstPlane)
-            {
-                Debug.Log($"[INFO] ARNarrationController Entered AR simulation scene '{scene.name}' — triggering FirstPlaneFound narration.");
-                TriggerFirstPlaneNarration();
-            }
         }
 
         private void LoadResourcesFallbackClips()
