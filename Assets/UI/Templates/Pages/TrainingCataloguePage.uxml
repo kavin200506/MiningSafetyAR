@@ -54,7 +54,7 @@
                 <ui:Label text="Home" class="bottom-nav__tab-label" style="-unity-font-style: bold; -unity-font-definition: url(&quot;project://database/Assets/TextMesh%20Pro/Fonts/Rajdhani/Rajdhani-Medium.ttf?fileID=12800000&amp;guid=e667d5aeff8d1314eb115a34c389a259&amp;type=3#Rajdhani-Medium&quot;);"/>
             </ui:Button>
             <ui:Button name="tab-training" class="bottom-nav__tab bottom-nav__tab--active">
-                <ui:VisualElement class="icon-training" style="margin-bottom: 2px; width: 30px;"/>
+                <ui:VisualElement class="icon-training" style="margin-bottom: 2px; width: 36px;"/>
                 <ui:Label text="Training" class="bottom-nav__tab-label" style="-unity-font-style: bold; -unity-font-definition: url(&quot;project://database/Assets/TextMesh%20Pro/Fonts/Rajdhani/Rajdhani-Medium.ttf?fileID=12800000&amp;guid=e667d5aeff8d1314eb115a34c389a259&amp;type=3#Rajdhani-Medium&quot;);"/>
             </ui:Button>
             <ui:Button name="tab-progress" class="bottom-nav__tab">

@@ -59,6 +59,53 @@ namespace MiningSafetyAR.UI.Pages
             if (voiceToggle != null) voiceToggle.SetValue(PlayerPrefs.GetInt("VoiceEnabled", 1) == 1);
             if (soundToggle != null) soundToggle.OnToggled += on => PlayerPrefs.SetInt("SoundEnabled", on ? 1 : 0);
             if (voiceToggle != null) voiceToggle.OnToggled += on => PlayerPrefs.SetInt("VoiceEnabled", on ? 1 : 0);
+            
+            PopulateCertifications();
+        }
+
+        void PopulateCertifications()
+        {
+            var certsList = root.Q("certifications-list");
+            if (certsList == null || AppDataService.Instance == null) return;
+            
+            certsList.Clear();
+            var completedModules = AppDataService.Instance.GetModulesByStatusDynamic(ModuleStatus.Completed);
+            
+            if (completedModules == null || completedModules.Count == 0)
+            {
+                var empty = new Label("No certifications yet.");
+                empty.style.color = new StyleColor(new Color(153f/255f, 153f/255f, 153f/255f));
+                empty.style.fontSize = 14;
+                certsList.Add(empty);
+                return;
+            }
+            
+            foreach (var mod in completedModules)
+            {
+                var row = new VisualElement();
+                row.style.flexDirection = FlexDirection.Row;
+                row.style.alignItems = Align.Center;
+                row.style.marginBottom = 12;
+                
+                var icon = new VisualElement();
+                icon.style.width = 10; 
+                icon.style.height = 10; 
+                icon.style.marginRight = 12;
+                icon.style.backgroundColor = new StyleColor(new Color(76f/255f, 175f/255f, 80f/255f));
+                icon.style.borderTopLeftRadius = 5;
+                icon.style.borderTopRightRadius = 5;
+                icon.style.borderBottomLeftRadius = 5;
+                icon.style.borderBottomRightRadius = 5;
+                
+                var title = new Label(mod.title);
+                title.style.fontSize = 14;
+                title.style.color = new StyleColor(new Color(26f/255f, 26f/255f, 26f/255f));
+                title.style.unityFontStyleAndWeight = FontStyle.Bold;
+                
+                row.Add(icon);
+                row.Add(title);
+                certsList.Add(row);
+            }
         }
 
         void OnLogout()
