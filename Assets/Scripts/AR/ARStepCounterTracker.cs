@@ -198,16 +198,109 @@ namespace MiningSafetyAR.AR
 
         /// <summary>
         /// Called when the player reaches the required steps.
-        /// Enters scanning state — waits for user to tap on a vertical wall plane.
+        /// Initiates 5-second wall scan: if a vertical wall is detected, mounts extinguisher on wall;
+        /// otherwise automatically falls back to floor placement.
         /// </summary>
         private void TriggerExtinguisherDiscovery()
+        {
+            if (wallScanCoroutine != null)
+            {
+                StopCoroutine(wallScanCoroutine);
+                wallScanCoroutine = null;
+            }
+            wallScanCoroutine = StartCoroutine(ScanForWallThenSpawnCoroutine(5.0f));
+        }
+
+        private IEnumerator ScanForWallThenSpawnCoroutine(float scanDuration)
         {
             currentState = StepTrackerState.ScanningForWall;
             if (ARPlacementManager.Instance != null)
             {
                 ARPlacementManager.Instance.ActivePlacementMode = ARPlacementManager.PlacementTargetMode.WallFireExtinguisher;
             }
-            Debug.Log($"[ARStepCounterTracker] Step target reached ({currentStepCount}/{targetSteps})! Ready to place extinguisher on wall. ActivePlacementMode set to WallFireExtinguisher.");
+
+            float startTime = Time.time;
+            ARPlaneManager planeMgr = FindFirstObjectByType<ARPlaneManager>();
+            ARRaycastManager raycastMgr = ARRaycastManagerReference;
+            var hits = new List<ARRaycastHit>();
+            bool wallFound = false;
+            Vector3 spawnPos = Vector3.zero;
+            Quaternion spawnRot = Quaternion.identity;
+
+            Debug.Log($"[ARStepCounterTracker] Step target reached ({currentStepCount}/{targetSteps})! Initiating 5-second wall detection scan...");
+
+            while (Time.time - startTime < scanDuration)
+            {
+                scanRemainingTime = Mathf.Max(0f, scanDuration - (Time.time - startTime));
+                Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
+
+                if (raycastMgr != null && raycastMgr.Raycast(screenCenter, hits, UnityEngine.XR.ARSubsystems.TrackableType.PlaneWithinPolygon | UnityEngine.XR.ARSubsystems.TrackableType.Planes))
+                {
+                    foreach (var hit in hits)
+                    {
+                        if (planeMgr != null && hit.trackableId != UnityEngine.XR.ARSubsystems.TrackableId.invalidId)
+                        {
+                            ARPlane hitPlane = planeMgr.GetPlane(hit.trackableId);
+                            if (hitPlane != null && hitPlane.alignment == UnityEngine.XR.ARSubsystems.PlaneAlignment.Vertical)
+                            {
+                                spawnPos = hit.pose.position;
+                                spawnRot = hit.pose.rotation;
+                                wallFound = true;
+                                Debug.Log($"[ARStepCounterTracker] 🧯 VERTICAL WALL DETECTED during 5s scan! Placing 3D Fire Extinguisher on wall at {spawnPos}");
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (wallFound) break;
+                yield return new WaitForSeconds(0.1f);
+            }
+
+            if (wallFound)
+            {
+                SpawnExtinguisherOnWall(spawnPos, spawnRot);
+            }
+            else
+            {
+                Debug.Log("[ARStepCounterTracker] No vertical wall plane detected after 5-second scan — falling back to floor placement.");
+                Camera mainCam = Camera.main ?? FindFirstObjectByType<Camera>();
+
+                if (mainCam != null)
+                {
+                    Vector3 forward = mainCam.transform.forward;
+                    forward.y = 0;
+                    if (forward.sqrMagnitude < 0.01f) forward = mainCam.transform.up;
+                    forward.Normalize();
+
+                    spawnPos = mainCam.transform.position + (forward * 1.0f);
+                    spawnPos.y = mainCam.transform.position.y - 0.5f;
+                    spawnRot = Quaternion.Euler(0, mainCam.transform.eulerAngles.y, 0);
+                }
+                else
+                {
+                    spawnPos = new Vector3(0, -0.5f, 1.0f);
+                    spawnRot = Quaternion.identity;
+                }
+
+                if (raycastMgr != null)
+                {
+                    hits.Clear();
+                    Vector2 centerScreen = new Vector2(Screen.width / 2f, Screen.height / 2f);
+                    if (raycastMgr.Raycast(centerScreen, hits, UnityEngine.XR.ARSubsystems.TrackableType.PlaneWithinPolygon | UnityEngine.XR.ARSubsystems.TrackableType.Planes))
+                    {
+                        float dist = Vector3.Distance(mainCam != null ? mainCam.transform.position : Vector3.zero, hits[0].pose.position);
+                        if (dist <= 2.0f)
+                        {
+                            spawnPos = hits[0].pose.position;
+                        }
+                    }
+                }
+
+                SpawnExtinguisherOnWall(spawnPos, spawnRot);
+            }
+
+            wallScanCoroutine = null;
         }
 
         [ContextMenu("Simulate 1 Step Test")]
@@ -224,12 +317,17 @@ namespace MiningSafetyAR.AR
         }
 
         /// <summary>
-        /// Called by ARPlacementManager when user taps on a vertical plane.
-        /// Spawns the extinguisher at the tapped position.
+        /// Called by ARPlacementManager or wall scan coroutine when spawning extinguisher.
         /// </summary>
         public void SpawnExtinguisherOnWall(Vector3 spawnPos, Quaternion spawnRot)
         {
             if (currentState != StepTrackerState.ScanningForWall) return;
+
+            if (wallScanCoroutine != null)
+            {
+                StopCoroutine(wallScanCoroutine);
+                wallScanCoroutine = null;
+            }
 
             GameObject extinguisherInstance = null;
 
