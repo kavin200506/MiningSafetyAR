@@ -1,4 +1,4 @@
-﻿/* --- Primary Button --- */
+/* --- Primary Button --- */
 .btn-primary {
     background-color: var(--accent);
     color: #FFFFFF;
@@ -169,5 +169,13 @@
 .section-title {
     font-size: var(--font-size-lg);
     color: var(--text-primary);
+}
+
+/* --- Search Input Override --- */
+#search-field > .unity-text-field__input {
+    background-color: transparent;
+    border-width: 0;
+    margin: 0;
+    padding: 0;
 }
 
