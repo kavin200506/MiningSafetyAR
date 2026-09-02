@@ -36,18 +36,17 @@ namespace MiningSafetyAR.AR
             isLoading = true;
             try
             {
-                // 1. Remove legacy fallback primitive Cylinder components if present on root GameObject
+                // 1. Hide legacy fallback primitive renderers if present on root GameObject or existing children
+                foreach (var renderer in GetComponentsInChildren<MeshRenderer>())
+                {
+                    renderer.enabled = false;
+                }
                 MeshFilter mf = GetComponent<MeshFilter>();
-                MeshRenderer mr = GetComponent<MeshRenderer>();
                 CapsuleCollider cc = GetComponent<CapsuleCollider>();
 
                 if (mf != null && (mf.sharedMesh == null || mf.sharedMesh.name.Contains("Cylinder")))
                 {
                     Destroy(mf);
-                }
-                if (mr != null)
-                {
-                    mr.enabled = false; // Hide primitive renderer
                 }
                 if (cc != null)
                 {

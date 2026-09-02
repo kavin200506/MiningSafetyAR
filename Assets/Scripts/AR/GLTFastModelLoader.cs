@@ -73,29 +73,22 @@ namespace MiningSafetyAR.AR
                     bool success = await gltf.Load(textAsset.bytes);
                     if (success)
                     {
-                        GameObject container = new GameObject("FireExtinguisher_3DModel");
-                        container.transform.SetPositionAndRotation(position, rotation);
-                        if (parent != null)
-                        {
-                            container.transform.SetParent(parent, true);
-                        }
+                    GameObject container = new GameObject("FireExtinguisher_3DModel");
+                    if (parent != null)
+                    {
+                        container.transform.SetParent(parent, false);
+                    }
+                    container.transform.localPosition = new Vector3(-0.1619791f, 0.28f, 0.05940546f);
+                    container.transform.localRotation = Quaternion.Euler(0f, 173.72f, 0f);
+                    container.transform.localScale = Vector3.one;
 
-                        bool instantiated = await gltf.InstantiateMainSceneAsync(container.transform);
-                        if (instantiated)
-                        {
-                            // Apply exact user Inspector Transform offset values
-                            foreach (Transform child in container.transform)
-                            {
-                                child.name = "Real_3D_FireExtinguisher_GLTF";
-                                child.localPosition = new Vector3(-0.1619791f, 0.28f, 0.05940546f);
-                                child.localRotation = Quaternion.Euler(0f, 173.72f, 0f);
-                                child.localScale = Vector3.one;
-                            }
-
-                            FixMaterialsForURP(container);
-                            Debug.Log($"[GLTFastModelLoader] SUCCESS: Applied exact Inspector Transform values & Resources PBR materials to 'Real_3D_FireExtinguisher_GLTF'!");
-                            return container;
-                        }
+                    bool instantiated = await gltf.InstantiateMainSceneAsync(container.transform);
+                    if (instantiated)
+                    {
+                        FixMaterialsForURP(container);
+                        Debug.Log($"[GLTFastModelLoader] SUCCESS: Applied exact Inspector Transform values & Resources PBR materials to 'FireExtinguisher_3DModel'!");
+                        return container;
+                    }
                     }
                     else
                     {
@@ -167,24 +160,17 @@ namespace MiningSafetyAR.AR
                 if (success)
                 {
                     GameObject container = new GameObject("FireExtinguisher_3DModel");
-                    container.transform.SetPositionAndRotation(position, rotation);
                     if (parent != null)
                     {
-                        container.transform.SetParent(parent, true);
+                        container.transform.SetParent(parent, false);
                     }
+                    container.transform.localPosition = new Vector3(-0.1619791f, 0.28f, 0.05940546f);
+                    container.transform.localRotation = Quaternion.Euler(0f, 173.72f, 0f);
+                    container.transform.localScale = Vector3.one;
 
                     bool instantiated = await gltf.InstantiateMainSceneAsync(container.transform);
                     if (instantiated)
                     {
-                        // Apply exact user Inspector Transform offset values
-                        foreach (Transform child in container.transform)
-                        {
-                            child.name = "Real_3D_FireExtinguisher_GLTF";
-                            child.localPosition = new Vector3(-0.1619791f, 0.28f, 0.05940546f);
-                            child.localRotation = Quaternion.Euler(0f, 173.72f, 0f);
-                            child.localScale = Vector3.one;
-                        }
-
                         FixMaterialsForURP(container);
                         Debug.Log($"[GLTFastModelLoader] Successfully decoded, instantiated, and applied exact Inspector Transform offset from '{targetUri}'!");
                         return container;
