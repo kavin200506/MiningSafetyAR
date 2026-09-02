@@ -6,7 +6,7 @@
     <Style src="project://database/Assets/UI/Styles/Icons.uss" />
 
     <!-- FULL SCREEN OVERLAY (transparent background for AR passthrough) -->
-    <ui:VisualElement name="ar-overlay" style="width: 100%; height: 100%;">
+    <ui:VisualElement name="ar-overlay" picking-mode="Ignore" style="width: 100%; height: 100%;">
 
         <!-- ═══════════════════════════════════════════════════════════ -->
         <!-- TOP TOOLBAR (6 controls)                                    -->
@@ -43,7 +43,7 @@
         <!-- ═══════════════════════════════════════════════════════════ -->
         <!-- TIER 2: PROXIMITY WARNING BANNER (hidden by default)       -->
         <!-- ═══════════════════════════════════════════════════════════ -->
-        <ui:VisualElement name="banner-warning" style="position: absolute; bottom: 60px; left: 16px; right: 16px; padding: 12px 16px; border-radius: 8px; background-color: rgba(255,87,34,0.9); flex-direction: row; align-items: center; display: none;">
+        <ui:VisualElement name="banner-warning" picking-mode="Ignore" style="position: absolute; bottom: 60px; left: 16px; right: 16px; padding: 12px 16px; border-radius: 8px; background-color: rgba(255,87,34,0.9); flex-direction: row; align-items: center; display: none;">
             <ui:Label name="warning-icon" text="✕" style="font-size: 18px; color: white; margin-right: 10px;" />
             <ui:Label name="warning-text" text="" style="font-size: 13px; color: white; flex: 1; white-space: normal;" />
         </ui:VisualElement>
@@ -51,7 +51,7 @@
         <!-- ═══════════════════════════════════════════════════════════ -->
         <!-- TIER 3: CRITICAL HAZARD ALERT (hidden by default)          -->
         <!-- ═══════════════════════════════════════════════════════════ -->
-        <ui:VisualElement name="banner-critical" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; justify-content: center; align-items: center; background-color: rgba(0,0,0,0.8); display: none;">
+        <ui:VisualElement name="banner-critical" picking-mode="Ignore" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; justify-content: center; align-items: center; background-color: rgba(0,0,0,0.8); display: none;">
             <ui:VisualElement name="critical-card" style="width: 300px; padding: 24px; border-radius: 12px; background-color: #FFD600; align-items: center;">
                 <ui:Label name="critical-icon" text="⚡" style="font-size: 36px; margin-bottom: 8px;" />
                 <ui:Label name="critical-title" text="ALERT!" style="font-size: 22px; font-weight: bold; color: #212121; margin-bottom: 8px;" />
@@ -63,7 +63,7 @@
         <!-- ═══════════════════════════════════════════════════════════ -->
         <!-- SCORE HISTORY MODAL (hidden by default)                    -->
         <!-- ═══════════════════════════════════════════════════════════ -->
-        <ui:VisualElement name="modal-score-history" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; justify-content: center; align-items: center; background-color: rgba(0,0,0,0.7); display: none;">
+        <ui:VisualElement name="modal-score-history" picking-mode="Ignore" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; justify-content: center; align-items: center; background-color: rgba(0,0,0,0.7); display: none;">
             <ui:VisualElement name="modal-card" style="width: 340px; padding: 20px; border-radius: 12px; background-color: #1E1E1E;">
                 <ui:Label name="modal-title" text="⏱ SCORE HISTORY" style="font-size: 16px; font-weight: bold; color: #FFD600; margin-bottom: 12px;" />
                 <!-- Table Header -->
@@ -87,7 +87,7 @@
         <!-- ═══════════════════════════════════════════════════════════ -->
         <!-- RETICLE CONFIRMATION CARD (hidden by default)               -->
         <!-- ═══════════════════════════════════════════════════════════ -->
-        <ui:VisualElement name="reticle-confirm-card" style="position: absolute; top: 50%; left: 50%; translate: -50% -50%; width: 280px; padding: 20px; border-radius: 12px; background-color: rgba(255,109,0,0.95); align-items: center; display: none;">
+        <ui:VisualElement name="reticle-confirm-card" picking-mode="Ignore" style="position: absolute; top: 50%; left: 50%; translate: -50% -50%; width: 280px; padding: 20px; border-radius: 12px; background-color: rgba(255,109,0,0.95); align-items: center; display: none;">
             <ui:Label name="reticle-checkmark" text="✓" style="font-size: 48px; color: white; margin-bottom: 8px;" />
             <ui:Label name="reticle-title" text="FIRE PLACED" style="font-size: 16px; font-weight: bold; color: white; margin-bottom: 4px;" />
             <ui:Label name="reticle-subtitle" text="Fire hazard ignited on floor" style="font-size: 12px; color: rgba(255,255,255,0.8); white-space: normal; text-align: center;" />
@@ -96,12 +96,12 @@
         <!-- ═══════════════════════════════════════════════════════════ -->
         <!-- TUTORIAL VIGNETTE (hidden by default)                      -->
         <!-- ═══════════════════════════════════════════════════════════ -->
-        <ui:VisualElement name="tutorial-vignette" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.6); display: none;" />
+        <ui:VisualElement name="tutorial-vignette" picking-mode="Ignore" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.6); display: none;" />
 
         <!-- ═══════════════════════════════════════════════════════════ -->
         <!-- TUTORIAL CALLOUT — TIP 1/3 (hidden by default)             -->
         <!-- ═══════════════════════════════════════════════════════════ -->
-        <ui:VisualElement name="tutorial-callout" style="position: absolute; top: 100px; left: 50%; translate: -50% 0; width: 300px; padding: 16px; border-radius: 12px; background-color: #2196F3; align-items: center; display: none;">
+        <ui:VisualElement name="tutorial-callout" picking-mode="Ignore" style="position: absolute; top: 100px; left: 50%; translate: -50% 0; width: 300px; padding: 16px; border-radius: 12px; background-color: #2196F3; align-items: center; display: none;">
             <ui:Label name="tip-label" text="TIP 1/3" style="font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 8px;" />
             <ui:Label name="tip-text" text="Need help to progress? Just tap this light bulb icon then follow the blue arrow." style="font-size: 14px; color: white; text-align: center; white-space: normal; margin-bottom: 12px;" />
             <ui:Button name="btn-close-tip" text="CLOSE" style="padding: 8px 24px; border-radius: 6px; background-color: rgba(255,255,255,0.2); color: white; font-size: 13px; margin-bottom: 6px; -unity-text-align: middle-center;" />
@@ -111,7 +111,7 @@
         <!-- ═══════════════════════════════════════════════════════════ -->
         <!-- P.A.S.S. ACTION BUTTONS (Mobile-friendly, hidden by default) -->
         <!-- ═══════════════════════════════════════════════════════════ -->
-        <ui:VisualElement name="pass-button-panel" style="position: absolute; right: 16px; bottom: 120px; flex-direction: column; display: none;">
+        <ui:VisualElement name="pass-button-panel" picking-mode="Ignore" style="position: absolute; right: 16px; bottom: 120px; flex-direction: column; display: none;">
             <ui:Button name="btn-pass-grab" text="GRAB" style="width: 80px; height: 80px; border-radius: 40px; background-color: rgba(76,175,80,0.9); color: white; font-size: 13px; font-weight: bold; -unity-text-align: middle-center; border-width: 3px; border-color: white; margin-bottom: 10px;" />
             <ui:Button name="btn-pass-pin" text="PULL PIN" style="width: 80px; height: 80px; border-radius: 40px; background-color: rgba(255,152,0,0.9); color: white; font-size: 12px; font-weight: bold; -unity-text-align: middle-center; border-width: 3px; border-color: white; display: none; margin-bottom: 10px;" />
             <ui:Button name="btn-pass-aim" text="AIM" style="width: 80px; height: 80px; border-radius: 40px; background-color: rgba(33,150,243,0.9); color: white; font-size: 13px; font-weight: bold; -unity-text-align: middle-center; border-width: 3px; border-color: white; display: none; margin-bottom: 10px;" />
@@ -121,14 +121,14 @@
         <!-- ═══════════════════════════════════════════════════════════ -->
         <!-- P.A.S.S. STATUS LABEL (shows current step)                 -->
         <!-- ═══════════════════════════════════════════════════════════ -->
-        <ui:VisualElement name="pass-status" style="position: absolute; right: 16px; bottom: 220px; padding: 8px 14px; border-radius: 8px; background-color: rgba(0,0,0,0.7); display: none;">
+        <ui:VisualElement name="pass-status" picking-mode="Ignore" style="position: absolute; right: 16px; bottom: 220px; padding: 8px 14px; border-radius: 8px; background-color: rgba(0,0,0,0.7); display: none;">
             <ui:Label name="pass-status-text" text="" style="color: #FFD600; font-size: 12px; font-weight: bold;" />
         </ui:VisualElement>
 
         <!-- ═══════════════════════════════════════════════════════════ -->
         <!-- MISSION BRIEFING MODAL (hidden by default)                 -->
         <!-- ═══════════════════════════════════════════════════════════ -->
-        <ui:VisualElement name="mission-modal" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; justify-content: center; align-items: center; background-color: rgba(0,0,0,0.7); display: none;">
+        <ui:VisualElement name="mission-modal" picking-mode="Ignore" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; justify-content: center; align-items: center; background-color: rgba(0,0,0,0.7); display: none;">
             <ui:VisualElement name="mission-card" style="width: 320px; padding: 24px; border-radius: 12px; background-color: #1E1E1E; align-items: center;">
                 <ui:Label name="mission-icon" text="ⓘ" style="font-size: 28px; color: #FF6D00; margin-bottom: 8px;" />
                 <ui:Label name="mission-title" text="YOUR MISSION" style="font-size: 18px; font-weight: bold; color: #FFD600; margin-bottom: 12px;" />
