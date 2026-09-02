@@ -365,9 +365,61 @@ namespace MiningSafetyAR.AR
             }
         }
 
+        private bool IsFireHazardObject(GameObject obj)
+        {
+            if (obj == null) return false;
+            string name = obj.name;
+            string rootName = obj.transform.root.name;
+
+            if (name.Contains("GroundFire") || name.Contains("FireHazard") || name.Contains("Fire_Spawned") ||
+                rootName.Contains("GroundFire") || rootName.Contains("FireHazard") || rootName.Contains("Fire_Spawned"))
+            {
+                return true;
+            }
+
+            if (obj.GetComponent<GroundFireController>() != null || obj.GetComponentInParent<GroundFireController>() != null || obj.GetComponentInChildren<GroundFireController>() != null)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool IsExtinguisherObject(GameObject obj)
+        {
+            if (obj == null) return false;
+            if (IsFireHazardObject(obj)) return false;
+
+            string name = obj.name;
+            string rootName = obj.transform.root.name;
+
+            if (obj.GetComponent<FireExtinguisherModelLoader>() != null || obj.GetComponentInParent<FireExtinguisherModelLoader>() != null)
+            {
+                return true;
+            }
+
+            if (name.IndexOf("Extinguisher", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                rootName.IndexOf("Extinguisher", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         private void FindAndSetupExtinguisherInScene()
         {
-            if (targetExtinguisher != null) return;
+            if (targetExtinguisher != null)
+            {
+                if (IsFireHazardObject(targetExtinguisher))
+                {
+                    targetExtinguisher = null;
+                }
+                else
+                {
+                    return;
+                }
+            }
 
             GameObject ext = GameObject.Find("Discovered_3D_FireExtinguisher")
                 ?? GameObject.Find("Real_3D_FireExtinguisher_GLTF")
@@ -376,10 +428,13 @@ namespace MiningSafetyAR.AR
             if (ext == null)
             {
                 FireExtinguisherModelLoader loader = FindFirstObjectByType<FireExtinguisherModelLoader>();
-                if (loader != null) ext = loader.gameObject;
+                if (loader != null && !IsFireHazardObject(loader.gameObject))
+                {
+                    ext = loader.gameObject;
+                }
             }
 
-            if (ext != null)
+            if (ext != null && IsExtinguisherObject(ext))
             {
                 SetupExtinguisherForGrabbing(ext);
             }
@@ -550,37 +605,31 @@ namespace MiningSafetyAR.AR
             Ray ray = mainCam.ScreenPointToRay(screenPoint);
             lastRay = ray;
 
-            int grabbableLayer = LayerMask.NameToLayer("Grabbable");
-            int layerMask = grabbableLayer != -1 ? (1 << grabbableLayer) : grabbableLayerMask.value;
-            if (layerMask == 0) layerMask = ~0;
-
-            if (Physics.Raycast(ray, out RaycastHit hit, maxRaycastDistance, layerMask))
-            {
-                GameObject hitGO = hit.collider.gameObject;
-                bool isTargetMatch = (targetExtinguisher == null || hitGO == targetExtinguisher || hitGO.transform.IsChildOf(targetExtinguisher.transform));
-
-                if (isTargetMatch && hit.distance <= maxGrabDistance)
-                {
-                    if (targetExtinguisher == null) targetExtinguisher = hit.collider.transform.root.gameObject;
-                    InitiateGrabSequence();
-                    return true;
-                }
-            }
-
             RaycastHit[] allHits = Physics.RaycastAll(ray, maxRaycastDistance);
             for (int i = 0; i < allHits.Length; i++)
             {
                 var h = allHits[i];
                 GameObject hitGO = h.collider.gameObject;
+
+                if (IsFireHazardObject(hitGO))
+                {
+                    continue; // Skip Fire Hazard raycast hits!
+                }
+
                 bool isExtMatch = (targetExtinguisher != null && (hitGO == targetExtinguisher || hitGO.transform.IsChildOf(targetExtinguisher.transform)))
-                               || (hitGO.name.IndexOf("Extinguisher", StringComparison.OrdinalIgnoreCase) >= 0)
-                               || (hitGO.transform.root.name.IndexOf("Extinguisher", StringComparison.OrdinalIgnoreCase) >= 0);
+                               || IsExtinguisherObject(hitGO);
 
                 if (isExtMatch && h.distance <= maxGrabDistance)
                 {
-                    if (targetExtinguisher == null) targetExtinguisher = h.collider.transform.root.gameObject;
-                    InitiateGrabSequence();
-                    return true;
+                    if (targetExtinguisher == null)
+                    {
+                        targetExtinguisher = hitGO.transform.root.gameObject;
+                    }
+                    if (targetExtinguisher != null && !IsFireHazardObject(targetExtinguisher))
+                    {
+                        InitiateGrabSequence();
+                        return true;
+                    }
                 }
             }
 
@@ -595,7 +644,11 @@ namespace MiningSafetyAR.AR
             {
                 FindAndSetupExtinguisherInScene();
             }
-            if (targetExtinguisher == null) return;
+            if (targetExtinguisher == null || IsFireHazardObject(targetExtinguisher))
+            {
+                targetExtinguisher = null;
+                return;
+            }
 
             if (grabCoroutine != null) StopCoroutine(grabCoroutine);
             grabCoroutine = StartCoroutine(GrabSequence());
