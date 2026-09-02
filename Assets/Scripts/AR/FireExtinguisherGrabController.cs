@@ -84,6 +84,7 @@ namespace MiningSafetyAR.AR
 
         private GameObject targetExtinguisher;
         private Coroutine grabCoroutine;
+        private Coroutine aimCoroutine;
         private InputAction pressAction;
         private Ray lastRay;
         private bool isSqueezing = false;
@@ -704,75 +705,206 @@ namespace MiningSafetyAR.AR
         }
 
         /// <summary>
-        /// Separates the Green (pin) mesh from the extinguisher, adds physics, and lets it fall.
+        /// Separates the Metal (pin) mesh from the extinguisher handle, hides it on the model,
+        /// and plays a smooth pull-and-fall animation dropping the metal pin onto the ground.
         /// </summary>
         private void SeparatePinFromExtinguisher()
         {
             if (targetExtinguisher == null) return;
 
-            // Find the Green mesh (safety pin) by name
-            Transform greenMesh = null;
-            foreach (Transform child in targetExtinguisher.GetComponentsInChildren<Transform>())
+            Transform pinMesh = null;
+            MeshFilter mf = null;
+            MeshRenderer mr = null;
+
+            // Search for dedicated pin child object or submesh (excluding main tank body/cylinder/red meshes)
+            foreach (Transform child in targetExtinguisher.GetComponentsInChildren<Transform>(true))
             {
-                if (child.name.Contains("Green"))
+                string nameLower = child.name.ToLowerInvariant();
+                // Exclude main red body tank or cylinder tank components
+                if (nameLower.Contains("body") || nameLower.Contains("tank") || nameLower.Contains("red") || nameLower.Contains("cylinder.body"))
+                    continue;
+
+                if (nameLower.Equals("metal") || nameLower.Contains("pin") || nameLower.Contains("green") || nameLower.Contains("circle.002") || nameLower.Contains("plane.014"))
                 {
-                    greenMesh = child;
-                    break;
+                    MeshFilter candidateMF = child.GetComponent<MeshFilter>();
+                    MeshRenderer candidateMR = child.GetComponent<MeshRenderer>();
+                    if (candidateMF != null && candidateMR != null && candidateMF.sharedMesh != null)
+                    {
+                        pinMesh = child;
+                        mf = candidateMF;
+                        mr = candidateMR;
+                        break;
+                    }
                 }
             }
 
-            if (greenMesh == null)
+            // Fallback renderer search if name match didn't yield mesh
+            if (pinMesh == null)
             {
-                Debug.LogWarning("[FireExtinguisherGrabController] Could not find Green mesh for pin separation");
-                return;
+                foreach (var r in targetExtinguisher.GetComponentsInChildren<MeshRenderer>(true))
+                {
+                    string rName = r.gameObject.name.ToLowerInvariant();
+                    if (rName.Contains("body") || rName.Contains("tank") || rName.Contains("red")) continue;
+
+                    MeshFilter candidateMF = r.GetComponent<MeshFilter>();
+                    if (candidateMF != null && candidateMF.sharedMesh != null && r.sharedMaterial != null)
+                    {
+                        string matName = r.sharedMaterial.name.ToLowerInvariant();
+                        if ((matName.Contains("metal") || matName.Contains("pin") || matName.Contains("chrome")) && !matName.Contains("body") && !matName.Contains("red"))
+                        {
+                            pinMesh = r.transform;
+                            mf = candidateMF;
+                            mr = r;
+                            break;
+                        }
+                    }
+                }
             }
 
-            MeshFilter mf = greenMesh.GetComponent<MeshFilter>();
-            MeshRenderer mr = greenMesh.GetComponent<MeshRenderer>();
-            if (mf == null || mr == null)
+            Vector3 spawnPos;
+            Quaternion spawnRot;
+
+            if (pinMesh != null && mr != null)
             {
-                Debug.LogWarning("[FireExtinguisherGrabController] Green mesh has no MeshFilter/MeshRenderer");
-                return;
+                // Disable/hide original metal pin mesh on the extinguisher model
+                pinOriginalTransform = pinMesh;
+                mr.enabled = false;
+                spawnPos = pinMesh.position;
+                spawnRot = pinMesh.rotation;
+                Debug.Log($"[FireExtinguisherGrabController] Hidden original pin mesh '{pinMesh.name}' on model.");
+            }
+            else
+            {
+                // Position near top valve assembly if specific submesh not found
+                spawnPos = targetExtinguisher.transform.position + targetExtinguisher.transform.up * 0.28f + targetExtinguisher.transform.forward * 0.05f;
+                spawnRot = targetExtinguisher.transform.rotation;
+                Debug.Log("[FireExtinguisherGrabController] Using valve top position for separated metal pin spawn.");
             }
 
-            // Disable original pin
-            pinOriginalTransform = greenMesh;
-            mr.enabled = false;
+            GameObject pinGO;
+            if (mf != null && mr != null && mf.sharedMesh != null)
+            {
+                pinGO = new GameObject("Separated_Metal_Pin");
+                pinGO.transform.position = spawnPos;
+                pinGO.transform.rotation = spawnRot;
+                pinGO.transform.localScale = pinMesh != null ? pinMesh.lossyScale : Vector3.one * 0.15f;
 
-            // Create separate pin object
-            GameObject pinGO = new GameObject("Separated_Pin");
-            pinGO.transform.position = greenMesh.position;
-            pinGO.transform.rotation = greenMesh.rotation;
-            pinGO.transform.localScale = greenMesh.lossyScale;
+                MeshFilter newMF = pinGO.AddComponent<MeshFilter>();
+                newMF.sharedMesh = mf.sharedMesh;
 
-            // Copy mesh and material
-            MeshFilter pinMF = pinGO.AddComponent<MeshFilter>();
-            pinMF.sharedMesh = mf.sharedMesh;
-
-            MeshRenderer pinMR = pinGO.AddComponent<MeshRenderer>();
-            pinMR.sharedMaterials = mr.sharedMaterials;
-
-            // Add convex collider for physics
-            MeshCollider mc = pinGO.AddComponent<MeshCollider>();
-            mc.sharedMesh = mf.sharedMesh;
-            mc.convex = true;
-
-            // Add rigidbody for gravity/fall
-            Rigidbody rb = pinGO.AddComponent<Rigidbody>();
-            rb.useGravity = true;
-            rb.mass = 0.05f;
-
-            // Apply impulse force (pull out and away)
-            Camera mainCam = Camera.main ?? FindFirstObjectByType<Camera>();
-            Vector3 pullDir = mainCam != null ? -mainCam.transform.forward + mainCam.transform.up * 0.5f : Vector3.up + Vector3.forward;
-            rb.AddForce(pullDir.normalized * 3f, ForceMode.Impulse);
-            rb.AddTorque(UnityEngine.Random.insideUnitSphere * 2f, ForceMode.Impulse);
+                MeshRenderer newMR = pinGO.AddComponent<MeshRenderer>();
+                newMR.sharedMaterials = mr.sharedMaterials;
+            }
+            else
+            {
+                pinGO = CreateFallbackMetalPinGO(spawnPos, spawnRot);
+            }
 
             separatedPin = pinGO.transform;
-            pinRenderer = pinMR;
+            pinRenderer = pinGO.GetComponentInChildren<MeshRenderer>();
 
-            Debug.Log("[FireExtinguisherGrabController] Pin separated and falling with physics");
-            Destroy(pinGO, 4f);
+            StartCoroutine(AnimatePinFallSequence(pinGO));
+        }
+
+        private GameObject CreateFallbackMetalPinGO(Vector3 spawnPos, Quaternion spawnRot)
+        {
+            GameObject pinGO = new GameObject("Separated_Metal_Pin");
+            pinGO.transform.position = spawnPos;
+            pinGO.transform.rotation = spawnRot;
+
+            // 1. Pull Ring
+            GameObject ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            ring.name = "Pin_Ring_Visual";
+            ring.transform.SetParent(pinGO.transform, false);
+            ring.transform.localPosition = Vector3.zero;
+            ring.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            ring.transform.localScale = new Vector3(0.06f, 0.004f, 0.06f);
+
+            Collider ringCol = ring.GetComponent<Collider>();
+            if (ringCol != null) Destroy(ringCol);
+
+            // 2. Pin Shaft Rod
+            GameObject rod = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            rod.name = "Pin_Rod_Visual";
+            rod.transform.SetParent(pinGO.transform, false);
+            rod.transform.localPosition = new Vector3(0.035f, 0f, 0f);
+            rod.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+            rod.transform.localScale = new Vector3(0.012f, 0.045f, 0.012f);
+
+            Collider rodCol = rod.GetComponent<Collider>();
+            if (rodCol != null) Destroy(rodCol);
+
+            // Apply shiny chrome metal material
+            Shader urpShader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Universal Render Pipeline/Unlit");
+            if (urpShader != null)
+            {
+                Material chromeMat = new Material(urpShader);
+                chromeMat.SetColor("_BaseColor", new Color(0.85f, 0.85f, 0.90f));
+                chromeMat.SetFloat("_Metallic", 0.95f);
+                chromeMat.SetFloat("_Smoothness", 0.90f);
+
+                ring.GetComponent<MeshRenderer>().material = chromeMat;
+                rod.GetComponent<MeshRenderer>().material = chromeMat;
+            }
+
+            return pinGO;
+        }
+
+        private IEnumerator AnimatePinFallSequence(GameObject pinGO)
+        {
+            if (pinGO == null) yield break;
+
+            Vector3 startPos = pinGO.transform.position;
+            Quaternion startRot = pinGO.transform.rotation;
+
+            Camera mainCam = Camera.main ?? FindFirstObjectByType<Camera>();
+            Vector3 pullDir = mainCam != null ? (-mainCam.transform.right * 0.12f + mainCam.transform.up * 0.04f) : (Vector3.left * 0.12f);
+            Vector3 pulledPos = startPos + pullDir;
+
+            // Phase 1: Pull out horizontally from valve handle (0.15s)
+            float elapsed = 0f;
+            float pullDuration = 0.15f;
+            while (elapsed < pullDuration)
+            {
+                if (pinGO == null) yield break;
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / pullDuration);
+                pinGO.transform.position = Vector3.Lerp(startPos, pulledPos, t);
+                yield return null;
+            }
+
+            // Phase 2: Gravity drop accelerating to floor (0.55s)
+            Vector3 dropStart = pinGO.transform.position;
+            float dropDistance = 1.0f;
+            Vector3 groundTarget = dropStart + Vector3.down * dropDistance + pullDir * 0.2f;
+
+            elapsed = 0f;
+            float dropDuration = 0.55f;
+            Quaternion spinRot = Quaternion.Euler(UnityEngine.Random.Range(70, 160), UnityEngine.Random.Range(45, 90), UnityEngine.Random.Range(0, 360));
+
+            while (elapsed < dropDuration)
+            {
+                if (pinGO == null) yield break;
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / dropDuration);
+                float gravityT = t * t; // Acceleration under gravity
+
+                pinGO.transform.position = Vector3.Lerp(dropStart, groundTarget, gravityT);
+                pinGO.transform.rotation = Quaternion.Slerp(startRot, spinRot, t);
+                yield return null;
+            }
+
+            if (pinGO != null)
+            {
+                pinGO.transform.position = groundTarget;
+            }
+
+            // Phase 3: Cleanup after 4 seconds resting on ground
+            yield return new WaitForSeconds(4.0f);
+            if (pinGO != null)
+            {
+                Destroy(pinGO);
+            }
         }
 
         /// <summary>
@@ -786,31 +918,52 @@ namespace MiningSafetyAR.AR
             currentPassState = PassStepState.NozzleAimed;
             isSqueezing = false;
 
-            // Rotate extinguisher to face the fire
-            if (targetExtinguisher != null)
-            {
-                GroundFireController fire = null;
-                var allFires = FindObjectsByType<GroundFireController>(FindObjectsSortMode.None);
-                foreach (var f in allFires)
-                {
-                    if (f != null && f.IsFireActive) { fire = f; break; }
-                }
-                if (fire == null && ARPlacementManager.Instance != null && ARPlacementManager.Instance.SpawnedObject != null)
-                {
-                    fire = ARPlacementManager.Instance.SpawnedObject.GetComponent<GroundFireController>();
-                }
-                if (fire != null)
-                {
-                    Vector3 dirToFire = (fire.transform.position - targetExtinguisher.transform.position).normalized;
-                    if (dirToFire.sqrMagnitude > 0.01f)
-                    {
-                        targetExtinguisher.transform.rotation = Quaternion.LookRotation(dirToFire);
-                    }
-                }
-            }
+            if (aimCoroutine != null) StopCoroutine(aimCoroutine);
+            aimCoroutine = StartCoroutine(AimSequence());
 
             Debug.Log("[FireExtinguisherGrabController] P.A.S.S. Step: NOZZLE AIMED");
             OnNozzleAimed?.Invoke();
+        }
+
+        private IEnumerator AimSequence()
+        {
+            if (targetExtinguisher == null) yield break;
+
+            GroundFireController fire = null;
+            var allFires = FindObjectsByType<GroundFireController>(FindObjectsSortMode.None);
+            foreach (var f in allFires)
+            {
+                if (f != null && f.IsFireActive) { fire = f; break; }
+            }
+            if (fire == null && ARPlacementManager.Instance != null && ARPlacementManager.Instance.SpawnedObject != null)
+            {
+                fire = ARPlacementManager.Instance.SpawnedObject.GetComponent<GroundFireController>();
+            }
+
+            if (fire != null)
+            {
+                Vector3 targetPos = fire.transform.position;
+                Quaternion startRot = targetExtinguisher.transform.rotation;
+                Vector3 dirToFire = (targetPos - targetExtinguisher.transform.position).normalized;
+
+                if (dirToFire.sqrMagnitude > 0.01f)
+                {
+                    Quaternion targetRot = Quaternion.LookRotation(dirToFire);
+                    float duration = 0.4f;
+                    float elapsed = 0f;
+
+                    while (elapsed < duration)
+                    {
+                        elapsed += Time.deltaTime;
+                        float t = Mathf.Clamp01(elapsed / duration);
+                        float easeT = Mathf.Sin(t * Mathf.PI * 0.5f);
+                        targetExtinguisher.transform.rotation = Quaternion.Slerp(startRot, targetRot, easeT);
+                        yield return null;
+                    }
+                    targetExtinguisher.transform.rotation = targetRot;
+                }
+            }
+            aimCoroutine = null;
         }
 
         /// <summary>

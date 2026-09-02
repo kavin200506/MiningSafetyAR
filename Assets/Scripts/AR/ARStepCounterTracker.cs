@@ -33,6 +33,7 @@ namespace MiningSafetyAR.AR
         [SerializeField] private int minRequiredSteps = 7;
         [SerializeField] private int maxRequiredSteps = 13;
         [SerializeField] private float averageStepLengthMeters = 0.65f; // ~65cm per step
+        [SerializeField] private bool showDebugUI = false;
 
         [Header("Prefabs")]
         [SerializeField] private GameObject fireExtinguisherPrefab;
@@ -230,40 +231,71 @@ namespace MiningSafetyAR.AR
         {
             if (currentState != StepTrackerState.ScanningForWall) return;
 
-            GameObject extinguisherInstance;
+            GameObject extinguisherInstance = null;
 
             if (fireExtinguisherPrefab == null)
             {
                 fireExtinguisherPrefab = Resources.Load<GameObject>("Prefabs/FireExtinguisherModel") ??
-                                         Resources.Load<GameObject>("FireExtinguisherModel") ??
-                                         Resources.Load<GameObject>("SafetyStation");
+                                         Resources.Load<GameObject>("FireExtinguisherModel");
             }
 
             if (fireExtinguisherPrefab != null)
             {
-                // Use the existing 3D prefab with PBR materials
                 extinguisherInstance = Instantiate(fireExtinguisherPrefab, spawnPos, spawnRot);
                 extinguisherInstance.name = "Discovered_3D_FireExtinguisher";
             }
             else
             {
-                // Fallback: create basic container with glTF model loader
+                // Create complete 3D Fire Red Extinguisher Model with URP Materials
                 extinguisherInstance = new GameObject("Discovered_3D_FireExtinguisher");
                 extinguisherInstance.transform.SetPositionAndRotation(spawnPos, spawnRot);
 
-                // Add glTF Model Loader to load real 3D model at runtime
-                extinguisherInstance.AddComponent<FireExtinguisherModelLoader>();
+                // Body Cylinder (Red)
+                GameObject body = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                body.name = "Extinguisher_RedBody";
+                body.transform.SetParent(extinguisherInstance.transform, false);
+                body.transform.localPosition = new Vector3(0f, 0.25f, 0f);
+                body.transform.localScale = new Vector3(0.18f, 0.25f, 0.18f);
 
-                // Add fallback renderer with safe URP shader lookup
-                var capsule = extinguisherInstance.AddComponent<CapsuleCollider>();
-                capsule.height = 0.5f;
-                capsule.radius = 0.08f;
-                capsule.center = new Vector3(0, 0.25f, 0);
+                // Destroy primitive collider to avoid interference
+                Collider col = body.GetComponent<Collider>();
+                if (col != null) Destroy(col);
 
-                var mf = extinguisherInstance.AddComponent<MeshFilter>();
-                mf.sharedMesh = CreateCylinderMesh(0.08f, 0.5f, 12);
+                // Add main trigger capsule collider
+                var mainCap = extinguisherInstance.AddComponent<CapsuleCollider>();
+                mainCap.height = 0.6f;
+                mainCap.radius = 0.12f;
+                mainCap.center = new Vector3(0, 0.25f, 0);
 
-                var mr = extinguisherInstance.AddComponent<MeshRenderer>();
+                // Top Handle & Valve Assembly (Black)
+                GameObject handle = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                handle.name = "Extinguisher_BlackHandle";
+                handle.transform.SetParent(extinguisherInstance.transform, false);
+                handle.transform.localPosition = new Vector3(0f, 0.52f, 0f);
+                handle.transform.localScale = new Vector3(0.08f, 0.08f, 0.12f);
+                Collider handleCol = handle.GetComponent<Collider>();
+                if (handleCol != null) Destroy(handleCol);
+
+                // Yellow Safety Pin
+                GameObject pin = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                pin.name = "Green"; // Named "Green" or "Pin" for P.A.S.S. separation system
+                pin.transform.SetParent(extinguisherInstance.transform, false);
+                pin.transform.localPosition = new Vector3(0.06f, 0.53f, 0f);
+                pin.transform.localScale = new Vector3(0.04f, 0.04f, 0.04f);
+                Collider pinCol = pin.GetComponent<Collider>();
+                if (pinCol != null) Destroy(pinCol);
+
+                // Nozzle Tip (Black)
+                GameObject nozzle = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                nozzle.name = "Extinguisher_NozzleTip";
+                nozzle.transform.SetParent(extinguisherInstance.transform, false);
+                nozzle.transform.localPosition = new Vector3(0f, 0.52f, 0.10f);
+                nozzle.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                nozzle.transform.localScale = new Vector3(0.03f, 0.06f, 0.03f);
+                Collider nozzleCol = nozzle.GetComponent<Collider>();
+                if (nozzleCol != null) Destroy(nozzleCol);
+
+                // Get compiled URP Lit shader
                 Shader urpShader = Shader.Find("Universal Render Pipeline/Lit") ??
                                    Shader.Find("Universal Render Pipeline/Simple Lit") ??
                                    Shader.Find("Universal Render Pipeline/Unlit");
@@ -273,7 +305,7 @@ namespace MiningSafetyAR.AR
                     Renderer[] sceneRenderers = UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None);
                     foreach (Renderer r in sceneRenderers)
                     {
-                        if (r != null && r.sharedMaterial != null && r.sharedMaterial.shader != null && r.sharedMaterial.shader.name.Contains("Universal Render Pipeline"))
+                        if (r != null && r.sharedMaterial != null && r.sharedMaterial.shader != null && r.sharedMaterial.shader.name.Contains("Universal"))
                         {
                             urpShader = r.sharedMaterial.shader;
                             break;
@@ -283,15 +315,29 @@ namespace MiningSafetyAR.AR
 
                 if (urpShader != null)
                 {
-                    Material mat = new Material(urpShader);
-                    mat.SetColor("_BaseColor", new Color(0.85f, 0.05f, 0.05f));
-                    mat.SetFloat("_Metallic", 0.65f);
-                    mat.SetFloat("_Smoothness", 0.75f);
-                    mr.material = mat;
+                    Material redMat = new Material(urpShader);
+                    redMat.SetColor("_BaseColor", new Color(0.88f, 0.08f, 0.08f));
+                    redMat.SetFloat("_Metallic", 0.6f);
+                    redMat.SetFloat("_Smoothness", 0.7f);
+                    body.GetComponent<MeshRenderer>().material = redMat;
+
+                    Material blackMat = new Material(urpShader);
+                    blackMat.SetColor("_BaseColor", new Color(0.12f, 0.12f, 0.12f));
+                    blackMat.SetFloat("_Metallic", 0.4f);
+                    blackMat.SetFloat("_Smoothness", 0.5f);
+                    handle.GetComponent<MeshRenderer>().material = blackMat;
+                    nozzle.GetComponent<MeshRenderer>().material = blackMat;
+
+                    Material yellowMat = new Material(urpShader);
+                    yellowMat.SetColor("_BaseColor", new Color(1.0f, 0.85f, 0.0f));
+                    pin.GetComponent<MeshRenderer>().material = yellowMat;
                 }
 
                 extinguisherInstance.AddComponent<FireExtinguisherGrabController>();
             }
+
+            // Ensure on Default layer (0) for Android mobile rendering
+            SetLayerRecursively(extinguisherInstance, 0);
 
             spawnedExtinguisherInstance = extinguisherInstance;
             currentState = StepTrackerState.ExtinguisherDiscovered;
@@ -345,53 +391,19 @@ namespace MiningSafetyAR.AR
 
         private void OnGUI()
         {
-            if (currentState == StepTrackerState.Idle)
-                return;
+            // Debug UI overlay step counter box completely disabled per user request
+        }
 
-            float screenWidth = Screen.width;
-            float boxWidth = 640f;
-            float boxHeight = 140f;
-            float margin = 30f;
-            Rect rect = new Rect((screenWidth - boxWidth) / 2f, margin + 140f, boxWidth, boxHeight);
-
-            GUIStyle style = new GUIStyle(GUI.skin.box)
+        private static void SetLayerRecursively(GameObject obj, int newLayer)
+        {
+            if (obj == null) return;
+            obj.layer = newLayer;
+            foreach (Transform child in obj.transform)
             {
-                fontSize = 26,
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                richText = true
-            };
-
-            if (currentState == StepTrackerState.SearchingForExtinguisher)
-            {
-                style.normal.textColor = new Color(1.0f, 0.85f, 0.0f);
-                int remaining = Mathf.Max(0, targetSteps - currentStepCount);
-                string text = $"<b>SEARCHING FOR EXTINGUISHER</b>\n" +
-                              $"<size=24>Steps Taken: <color=#00FF00>{currentStepCount} / {targetSteps}</color> ({totalDistanceWalkedMeters:F1}m walked)</size>\n" +
-                              $"<size=20><color=#00E5FF>Walk {remaining} more steps to find Extinguisher!</color></size>";
-#if UNITY_EDITOR
-                text += "\n<size=18><color=#00FF00>[EDITOR: Press 'W' or Spacebar to simulate steps]</color></size>";
-#endif
-                GUI.Box(rect, text, style);
-            }
-            else if (currentState == StepTrackerState.ScanningForWall)
-            {
-                style.normal.textColor = new Color(0.2f, 0.9f, 1.0f);
-                string text = $"<b>READY TO PLACE EXTINGUISHER</b>\n" +
-                              $"<size=22>Point camera at a vertical wall and TAP to place extinguisher!</size>\n" +
-                              $"<size=18><color=#FFCC00>Extinguisher will spawn where you tap on the wall.</color></size>";
-#if UNITY_EDITOR
-                text += "\n<size=18><color=#00FF00>[EDITOR: Click on a wall plane]</color></size>";
-#endif
-                GUI.Box(rect, text, style);
-            }
-            else if (currentState == StepTrackerState.ExtinguisherDiscovered)
-            {
-                style.normal.textColor = new Color(0.2f, 1.0f, 0.4f);
-                string text = $"<b>EXTINGUISHER DISCOVERED!</b>\n" +
-                              $"<size=24>Walked <color=#00FF00>{currentStepCount} steps</color> ({totalDistanceWalkedMeters:F1}m)</size>\n" +
-                              $"<size=20><color=#00FF00>Grab the extinguisher and put out the fire!</color></size>";
-                GUI.Box(rect, text, style);
+                if (child != null)
+                {
+                    SetLayerRecursively(child.gameObject, newLayer);
+                }
             }
         }
     }

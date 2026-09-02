@@ -20,7 +20,7 @@ namespace MiningSafetyAR.AR
         [Header("Log Storage Settings")]
         [SerializeField] private int maxLogHistory = 100;
         [SerializeField] private bool logToFile = true;
-        [SerializeField] private bool showOnScreenGUI = true;
+        [SerializeField] private bool showOnScreenGUI = false;
 
         private List<string> logEntries = new List<string>();
         private string logFilePath;
@@ -169,61 +169,7 @@ namespace MiningSafetyAR.AR
 
         private void OnGUI()
         {
-            if (!showOnScreenGUI) return;
-
-            GUIStyle btnStyle = new GUIStyle(GUI.skin.button)
-            {
-                fontSize = 12,
-                fontStyle = FontStyle.Bold
-            };
-
-            float topY = 10f;
-            if (GUI.Button(new Rect(10, topY, 110, 30), isLogPanelExpanded ? "📜 HIDE LOGS" : "📜 SHOW LOGS", btnStyle))
-            {
-                isLogPanelExpanded = !isLogPanelExpanded;
-            }
-
-            if (!isLogPanelExpanded) return;
-
-            float width = Mathf.Min(Screen.width - 20f, 600f);
-            float height = Mathf.Min(Screen.height - 100f, 350f);
-            Rect boxRect = new Rect(10, topY + 36f, width, height);
-
-            GUI.Box(boxRect, "AR SIMULATION EVENT LOG");
-
-            GUILayout.BeginArea(new Rect(boxRect.x + 10, boxRect.y + 25, boxRect.width - 20, boxRect.height - 35));
-            scrollPosition = GUILayout.BeginScrollView(scrollPosition, GUILayout.Width(boxRect.width - 20), GUILayout.Height(boxRect.height - 35));
-
-            GUIStyle logStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 11,
-                wordWrap = true,
-                richText = true
-            };
-
-            for (int i = logEntries.Count - 1; i >= 0; i--)
-            {
-                string entry = logEntries[i];
-                if (entry.Contains("[ERROR]"))
-                {
-                    GUILayout.Label($"<color=red>{entry}</color>", logStyle);
-                }
-                else if (entry.Contains("[WARN]"))
-                {
-                    GUILayout.Label($"<color=yellow>{entry}</color>", logStyle);
-                }
-                else if (entry.Contains("[KEYBOARD]") || entry.Contains("[BUTTON]"))
-                {
-                    GUILayout.Label($"<color=#00FFCC>{entry}</color>", logStyle);
-                }
-                else
-                {
-                    GUILayout.Label($"<color=white>{entry}</color>", logStyle);
-                }
-            }
-
-            GUILayout.EndScrollView();
-            GUILayout.EndArea();
+            // Debug UI overlay log console completely disabled per user request
         }
     }
 }

@@ -261,7 +261,7 @@ MonoBehaviour:
   wallExtinguisherPrefab: {fileID: 1932627597918510689, guid: 67bc03ef87f2f3048b45cff548a8b123, type: 3}
   placementIndicator: {fileID: 3039026380210748228, guid: d0beacb7e91de4822a6c7b052dc13b71, type: 3}
   placementWindowDuration: 3
-  showTimerUI: 1
+  showTimerUI: 0
   rescaleStep: 0.05
   minScale: 0.02
   maxScale: 1
