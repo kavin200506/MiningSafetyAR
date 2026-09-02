@@ -125,7 +125,10 @@ namespace MiningSafetyAR.AR
 
         private void OnEnable()
         {
-            EnhancedTouchSupport.Enable();
+            if (!EnhancedTouchSupport.enabled)
+            {
+                EnhancedTouchSupport.Enable();
+            }
             if (pressAction != null)
             {
                 pressAction.Enable();
@@ -140,7 +143,6 @@ namespace MiningSafetyAR.AR
 
         private void OnDisable()
         {
-            EnhancedTouchSupport.Disable();
             if (pressAction != null)
             {
                 pressAction.Disable();
@@ -479,6 +481,11 @@ namespace MiningSafetyAR.AR
 
             Vector2 tapPosition = Vector2.zero;
             bool tapDetected = false;
+
+            if (!EnhancedTouchSupport.enabled)
+            {
+                EnhancedTouchSupport.Enable();
+            }
 
             if (UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches.Count > 0)
             {
