@@ -198,8 +198,8 @@ namespace MiningSafetyAR.AR
 
         /// <summary>
         /// Called when the player reaches the required steps.
-        /// Initiates 5-second wall scan: if a vertical wall is detected, mounts extinguisher on wall;
-        /// otherwise automatically falls back to floor placement.
+        /// Enters scanning state — automatically scans for nearby vertical wall planes for 5s,
+        /// or executes automatic fallback spawn on floor/nearest plane.
         /// </summary>
         private void TriggerExtinguisherDiscovery()
         {
@@ -219,88 +219,169 @@ namespace MiningSafetyAR.AR
                 ARPlacementManager.Instance.ActivePlacementMode = ARPlacementManager.PlacementTargetMode.WallFireExtinguisher;
             }
 
-            float startTime = Time.time;
-            ARPlaneManager planeMgr = FindFirstObjectByType<ARPlaneManager>();
-            ARRaycastManager raycastMgr = ARRaycastManagerReference;
-            var hits = new List<ARRaycastHit>();
-            bool wallFound = false;
-            Vector3 spawnPos = Vector3.zero;
-            Quaternion spawnRot = Quaternion.identity;
+            Debug.Log($"[ARStepCounterTracker] Step target reached ({currentStepCount}/{targetSteps})! Auto-scanning for nearby vertical wall plane for 5 seconds...");
 
-            Debug.Log($"[ARStepCounterTracker] Step target reached ({currentStepCount}/{targetSteps})! Initiating 5-second wall detection scan...");
-
-            while (Time.time - startTime < scanDuration)
+            if (wallScanCoroutine != null)
             {
-                scanRemainingTime = Mathf.Max(0f, scanDuration - (Time.time - startTime));
-                Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
+                StopCoroutine(wallScanCoroutine);
+            }
+            wallScanCoroutine = StartCoroutine(AutoScanAndSpawnExtinguisherRoutine());
+        }
 
-                if (raycastMgr != null && raycastMgr.Raycast(screenCenter, hits, UnityEngine.XR.ARSubsystems.TrackableType.PlaneWithinPolygon | UnityEngine.XR.ARSubsystems.TrackableType.Planes))
+        /// <summary>
+        /// 5-second automatic scanner for nearby vertical planes (walls).
+        /// Falls back to horizontal floor / camera-front placement if no wall detected within 5s.
+        /// </summary>
+        private IEnumerator AutoScanAndSpawnExtinguisherRoutine()
+        {
+            scanRemainingTime = 5.0f;
+            Debug.Log("[ARStepCounterTracker] 🔍 Started 5-second automatic scan for vertical wall plane...");
+
+            ARPlaneManager planeManager = FindFirstObjectByType<ARPlaneManager>();
+            ARRaycastManager raycastManager = ARRaycastManagerReference;
+            Camera mainCam = Camera.main ?? FindFirstObjectByType<Camera>();
+
+            while (scanRemainingTime > 0f)
+            {
+                scanRemainingTime -= Time.deltaTime;
+
+                if (currentState != StepTrackerState.ScanningForWall)
                 {
-                    foreach (var hit in hits)
+                    wallScanCoroutine = null;
+                    yield break;
+                }
+
+                // 1. Check ARPlaneManager trackables for active vertical wall planes within 5.0m
+                if (planeManager != null)
+                {
+                    foreach (var plane in planeManager.trackables)
                     {
-                        if (planeMgr != null && hit.trackableId != UnityEngine.XR.ARSubsystems.TrackableId.invalidId)
+                        if (plane != null && plane.gameObject.activeInHierarchy)
                         {
-                            ARPlane hitPlane = planeMgr.GetPlane(hit.trackableId);
-                            if (hitPlane != null && hitPlane.alignment == UnityEngine.XR.ARSubsystems.PlaneAlignment.Vertical)
+                            bool isVertical = (plane.alignment == UnityEngine.XR.ARSubsystems.PlaneAlignment.Vertical) ||
+                                              (Vector3.Dot(plane.normal, Vector3.up) < 0.3f);
+
+                            if (isVertical && mainCam != null)
                             {
-                                spawnPos = hit.pose.position;
-                                spawnRot = hit.pose.rotation;
-                                wallFound = true;
-                                Debug.Log($"[ARStepCounterTracker] 🧯 VERTICAL WALL DETECTED during 5s scan! Placing 3D Fire Extinguisher on wall at {spawnPos}");
-                                break;
+                                float dist = Vector3.Distance(mainCam.transform.position, plane.center);
+                                if (dist <= 5.0f)
+                                {
+                                    Vector3 wallPos = plane.center + plane.normal * 0.08f;
+                                    wallPos.y = mainCam.transform.position.y - 0.2f;
+                                    Quaternion wallRot = Quaternion.LookRotation(plane.normal, Vector3.up);
+
+                                    Debug.Log($"[ARStepCounterTracker] ✅ Vertical wall plane auto-detected! Mounting extinguisher on wall at {wallPos}.");
+                                    SpawnExtinguisherOnWall(wallPos, wallRot);
+                                    wallScanCoroutine = null;
+                                    yield break;
+                                }
                             }
                         }
                     }
                 }
 
-                if (wallFound) break;
-                yield return new WaitForSeconds(0.1f);
-            }
-
-            if (wallFound)
-            {
-                SpawnExtinguisherOnWall(spawnPos, spawnRot);
-            }
-            else
-            {
-                Debug.Log("[ARStepCounterTracker] No vertical wall plane detected after 5-second scan — falling back to floor placement.");
-                Camera mainCam = Camera.main ?? FindFirstObjectByType<Camera>();
-
-                if (mainCam != null)
+                // 2. ARRaycastManager raycast from camera center to check for vertical planes
+                if (raycastManager != null && mainCam != null)
                 {
-                    Vector3 forward = mainCam.transform.forward;
-                    forward.y = 0;
-                    if (forward.sqrMagnitude < 0.01f) forward = mainCam.transform.up;
-                    forward.Normalize();
-
-                    spawnPos = mainCam.transform.position + (forward * 1.0f);
-                    spawnPos.y = mainCam.transform.position.y - 0.5f;
-                    spawnRot = Quaternion.Euler(0, mainCam.transform.eulerAngles.y, 0);
-                }
-                else
-                {
-                    spawnPos = new Vector3(0, -0.5f, 1.0f);
-                    spawnRot = Quaternion.identity;
-                }
-
-                if (raycastMgr != null)
-                {
-                    hits.Clear();
-                    Vector2 centerScreen = new Vector2(Screen.width / 2f, Screen.height / 2f);
-                    if (raycastMgr.Raycast(centerScreen, hits, UnityEngine.XR.ARSubsystems.TrackableType.PlaneWithinPolygon | UnityEngine.XR.ARSubsystems.TrackableType.Planes))
+                    Vector2 screenCenter = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+                    List<ARRaycastHit> hits = new List<ARRaycastHit>();
+                    if (raycastManager.Raycast(screenCenter, hits, UnityEngine.XR.ARSubsystems.TrackableType.PlaneWithinBounds))
                     {
-                        float dist = Vector3.Distance(mainCam != null ? mainCam.transform.position : Vector3.zero, hits[0].pose.position);
-                        if (dist <= 2.0f)
+                        foreach (var hit in hits)
                         {
-                            spawnPos = hits[0].pose.position;
+                            ARPlane hitPlane = planeManager != null ? planeManager.GetPlane(hit.trackableId) : null;
+                            bool isVerticalHit = (hitPlane != null && hitPlane.alignment == UnityEngine.XR.ARSubsystems.PlaneAlignment.Vertical) ||
+                                                 (Mathf.Abs(Vector3.Dot(hit.pose.up, Vector3.up)) < 0.3f);
+
+                            if (isVerticalHit)
+                            {
+                                Vector3 wallPos = hit.pose.position + hit.pose.up * 0.08f;
+                                Quaternion wallRot = Quaternion.LookRotation(hit.pose.up, Vector3.up);
+                                Debug.Log($"[ARStepCounterTracker] ✅ Vertical wall raycast hit auto-detected! Mounting extinguisher at {wallPos}.");
+                                SpawnExtinguisherOnWall(wallPos, wallRot);
+                                wallScanCoroutine = null;
+                                yield break;
+                            }
                         }
                     }
                 }
 
-                SpawnExtinguisherOnWall(spawnPos, spawnRot);
+                yield return null;
             }
 
+            // 3. 5-second timer expired without finding vertical wall plane -> Fallback spawn
+            Debug.Log("[ARStepCounterTracker] ⏱️ 5-second wall search expired without detecting a vertical plane. Executing fallback auto-spawn on nearest plane/floor...");
+            ExecuteFallbackExtinguisherSpawn();
             wallScanCoroutine = null;
+        }
+
+        /// <summary>
+        /// Fallback placement when no vertical wall plane is detected within 5 seconds.
+        /// Places extinguisher on nearest detected horizontal floor plane or in front of camera.
+        /// </summary>
+        private void ExecuteFallbackExtinguisherSpawn()
+        {
+            if (currentState != StepTrackerState.ScanningForWall || spawnedExtinguisherInstance != null)
+                return;
+
+            Camera mainCam = Camera.main ?? FindFirstObjectByType<Camera>();
+            Vector3 spawnPos;
+            Quaternion spawnRot;
+
+            ARRaycastManager raycastManager = ARRaycastManagerReference;
+            bool foundPlaneHit = false;
+
+            if (raycastManager != null && mainCam != null)
+            {
+                Vector2 screenCenter = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+                List<ARRaycastHit> hits = new List<ARRaycastHit>();
+                if (raycastManager.Raycast(screenCenter, hits, UnityEngine.XR.ARSubsystems.TrackableType.PlaneWithinBounds | UnityEngine.XR.ARSubsystems.TrackableType.Planes))
+                {
+                    if (hits.Count > 0)
+                    {
+                        spawnPos = hits[0].pose.position;
+                        Vector3 dirToCam = Vector3.ProjectOnPlane(mainCam.transform.position - spawnPos, Vector3.up).normalized;
+                        if (dirToCam == Vector3.zero) dirToCam = mainCam.transform.forward;
+                        spawnRot = Quaternion.LookRotation(dirToCam, Vector3.up);
+                        foundPlaneHit = true;
+                        Debug.Log($"[ARStepCounterTracker] [FALLBACK] Auto-spawned extinguisher on nearest detected AR plane at {spawnPos}.");
+                        SpawnExtinguisherOnWall(spawnPos, spawnRot);
+                        return;
+                    }
+                }
+            }
+
+            if (!foundPlaneHit && mainCam != null)
+            {
+                Ray centerRay = new Ray(mainCam.transform.position, mainCam.transform.forward + Vector3.down * 0.5f);
+                if (Physics.Raycast(centerRay, out RaycastHit hit, 5.0f))
+                {
+                    spawnPos = hit.point;
+                    Vector3 dirToCam = Vector3.ProjectOnPlane(mainCam.transform.position - spawnPos, Vector3.up).normalized;
+                    if (dirToCam == Vector3.zero) dirToCam = -mainCam.transform.forward;
+                    spawnRot = Quaternion.LookRotation(dirToCam, Vector3.up);
+                    foundPlaneHit = true;
+                    Debug.Log($"[ARStepCounterTracker] [FALLBACK] Auto-spawned extinguisher on physics floor surface hit at {spawnPos}.");
+                    SpawnExtinguisherOnWall(spawnPos, spawnRot);
+                    return;
+                }
+            }
+
+            if (mainCam != null)
+            {
+                Vector3 forward = Vector3.ProjectOnPlane(mainCam.transform.forward, Vector3.up).normalized;
+                if (forward == Vector3.zero) forward = Vector3.forward;
+                spawnPos = mainCam.transform.position + forward * 1.5f - Vector3.up * 0.8f;
+                spawnRot = Quaternion.LookRotation(-forward, Vector3.up);
+            }
+            else
+            {
+                spawnPos = new Vector3(0f, 0f, 1.5f);
+                spawnRot = Quaternion.identity;
+            }
+
+            Debug.Log($"[ARStepCounterTracker] [FALLBACK] Auto-spawned extinguisher in front of camera at {spawnPos}.");
+            SpawnExtinguisherOnWall(spawnPos, spawnRot);
         }
 
         [ContextMenu("Simulate 1 Step Test")]
@@ -317,7 +398,7 @@ namespace MiningSafetyAR.AR
         }
 
         /// <summary>
-        /// Called by ARPlacementManager or wall scan coroutine when spawning extinguisher.
+        /// Spawns the extinguisher at the specified position.
         /// </summary>
         public void SpawnExtinguisherOnWall(Vector3 spawnPos, Quaternion spawnRot)
         {

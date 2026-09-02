@@ -837,7 +837,7 @@ namespace MiningSafetyAR.UI.Pages
             }
             else
             {
-                ShowTier1Info("Steps complete! Point camera at a wall and TAP to place extinguisher.");
+                ShowTier1Info("Step goal reached! Searching for nearby wall or surface to mount extinguisher...");
             }
         }
 
