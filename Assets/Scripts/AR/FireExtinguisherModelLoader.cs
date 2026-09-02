@@ -84,8 +84,11 @@ namespace MiningSafetyAR.AR
                 }
                 else
                 {
-                    Debug.LogWarning("[WARN] [FireExtinguisherModelLoader] glTF loading returned null. Re-enabling primitive fallback renderer if available.");
-                    if (mr != null) mr.enabled = true;
+                    Debug.LogWarning("[WARN] [FireExtinguisherModelLoader] glTF loading returned null. Re-enabling primitive fallback renderers if available.");
+                    foreach (var renderer in GetComponentsInChildren<MeshRenderer>())
+                    {
+                        renderer.enabled = true;
+                    }
                 }
             }
             catch (Exception ex)
