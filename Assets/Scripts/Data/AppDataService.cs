@@ -104,7 +104,8 @@ namespace MiningSafetyAR.Data
             progressMap.Clear();
             allAttempts.Clear();
             PlayerPrefs.DeleteKey("CachedWorker");
-            if (!string.IsNullOrEmpty(uid)) PlayerPrefs.DeleteKey("ProgressMap_" + uid);
+            // DO NOT delete ProgressMap so it persists across sessions!
+            // if (!string.IsNullOrEmpty(uid)) PlayerPrefs.DeleteKey("ProgressMap_" + uid);
             OnWorkerLoggedOut?.Invoke();
         }
 
@@ -119,6 +120,18 @@ namespace MiningSafetyAR.Data
                 if (!ok || string.IsNullOrEmpty(json))
                 {
                     Debug.LogWarning($"[AppDataService] Firestore load failed for {firebaseUid}, using cache");
+                    
+                    // Try to recover from the persistent user cache
+                    string userCache = PlayerPrefs.GetString("CachedWorker_" + firebaseUid, "");
+                    if (!string.IsNullOrEmpty(userCache))
+                    {
+                        Debug.Log($"[AppDataService] Recovered worker from local cache for {firebaseUid}");
+                        CurrentWorker = JsonUtility.FromJson<WorkerData>(userCache);
+                        LoadProgressFromSubcollection(firebaseUid);
+                        LoadAttemptsFromFirestore(firebaseUid);
+                        return;
+                    }
+
                     if (CurrentWorker != null && CurrentWorker.firebaseUid == firebaseUid && CurrentWorker.id != "NEW")
                     {
                         Debug.Log($"[AppDataService] Keeping cached worker: {CurrentWorker.name}");
@@ -627,6 +640,7 @@ namespace MiningSafetyAR.Data
         {
             string json = JsonUtility.ToJson(worker);
             PlayerPrefs.SetString("CachedWorker", json);
+            PlayerPrefs.SetString("CachedWorker_" + worker.firebaseUid, json);
             PlayerPrefs.Save();
         }
 

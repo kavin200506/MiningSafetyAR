@@ -91,9 +91,28 @@ namespace MiningSafetyAR.UI.Pages
             {
                 optionsList.Clear();
                 string[] letters = { "A", "B", "C", "D" };
-                for (int i = 0; i < q.optionsEN.Length; i++)
+                
+                // Shuffle logic
+                var indices = new List<int>();
+                for (int i = 0; i < q.optionsEN.Length; i++) indices.Add(i);
+                
+                var rng = new System.Random();
+                int n = indices.Count;
+                while (n > 1) {
+                    n--;
+                    int k = rng.Next(n + 1);
+                    int val = indices[k];
+                    indices[k] = indices[n];
+                    indices[n] = val;
+                }
+                
+                int shuffledCorrectIndex = indices.IndexOf(q.correctIndex);
+
+                for (int i = 0; i < indices.Count; i++)
                 {
-                    int idx = i;
+                    int originalIdx = indices[i];
+                    int displayIdx = i; // Visual position (A, B, C, D)
+                    
                     var btn = new Button();
                     btn.AddToClassList("option-button");
                     btn.style.flexDirection = FlexDirection.Row;
@@ -108,7 +127,7 @@ namespace MiningSafetyAR.UI.Pages
                     btn.style.paddingTop = 12; btn.style.paddingBottom = 12; btn.style.paddingLeft = 12; btn.style.paddingRight = 12;
                     btn.style.marginBottom = 8;
 
-                    var badge = new Label(letters[i]);
+                    var badge = new Label(letters[displayIdx]);
                     badge.AddToClassList("option-button__badge");
                     badge.style.width = 28; badge.style.height = 28;
                     badge.style.borderTopLeftRadius = 14; badge.style.borderTopRightRadius = 14; badge.style.borderBottomLeftRadius = 14; badge.style.borderBottomRightRadius = 14;
@@ -118,7 +137,7 @@ namespace MiningSafetyAR.UI.Pages
                     badge.style.unityTextAlign = TextAnchor.MiddleCenter;
                     badge.style.fontSize = 12;
 
-                    var txt = new Label(q.optionsEN[i]);
+                    var txt = new Label(q.optionsEN[originalIdx]);
                     txt.AddToClassList("option-button__text");
                     txt.style.flexGrow = 1;
                     txt.style.marginLeft = 12;
@@ -127,7 +146,7 @@ namespace MiningSafetyAR.UI.Pages
 
                     btn.Add(badge);
                     btn.Add(txt);
-                    btn.RegisterCallback<ClickEvent>(e => OnOptionSelected(idx, q.correctIndex, btn));
+                    btn.RegisterCallback<ClickEvent>(e => OnOptionSelected(displayIdx, shuffledCorrectIndex, btn));
                     optionsList.Add(btn);
                 }
             }
