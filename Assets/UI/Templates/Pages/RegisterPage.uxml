@@ -12,7 +12,16 @@
                 <ui:VisualElement name="app-logo" style="width: 112px; height: 83px; border-radius: 20px; align-items: center; justify-content: center; margin-bottom: 16px; background-color: transparent; -unity-background-scale-mode: scale-to-fit; background-image: url(&quot;project://database/Assets/UI/Sprites/AR_Logo.png?fileID=2800000&amp;guid=e2e5e39cb631c0f44b6438f78142e8d0&amp;type=3#AR_Logo&quot;);"/>
                 <ui:Label text="Create Your Account" style="font-size: 24px; font-weight: 800; color: rgb(26, 26, 26); letter-spacing: 1px; margin-bottom: 4px; -unity-font-style: bold; height: 33px; width: 271px;"/>
                 <ui:Label text="Join MineSafetyAR and start your training journey" style="font-size: 13px; color: rgb(102, 102, 102); margin-bottom: 32px; text-align: center; height: 9px; width: 333px; -unity-text-align: upper-center; -unity-font-style: bold;"/>
-                <ui:VisualElement class="card" style="width: 354px; max-width: 450px; padding: 32px; background-color: rgb(255, 255, 255); border-radius: 24px; border-left-width: 0; margin-bottom: 32px; height: 677px;">
+                <ui:VisualElement class="card" style="width: 354px; max-width: 450px; padding: 32px; background-color: rgb(255, 255, 255); border-radius: 24px; border-left-width: 0; margin-bottom: 32px; min-height: 700px;">
+                    
+                    <!-- Upload Photo UI -->
+                    <ui:VisualElement style="align-items: center; margin-bottom: 24px;">
+                        <ui:Button name="upload-photo-btn" style="width: 80px; height: 80px; border-radius: 40px; background-color: rgb(240, 240, 240); border-width: 0; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 8px;">
+                            <ui:VisualElement name="upload-photo-icon" style="width: 24px; height: 24px; background-color: rgb(153, 153, 153); border-radius: 12px; margin-bottom: 4px;"/>
+                            <ui:Label text="Upload" style="font-size: 10px; color: rgb(153, 153, 153); -unity-font-style: bold;"/>
+                        </ui:Button>
+                    </ui:VisualElement>
+
                     <ui:VisualElement class="form-group" style="width: 100%; margin-bottom: 16px;">
                         <ui:Label text="Full Name" style="font-size: 12px; color: rgb(26, 26, 26); margin-bottom: 4px; font-weight: 600; -unity-font-style: bold;"/>
                         <ui:TextField name="name-input" value="" class="input-field" style="height: 36px; border-radius: 8px; border-color: rgb(224, 224, 224); width: 284px;"/>

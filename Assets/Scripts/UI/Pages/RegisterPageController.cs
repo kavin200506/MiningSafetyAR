@@ -47,8 +47,20 @@ namespace MiningSafetyAR.UI.Pages
                     tf.RegisterCallback<ChangeEvent<string>>(e => ForceTextFieldColors(tf, tf.name));
                 }
             }
-            if (pinInput != null) pinInput.isPasswordField = true;
-            if (confirmPinInput != null) confirmPinInput.isPasswordField = true;
+            if (pinInput != null) 
+            {
+                pinInput.isPasswordField = true;
+                pinInput.RegisterValueChangedCallback(e => {
+                    if (e.newValue != null && e.newValue.Length == 4) pinInput.Blur();
+                });
+            }
+            if (confirmPinInput != null) 
+            {
+                confirmPinInput.isPasswordField = true;
+                confirmPinInput.RegisterValueChangedCallback(e => {
+                    if (e.newValue != null && e.newValue.Length == 4) confirmPinInput.Blur();
+                });
+            }
             if (nameInput != null) nameInput.schedule.Execute(() => { nameInput.Focus(); ForceTextFieldColors(nameInput, "name-input"); }).StartingIn(150);
 
             if (registerBtn != null) registerBtn.RegisterCallback<ClickEvent>(evt => OnRegister());
@@ -56,6 +68,17 @@ namespace MiningSafetyAR.UI.Pages
             if (langEn != null) langEn.RegisterCallback<ClickEvent>(evt => SetLanguage("English", langEn));
             if (langHi != null) langHi.RegisterCallback<ClickEvent>(evt => SetLanguage("Hindi", langHi));
             if (langSat != null) langSat.RegisterCallback<ClickEvent>(evt => SetLanguage("Santali", langSat));
+
+            var uploadBtn = root.Q<Button>("upload-photo-btn");
+            if (uploadBtn != null) 
+            {
+                uploadBtn.RegisterCallback<ClickEvent>(evt => 
+                {
+                    uploadBtn.style.backgroundColor = new StyleColor(new Color(255f/255f, 224f/255f, 178f/255f));
+                    var icon = root.Q<VisualElement>("upload-photo-icon");
+                    if (icon != null) icon.style.backgroundColor = new StyleColor(new Color(255f/255f, 109f/255f, 0f));
+                });
+            }
 
             SetLanguage("English", langEn);
 

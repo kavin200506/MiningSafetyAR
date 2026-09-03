@@ -19,7 +19,7 @@
                 <ui:Label text="Discover new safety modules and upgrade your skills." style="font-size: 14px; color: rgb(255, 224, 178); white-space: normal;"/>
             </ui:VisualElement>
             <ui:VisualElement style="padding: 0 16px; margin-top: -32px; margin-bottom: 24px;">
-                <ui:VisualElement style="flex-direction: row; align-items: center; background-color: rgb(255, 255, 255); border-radius: 20px; border-width: 1px; border-color: rgb(230, 230, 230); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05); width: 100%; padding: 0 20px; height: 64px;">
+                <ui:VisualElement name="search-container" style="flex-direction: row; align-items: center; background-color: rgb(255, 255, 255); border-radius: 20px; border-width: 1px; border-color: rgb(230, 230, 230); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05); width: 100%; padding: 0 20px; height: 64px;">
                     <ui:VisualElement class="icon-search" style="width: 24px; height: 24px; -unity-background-image-tint-color: rgb(255, 109, 0); margin-right: 12px;"/>
                     <ui:VisualElement style="flex: 1; justify-content: center;">
                         <ui:Label name="search-placeholder" text="Search modules..." style="position: absolute; font-size: 15px; font-weight: 600; color: rgb(153, 153, 153); -unity-font-style: italic; padding-left: 2px;"/>

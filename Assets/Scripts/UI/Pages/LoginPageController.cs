@@ -36,6 +36,12 @@ namespace MiningSafetyAR.UI.Pages
                 pinInput.focusable = true;
                 pinInput.isPasswordField = true;
                 ForceTextFieldColors(pinInput);
+                
+                pinInput.RegisterValueChangedCallback(e => {
+                    if (e.newValue != null && e.newValue.Length == 4) {
+                        pinInput.Blur();
+                    }
+                });
             }
 
             // Prevent ARPlacementManager from stealing pointer events when typing

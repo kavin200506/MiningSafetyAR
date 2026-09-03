@@ -26,12 +26,18 @@ namespace MiningSafetyAR.UI.Pages
             searchField = root.Q<TextField>("search-field");
             var searchPlaceholder = root.Q<Label>("search-placeholder");
             var searchIconBtn = root.Q<VisualElement>("search-icon-btn");
+            var searchContainer = root.Q<VisualElement>("search-container");
             
             if (searchField != null)
             {
                 if (searchIconBtn != null)
                 {
                     searchIconBtn.RegisterCallback<PointerDownEvent>(e => searchField.Focus());
+                }
+                
+                if (searchContainer != null)
+                {
+                    searchContainer.RegisterCallback<PointerDownEvent>(e => searchField.Focus());
                 }
                 
                 searchField.RegisterValueChangedCallback(e => {
@@ -75,6 +81,9 @@ namespace MiningSafetyAR.UI.Pages
             if (tabTraining != null) tabTraining.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateToTab("UI_TrainingCatalogue"));
             if (tabProgress != null) tabProgress.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateToTab("UI_Progress"));
             if (tabSettings != null) tabSettings.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateToTab("UI_Settings"));
+            
+            var backBtn = root.Q<Button>("back-btn");
+            if (backBtn != null) backBtn.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.GoBack());
         }
 
         public override void OnPageEnter() => Refresh();

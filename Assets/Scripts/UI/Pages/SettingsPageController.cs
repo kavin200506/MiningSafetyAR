@@ -10,7 +10,7 @@ namespace MiningSafetyAR.UI.Pages
     public class SettingsPageController : PageController
     {
         Label profileName, profileId, profileOrg;
-        ToggleSwitchController soundToggle, voiceToggle;
+        ToggleSwitchController soundToggle, voiceToggle, darkModeToggle;
         Button logoutBtn;
         Button langEn, langHi, langSat;
 
@@ -26,8 +26,10 @@ namespace MiningSafetyAR.UI.Pages
 
             var soundEl = root.Q("toggle-sound");
             var voiceEl = root.Q("toggle-voice");
+            var darkEl = root.Q("toggle-dark-mode");
             if (soundEl != null) soundToggle = new ToggleSwitchController(soundEl);
             if (voiceEl != null) voiceToggle = new ToggleSwitchController(voiceEl);
+            if (darkEl != null) darkModeToggle = new ToggleSwitchController(darkEl);
 
             if (logoutBtn != null) logoutBtn.RegisterCallback<ClickEvent>(e => OnLogout());
             if (langEn != null) langEn.RegisterCallback<ClickEvent>(e => SetLanguage("English", langEn));
@@ -57,8 +59,10 @@ namespace MiningSafetyAR.UI.Pages
             SetLanguageUI(currentLang);
             if (soundToggle != null) soundToggle.SetValue(PlayerPrefs.GetInt("SoundEnabled", 1) == 1);
             if (voiceToggle != null) voiceToggle.SetValue(PlayerPrefs.GetInt("VoiceEnabled", 1) == 1);
+            if (darkModeToggle != null) darkModeToggle.SetValue(PlayerPrefs.GetInt("DarkMode", 0) == 1);
             if (soundToggle != null) soundToggle.OnToggled += on => PlayerPrefs.SetInt("SoundEnabled", on ? 1 : 0);
             if (voiceToggle != null) voiceToggle.OnToggled += on => PlayerPrefs.SetInt("VoiceEnabled", on ? 1 : 0);
+            if (darkModeToggle != null) darkModeToggle.OnToggled += on => PlayerPrefs.SetInt("DarkMode", on ? 1 : 0);
             
             PopulateCertifications();
         }

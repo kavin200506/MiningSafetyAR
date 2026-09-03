@@ -74,20 +74,20 @@
         <!-- Bottom Nav -->
         <ui:VisualElement name="bottom-nav" class="bottom-nav">
             <ui:Button name="tab-home" class="bottom-nav__tab">
-                <ui:VisualElement class="icon-home" style="margin-bottom: 2px;" />
-                <ui:Label class="bottom-nav__tab-label" text="Home" />
+                <ui:VisualElement class="icon-home" style="margin-bottom: 2px; width: 32px;" />
+                <ui:Label text="Home" class="bottom-nav__tab-label" style="-unity-font-style: bold; -unity-font-definition: url(&quot;project://database/Assets/TextMesh%20Pro/Fonts/Rajdhani/Rajdhani-Medium.ttf?fileID=12800000&amp;guid=e667d5aeff8d1314eb115a34c389a259&amp;type=3#Rajdhani-Medium&quot;);" />
             </ui:Button>
             <ui:Button name="tab-training" class="bottom-nav__tab">
-                <ui:VisualElement class="icon-training" style="margin-bottom: 2px;" />
-                <ui:Label class="bottom-nav__tab-label" text="Training" />
+                <ui:VisualElement class="icon-training" style="margin-bottom: 2px; width: 36px;" />
+                <ui:Label text="Training" class="bottom-nav__tab-label" style="-unity-font-style: bold; -unity-font-definition: url(&quot;project://database/Assets/TextMesh%20Pro/Fonts/Rajdhani/Rajdhani-Medium.ttf?fileID=12800000&amp;guid=e667d5aeff8d1314eb115a34c389a259&amp;type=3#Rajdhani-Medium&quot;);" />
             </ui:Button>
             <ui:Button name="tab-progress" class="bottom-nav__tab bottom-nav__tab--active">
                 <ui:VisualElement class="icon-progress" style="margin-bottom: 2px;" />
-                <ui:Label class="bottom-nav__tab-label" text="Progress" />
+                <ui:Label text="Progress" class="bottom-nav__tab-label" style="-unity-font-style: bold; -unity-font-definition: url(&quot;project://database/Assets/TextMesh%20Pro/Fonts/Rajdhani/Rajdhani-Medium.ttf?fileID=12800000&amp;guid=e667d5aeff8d1314eb115a34c389a259&amp;type=3#Rajdhani-Medium&quot;);" />
             </ui:Button>
             <ui:Button name="tab-settings" class="bottom-nav__tab">
                 <ui:VisualElement class="icon-settings" style="margin-bottom: 2px;" />
-                <ui:Label class="bottom-nav__tab-label" text="Settings" />
+                <ui:Label text="Settings" class="bottom-nav__tab-label" style="-unity-font-style: bold; -unity-font-definition: url(&quot;project://database/Assets/TextMesh%20Pro/Fonts/Rajdhani/Rajdhani-Medium.ttf?fileID=12800000&amp;guid=e667d5aeff8d1314eb115a34c389a259&amp;type=3#Rajdhani-Medium&quot;);" />
             </ui:Button>
         </ui:VisualElement>
     </ui:VisualElement>
