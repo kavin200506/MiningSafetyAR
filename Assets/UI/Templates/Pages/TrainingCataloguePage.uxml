@@ -6,43 +6,43 @@
     <Style src="project://database/Assets/UI/Styles/BottomNav.uss?fileID=7433441132597879392&amp;guid=2efbc4ad3addbec42b50c21c4d27ada6&amp;type=3#BottomNav"/>
     <Style src="project://database/Assets/UI/Styles/Icons.uss?fileID=7433441132597879392&amp;guid=27bbf8a071ea19e42b8b10e5dd4bf912&amp;type=3#Icons"/>
     <Style src="project://database/Assets/UI/Styles/Animations.uss?fileID=7433441132597879392&amp;guid=cd6e8d02f125b714cb01e3e2d0813209&amp;type=3#Animations"/>
-    <ui:VisualElement class="page-container" style="background-color: rgb(245, 247, 250);">
+    <ui:VisualElement class="page-container" style="background-color: var(--bg-primary);">
         <ui:ScrollView class="scroll-area" style="flex: 1;">
             <ui:VisualElement style="background-color: rgb(255, 109, 0); padding: 32px 20px 80px 20px; border-bottom-left-radius: 40px; border-bottom-right-radius: 40px;">
                 <ui:VisualElement style="flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                     <ui:Button name="back-btn" class="header__back-btn" style="width: 32px; height: 32px; background-color: rgba(255, 255, 255, 0.2); border-radius: 16px; border-width: 0; align-items: center; justify-content: center; margin-left: -8px;">
-                        <ui:Label text="&lt;" style="color: rgb(255, 255, 255); font-size: 18px; font-weight: 700; -unity-font-style: bold; margin-bottom: 2px;"/>
+                        <ui:Label text="&lt;" style="color: var(--bg-card); font-size: 18px; font-weight: 700; -unity-font-style: bold; margin-bottom: 2px;"/>
                     </ui:Button>
                     <ui:VisualElement style="width: 32px; height: 32px;"/>
                 </ui:VisualElement>
-                <ui:Label text="Catalogue" style="font-size: 32px; font-weight: 700; color: rgb(255, 255, 255); -unity-font-style: bold; margin-bottom: 8px;"/>
+                <ui:Label text="Catalogue" style="font-size: 32px; font-weight: 700; color: var(--bg-card); -unity-font-style: bold; margin-bottom: 8px;"/>
                 <ui:Label text="Discover new safety modules and upgrade your skills." style="font-size: 14px; color: rgb(255, 224, 178); white-space: normal;"/>
             </ui:VisualElement>
             <ui:VisualElement style="padding: 0 16px; margin-top: -32px; margin-bottom: 24px;">
-                <ui:VisualElement name="search-container" style="flex-direction: row; align-items: center; background-color: rgb(255, 255, 255); border-radius: 20px; border-width: 1px; border-color: rgb(230, 230, 230); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05); width: 100%; padding: 0 20px; height: 64px;">
+                <ui:VisualElement name="search-container" style="flex-direction: row; align-items: center; background-color: var(--bg-card); border-radius: 20px; border-width: 1px; border-color: var(--border); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05); width: 100%; padding: 0 20px; height: 64px;">
                     <ui:VisualElement class="icon-search" style="width: 24px; height: 24px; -unity-background-image-tint-color: rgb(255, 109, 0); margin-right: 12px;"/>
                     <ui:VisualElement style="flex: 1; justify-content: center;">
                         <ui:Label name="search-placeholder" text="Search modules..." style="position: absolute; font-size: 15px; font-weight: 600; color: rgb(153, 153, 153); -unity-font-style: italic; padding-left: 2px;"/>
-                        <ui:TextField name="search-field" style="background-color: transparent; border-width: 0; font-size: 15px; color: rgb(26, 26, 26);"/>
+                        <ui:TextField name="search-field" style="background-color: transparent; border-width: 0; font-size: 15px; color: var(--text-primary);"/>
                     </ui:VisualElement>
-                    <ui:VisualElement name="search-icon-btn" style="width: 32px; height: 32px; background-color: rgb(255, 243, 224); border-radius: 8px; align-items: center; justify-content: center; cursor: link;">
+                    <ui:VisualElement name="search-icon-btn" style="width: 32px; height: 32px; background-color: var(--bg-card-accent); border-radius: 8px; align-items: center; justify-content: center; cursor: link;">
                         <ui:VisualElement class="icon-settings" style="width: 20px; height: 16px; -unity-background-image-tint-color: rgb(255, 109, 0); background-image: url(&quot;project://database/Assets/UI/Sprites/Icons/Search_box.png?fileID=2800000&amp;guid=a61db5bbdcb125d4b8ab7831a011baad&amp;type=3#Search_box&quot;);"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement style="padding: 0 16px; margin-bottom: 24px;">
-                <ui:Label text="Categories" style="font-size: 18px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold; margin-bottom: 16px; padding-left: 4px;"/>
+                <ui:Label text="Categories" style="font-size: 18px; font-weight: 700; color: var(--text-primary); -unity-font-style: bold; margin-bottom: 16px; padding-left: 4px;"/>
                 <ui:VisualElement name="filter-row" class="filter-row" style="flex-direction: row; flex-wrap: wrap;">
-                    <ui:Button name="filter-all" text="All" class="filter-pill filter-pill--active" style="background-color: rgb(255, 109, 0); color: rgb(255, 255, 255); padding: 12px 24px; border-radius: 20px; font-size: 13px; font-weight: 700; -unity-font-style: bold; border-width: 0; margin-right: 8px; margin-bottom: 8px;"/>
-                    <ui:Button name="filter-not-started" text="New" class="filter-pill" style="background-color: rgb(255, 255, 255); color: rgb(102, 102, 102); padding: 12px 24px; border-radius: 20px; font-size: 13px; font-weight: 700; -unity-font-style: bold; border-width: 1px; border-color: rgb(230, 230, 230); margin-right: 8px; margin-bottom: 8px;"/>
-                    <ui:Button name="filter-in-progress" text="In Progress" class="filter-pill" style="background-color: rgb(255, 255, 255); color: rgb(102, 102, 102); padding: 12px 24px; border-radius: 20px; font-size: 13px; font-weight: 700; -unity-font-style: bold; border-width: 1px; border-color: rgb(230, 230, 230); margin-right: 8px; margin-bottom: 8px;"/>
-                    <ui:Button name="filter-completed" text="Completed" class="filter-pill" style="background-color: rgb(255, 255, 255); color: rgb(102, 102, 102); padding: 12px 24px; border-radius: 20px; font-size: 13px; font-weight: 700; -unity-font-style: bold; border-width: 1px; border-color: rgb(230, 230, 230); margin-bottom: 8px;"/>
+                    <ui:Button name="filter-all" text="All" class="filter-pill filter-pill--active" style="background-color: rgb(255, 109, 0); color: var(--bg-card); padding: 12px 24px; border-radius: 20px; font-size: 13px; font-weight: 700; -unity-font-style: bold; border-width: 0; margin-right: 8px; margin-bottom: 8px;"/>
+                    <ui:Button name="filter-not-started" text="New" class="filter-pill" style="background-color: var(--bg-card); color: var(--text-secondary); padding: 12px 24px; border-radius: 20px; font-size: 13px; font-weight: 700; -unity-font-style: bold; border-width: 1px; border-color: var(--border); margin-right: 8px; margin-bottom: 8px;"/>
+                    <ui:Button name="filter-in-progress" text="In Progress" class="filter-pill" style="background-color: var(--bg-card); color: var(--text-secondary); padding: 12px 24px; border-radius: 20px; font-size: 13px; font-weight: 700; -unity-font-style: bold; border-width: 1px; border-color: var(--border); margin-right: 8px; margin-bottom: 8px;"/>
+                    <ui:Button name="filter-completed" text="Completed" class="filter-pill" style="background-color: var(--bg-card); color: var(--text-secondary); padding: 12px 24px; border-radius: 20px; font-size: 13px; font-weight: 700; -unity-font-style: bold; border-width: 1px; border-color: var(--border); margin-bottom: 8px;"/>
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement style="padding: 0 16px;">
                 <ui:VisualElement style="flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-left: 4px;">
-                    <ui:Label text="Available Modules" style="font-size: 18px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold;"/>
-                    <ui:Label name="module-count" text="5 Modules" class="module-count" style="font-size: 13px; font-weight: 700; color: rgb(255, 109, 0); -unity-font-style: bold; background-color: rgb(255, 243, 224); padding: 4px 10px; border-radius: 12px;"/>
+                    <ui:Label text="Available Modules" style="font-size: 18px; font-weight: 700; color: var(--text-primary); -unity-font-style: bold;"/>
+                    <ui:Label name="module-count" text="5 Modules" class="module-count" style="font-size: 13px; font-weight: 700; color: rgb(255, 109, 0); -unity-font-style: bold; background-color: var(--bg-card-accent); padding: 4px 10px; border-radius: 12px;"/>
                 </ui:VisualElement>
                 <ui:VisualElement name="module-list" style="margin-bottom: 24px;"/>
                 <ui:VisualElement style="height: 100px;"/>

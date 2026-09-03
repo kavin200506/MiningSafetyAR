@@ -25,7 +25,7 @@ namespace MiningSafetyAR.UI.Pages
         Label feedbackIcon, feedbackText;
         VisualElement optionsList, feedbackBanner;
         VisualElement quizFill;
-        Button nextBtn, resultsBtn, backBtn;
+        Button nextBtn, resultsBtn;
 
         bool answered = false;
 
@@ -40,11 +40,9 @@ namespace MiningSafetyAR.UI.Pages
             quizFill = root.Q("quiz-fill");
             nextBtn = root.Q<Button>("next-btn");
             resultsBtn = root.Q<Button>("results-btn");
-            backBtn = root.Q<Button>("back-btn");
 
             if (nextBtn != null) nextBtn.RegisterCallback<ClickEvent>(e => NextQuestion());
             if (resultsBtn != null) resultsBtn.RegisterCallback<ClickEvent>(e => ShowResults());
-            if (backBtn != null) backBtn.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.GoBack());
         }
 
         public override void SetNavigationParameter(object param)

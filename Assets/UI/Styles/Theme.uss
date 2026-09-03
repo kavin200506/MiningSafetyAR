@@ -82,3 +82,29 @@
     --bottom-nav-height: 64px;
     --safe-area-bottom: 0px;
 }
+
+/* ========================================
+   DARK THEME OVERRIDES
+   Dark background, orange accent (#FF6D00)
+   ======================================== */
+.dark-theme {
+    --bg-primary: #121212;
+    --bg-secondary: #1E1E1E;
+    --bg-card: #1E1E1E;
+    --bg-card-accent: #2D2114;
+    --bg-input: #2C2C2C;
+    --bg-input-focus: #333333;
+
+    --text-primary: #FFFFFF;
+    --text-secondary: #AAAAAA;
+    --text-muted: #777777;
+    --text-disabled: #555555;
+
+    --border: #333333;
+    --border-light: #444444;
+    --border-accent: #FF6D004D;
+    
+    --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.3);
+    --shadow-accent: 0 4px 12px rgba(255, 109, 0, 0.2);
+    --shadow-elevated: 0 6px 16px rgba(0, 0, 0, 0.4);
+}

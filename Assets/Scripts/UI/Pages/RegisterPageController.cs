@@ -15,6 +15,41 @@ namespace MiningSafetyAR.UI.Pages
         Button langEn, langHi, langSat;
         Label errorMsg;
         string selectedLanguage = "English";
+        string profileImageUri = "";
+
+        void PickProfileImage()
+        {
+#if UNITY_EDITOR
+            // NativeGallery does not work natively in standard Unity Editor, using mock path
+            profileImageUri = "mock_editor_profile_pic";
+            SetUploadPhotoVisualState(true);
+            Debug.Log("[Register] Mock photo picked in Editor");
+#else
+            NativeGallery.Permission permission = NativeGallery.GetImageFromGallery((path) =>
+            {
+                if (path != null)
+                {
+                    profileImageUri = path;
+                    SetUploadPhotoVisualState(true);
+                    Debug.Log($"[Register] Picked photo path: {path}");
+                }
+            }, "Select a profile picture", "image/*");
+#endif
+        }
+
+        void SetUploadPhotoVisualState(bool hasImage)
+        {
+            var uploadBtn = root.Q<Button>("upload-photo-btn");
+            var icon = root.Q<VisualElement>("upload-photo-icon");
+            if (uploadBtn != null && icon != null)
+            {
+                if (hasImage)
+                {
+                    uploadBtn.style.backgroundColor = new StyleColor(new Color(255f/255f, 224f/255f, 178f/255f));
+                    icon.style.backgroundColor = new StyleColor(new Color(255f/255f, 109f/255f, 0f));
+                }
+            }
+        }
 
         protected override void BindUI()
         {
@@ -72,12 +107,7 @@ namespace MiningSafetyAR.UI.Pages
             var uploadBtn = root.Q<Button>("upload-photo-btn");
             if (uploadBtn != null) 
             {
-                uploadBtn.RegisterCallback<ClickEvent>(evt => 
-                {
-                    uploadBtn.style.backgroundColor = new StyleColor(new Color(255f/255f, 224f/255f, 178f/255f));
-                    var icon = root.Q<VisualElement>("upload-photo-icon");
-                    if (icon != null) icon.style.backgroundColor = new StyleColor(new Color(255f/255f, 109f/255f, 0f));
-                });
+                uploadBtn.RegisterCallback<ClickEvent>(evt => PickProfileImage());
             }
 
             SetLanguage("English", langEn);
@@ -137,6 +167,7 @@ namespace MiningSafetyAR.UI.Pages
                 sector = sectorDropdown != null ? sectorDropdown.value : "Mining",
                 phone = phoneInput != null ? phoneInput.value.Trim() : "",
                 language = selectedLanguage,
+                profilePicUrl = profileImageUri,
                 joinDate = System.DateTime.UtcNow.ToString("yyyy-MM-dd"),
                 overallProgress = 0,
                 certificatesEarned = 0,
