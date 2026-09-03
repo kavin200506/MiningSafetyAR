@@ -1,53 +1,41 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
-    <Style src="project://database/Assets/UI/Styles/Theme.uss" />
-    <Style src="project://database/Assets/UI/Styles/Reset.uss" />
-    <Style src="project://database/Assets/UI/Styles/Components.uss" />
-    <Style src="project://database/Assets/UI/Styles/Header.uss" />
-    <Style src="project://database/Assets/UI/Styles/Forms.uss" />
-    <Style src="project://database/Assets/UI/Styles/BottomNav.uss" />
-    <Style src="project://database/Assets/UI/Styles/Icons.uss" />
-    
+    <Style src="project://database/Assets/UI/Styles/Theme.uss?fileID=7433441132597879392&amp;guid=9c058c37ebd69534dae984e55ac8de84&amp;type=3#Theme"/>
+    <Style src="project://database/Assets/UI/Styles/Reset.uss?fileID=7433441132597879392&amp;guid=2221f5ca94566ea48871403dc278208b&amp;type=3#Reset"/>
+    <Style src="project://database/Assets/UI/Styles/Components.uss?fileID=7433441132597879392&amp;guid=95ed0fa63ed8f1b40bbf80091559f46b&amp;type=3#Components"/>
+    <Style src="project://database/Assets/UI/Styles/Header.uss?fileID=7433441132597879392&amp;guid=4aa99dd6c3c3ee74f8efa10450679978&amp;type=3#Header"/>
+    <Style src="project://database/Assets/UI/Styles/Forms.uss?fileID=7433441132597879392&amp;guid=573fb74b49821d54f8f03d56111b380e&amp;type=3#Forms"/>
+    <Style src="project://database/Assets/UI/Styles/BottomNav.uss?fileID=7433441132597879392&amp;guid=2efbc4ad3addbec42b50c21c4d27ada6&amp;type=3#BottomNav"/>
+    <Style src="project://database/Assets/UI/Styles/Icons.uss?fileID=7433441132597879392&amp;guid=27bbf8a071ea19e42b8b10e5dd4bf912&amp;type=3#Icons"/>
     <ui:VisualElement class="page-container" style="background-color: rgb(245, 247, 250);">
         <ui:ScrollView class="scroll-area" style="flex: 1;">
-            
-            <!-- Dynamic Orange Hero Header -->
             <ui:VisualElement style="background-color: rgb(255, 109, 0); padding: 32px 20px 80px 20px; border-bottom-left-radius: 40px; border-bottom-right-radius: 40px;">
                 <ui:VisualElement style="flex-direction: row; justify-content: center; align-items: center; margin-bottom: 24px;">
-                    <ui:Label text="Settings" style="font-size: 28px; font-weight: 700; color: rgb(255, 255, 255); -unity-font-style: bold; -unity-text-align: middle-center;" />
+                    <ui:Label text="Settings" style="font-size: 28px; font-weight: 700; color: rgb(255, 255, 255); -unity-font-style: bold; -unity-text-align: middle-center;"/>
                 </ui:VisualElement>
-                <ui:Label text="Manage your preferences and account." style="font-size: 14px; color: rgb(255, 224, 178); white-space: normal; -unity-text-align: middle-center;" />
+                <ui:Label text="Manage your preferences and account." style="font-size: 14px; color: rgb(255, 224, 178); white-space: normal; -unity-text-align: middle-center;"/>
             </ui:VisualElement>
-
-            <!-- Floating Profile Card (Overlaps the header) -->
             <ui:VisualElement style="padding: 0 16px; margin-top: -48px;">
-                <ui:VisualElement class="card" name="profile-card" style="background-color: rgb(255, 255, 255); border-radius: 24px; padding: 24px; border-width: 1px; border-color: rgb(230, 230, 230); box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.05); margin-bottom: 24px; align-items: center;">
-                    <ui:VisualElement style="width: 80px; height: 80px; border-radius: 40px; background-color: rgb(255, 243, 224); align-items: center; justify-content: center; margin-bottom: 16px; border-width: 4px; border-color: rgb(255, 255, 255); box-shadow: 0px 4px 10px rgba(255, 109, 0, 0.2);">
-                        <ui:VisualElement class="avatar-worker" style="width: 48px; height: 48px; -unity-background-image-tint-color: rgb(255, 109, 0);" />
+                <ui:VisualElement name="profile-card" class="card" style="background-color: rgb(255, 255, 255); border-radius: 24px; padding: 24px; border-width: 1px; border-color: rgb(230, 230, 230); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05); margin-bottom: 24px; align-items: center;">
+                    <ui:VisualElement style="width: 80px; height: 80px; border-radius: 40px; background-color: rgb(255, 243, 224); align-items: center; justify-content: center; margin-bottom: 16px; border-width: 4px; border-color: rgb(255, 255, 255); box-shadow: 0 4px 10px rgba(255, 109, 0, 0.2);">
+                        <ui:VisualElement class="avatar-worker" style="width: 48px; height: 48px; -unity-background-image-tint-color: rgb(255, 109, 0);"/>
                     </ui:VisualElement>
-                    <ui:Label name="profile-name" text="Worker Name" style="font-size: 22px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold;" />
-                    <ui:Label name="profile-org" text="Organization Name" style="font-size: 13px; color: rgb(102, 102, 102); margin-top: 4px;" />
-                    <ui:VisualElement style="background-color: rgb(245, 245, 245); padding: 6px 16px; border-radius: 12px; margin-top: 12px;">
-                        <ui:Label name="profile-id" text="ID: ------" style="font-size: 12px; font-weight: 700; color: rgb(255, 109, 0); -unity-font-style: bold;" />
-                    </ui:VisualElement>
+                    <ui:Label name="profile-name" text="Worker Name" style="font-size: 22px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold;"/>
+                    <ui:Label name="profile-org" text="Organization Name" style="font-size: 13px; color: rgb(102, 102, 102); margin-top: 4px;"/>
                 </ui:VisualElement>
-
-                <!-- Language Section -->
-                <ui:Label text="Language" style="font-size: 16px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold; margin-bottom: 12px; padding-left: 4px;" />
+                <ui:Label text="Language" style="font-size: 16px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold; margin-bottom: 12px; padding-left: 4px;"/>
                 <ui:VisualElement class="card" style="background-color: rgb(255, 255, 255); border-radius: 20px; padding: 16px; margin-bottom: 24px; border-width: 1px; border-color: rgb(230, 230, 230);">
                     <ui:VisualElement name="lang-selector" style="flex-direction: row; justify-content: space-between;">
-                        <ui:Button class="lang-btn lang-btn--active" name="lang-en" text="English" style="flex: 1; height: 44px; background-color: rgb(255, 109, 0); color: rgb(255, 255, 255); border-radius: 12px; border-width: 0; font-size: 14px; font-weight: 700; -unity-font-style: bold; margin-right: 8px;" />
-                        <ui:Button class="lang-btn" name="lang-hi" text="Hindi" style="flex: 1; height: 44px; background-color: rgb(245, 245, 245); color: rgb(102, 102, 102); border-radius: 12px; border-width: 0; font-size: 14px; font-weight: 700; -unity-font-style: bold; margin-right: 8px;" />
-                        <ui:Button class="lang-btn" name="lang-sat" text="Santali" style="flex: 1; height: 44px; background-color: rgb(245, 245, 245); color: rgb(102, 102, 102); border-radius: 12px; border-width: 0; font-size: 14px; font-weight: 700; -unity-font-style: bold;" />
+                        <ui:Button name="lang-en" text="English" class="lang-btn lang-btn--active" style="flex: 1; height: 44px; background-color: rgb(255, 109, 0); color: rgb(255, 255, 255); border-radius: 12px; border-width: 0; font-size: 14px; font-weight: 700; -unity-font-style: bold; margin-right: 8px;"/>
+                        <ui:Button name="lang-hi" text="Hindi" class="lang-btn" style="flex: 1; height: 44px; background-color: rgb(245, 245, 245); color: rgb(102, 102, 102); border-radius: 12px; border-width: 0; font-size: 14px; font-weight: 700; -unity-font-style: bold; margin-right: 8px;"/>
+                        <ui:Button name="lang-sat" text="Santali" class="lang-btn" style="flex: 1; height: 44px; background-color: rgb(245, 245, 245); color: rgb(102, 102, 102); border-radius: 12px; border-width: 0; font-size: 14px; font-weight: 700; -unity-font-style: bold;"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
-
-                <!-- Preferences Section -->
-                <ui:Label text="Preferences" style="font-size: 16px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold; margin-bottom: 12px; padding-left: 4px;" />
+                <ui:Label text="Preferences" style="font-size: 16px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold; margin-bottom: 12px; padding-left: 4px;"/>
                 <ui:VisualElement class="card" style="background-color: rgb(255, 255, 255); border-radius: 20px; padding: 16px; margin-bottom: 24px; border-width: 1px; border-color: rgb(230, 230, 230);">
                     <ui:VisualElement style="flex-direction: row; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom-width: 1px; border-bottom-color: rgb(240, 240, 240);">
-                        <ui:Label text="Sound Effects" style="font-size: 15px; font-weight: 600; color: rgb(26, 26, 26);" />
-                        <ui:VisualElement class="toggle-switch" name="toggle-sound">
-                            <ui:VisualElement class="toggle-switch__knob" />
+                        <ui:Label text="Sound Effects" style="font-size: 15px; font-weight: 600; color: rgb(26, 26, 26);"/>
+                        <ui:VisualElement name="toggle-sound" class="toggle-switch">
+                            <ui:VisualElement class="toggle-switch__knob"/>
                         </ui:VisualElement>
                     </ui:VisualElement>
                     <ui:VisualElement style="flex-direction: row; justify-content: space-between; align-items: center; padding-top: 16px; padding-bottom: 16px; border-bottom-width: 1px; border-bottom-color: rgb(240, 240, 240);">
@@ -63,38 +51,27 @@
                         </ui:VisualElement>
                     </ui:VisualElement>
                 </ui:VisualElement>
-
-                <!-- System Info Section -->
-                <ui:Label text="System" style="font-size: 16px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold; margin-bottom: 12px; padding-left: 4px;" />
+                <ui:Label text="System" style="font-size: 16px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold; margin-bottom: 12px; padding-left: 4px;"/>
                 <ui:VisualElement class="card" style="background-color: rgb(255, 255, 255); border-radius: 20px; padding: 16px; margin-bottom: 32px; border-width: 1px; border-color: rgb(230, 230, 230);">
                     <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 12px;">
-                        <ui:Label text="App Version" style="font-size: 14px; color: rgb(102, 102, 102);" />
-                        <ui:Label text="2.1.0" style="font-size: 14px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold;" />
+                        <ui:Label text="App Version" style="font-size: 14px; color: rgb(102, 102, 102);"/>
+                        <ui:Label text="2.1.0" style="font-size: 14px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold;"/>
                     </ui:VisualElement>
                     <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 12px;">
-                        <ui:Label text="Storage Used" style="font-size: 14px; color: rgb(102, 102, 102);" />
-                        <ui:Label text="248 MB" style="font-size: 14px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold;" />
+                        <ui:Label text="Storage Used" style="font-size: 14px; color: rgb(102, 102, 102);"/>
+                        <ui:Label text="248 MB" style="font-size: 14px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold;"/>
                     </ui:VisualElement>
                     <ui:VisualElement style="flex-direction: row; justify-content: space-between;">
-                        <ui:Label text="Sync Status" style="font-size: 14px; color: rgb(102, 102, 102);" />
-                        <ui:Label text="Synced Today" style="font-size: 14px; font-weight: 700; color: rgb(76, 175, 80); -unity-font-style: bold;" />
+                        <ui:Label text="Sync Status" style="font-size: 14px; color: rgb(102, 102, 102);"/>
+                        <ui:Label text="Synced Today" style="font-size: 14px; font-weight: 700; color: rgb(76, 175, 80); -unity-font-style: bold;"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
-
-                <!-- Certifications Section -->
-                <ui:Label text="Certifications" style="font-size: 16px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold; margin-bottom: 12px; padding-left: 4px;" />
-                <ui:VisualElement class="card" name="certifications-list" style="background-color: rgb(255, 255, 255); border-radius: 20px; padding: 16px; margin-bottom: 32px; border-width: 1px; border-color: rgb(230, 230, 230); flex-direction: column;">
-                </ui:VisualElement>
-
-                <!-- Logout -->
-                <ui:Button class="btn-danger" name="logout-btn" text="LOG OUT" style="background-color: rgb(255, 235, 238); color: rgb(244, 67, 54); font-size: 15px; font-weight: 700; -unity-font-style: bold; padding: 16px; border-radius: 16px; border-width: 0;" />
-                
-                <ui:Label text="ARC MineSafetyAr - Smart India Hackathon" style="text-align: center; color: rgb(153, 153, 153); font-size: 11px; margin-top: 24px;" />
-                <ui:VisualElement style="height: 100px;" />
+                <ui:Label text="Certifications" style="font-size: 16px; font-weight: 700; color: rgb(26, 26, 26); -unity-font-style: bold; margin-bottom: 12px; padding-left: 4px;"/>
+                <ui:VisualElement name="certifications-list" class="card" style="background-color: rgb(255, 255, 255); border-radius: 20px; padding: 16px; margin-bottom: 32px; border-width: 1px; border-color: rgb(230, 230, 230); flex-direction: column;"/>
+                <ui:Button name="logout-btn" text="LOG OUT" class="btn-danger" style="background-color: rgb(255, 235, 238); color: rgb(244, 67, 54); font-size: 15px; font-weight: 700; -unity-font-style: bold; padding: 16px; border-radius: 16px; border-width: 0;"/>
+                <ui:VisualElement style="height: 100px;"/>
             </ui:VisualElement>
         </ui:ScrollView>
-        
-        <!-- Bottom Nav -->
         <ui:VisualElement name="bottom-nav" class="bottom-nav">
             <ui:Button name="tab-home" class="bottom-nav__tab">
                 <ui:VisualElement class="icon-home" style="margin-bottom: 2px; width: 32px;" />
