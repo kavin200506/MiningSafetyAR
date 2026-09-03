@@ -16,7 +16,7 @@ namespace MiningSafetyAR.UI.Navigation
         private static readonly HashSet<string> bottomNavVisibleScenes = new HashSet<string>
         {
             "UI_Dashboard", "UI_TrainingCatalogue",
-            "UI_ModuleDetail",
+            "UI_ModuleDetail", "UI_SubModuleList",
             "UI_Progress", "UI_Settings"
         };
 
@@ -25,6 +25,7 @@ namespace MiningSafetyAR.UI.Navigation
             { "UI_Dashboard", 0 },
             { "UI_TrainingCatalogue", 1 },
             { "UI_ModuleDetail", 1 },
+            { "UI_SubModuleList", 1 },
             { "UI_Progress", 2 },
             { "UI_Settings", 3 }
         };

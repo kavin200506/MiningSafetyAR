@@ -48,8 +48,7 @@ namespace MiningSafetyAR.UI.Helpers
             var bestScore = card.Q<Label>("best-score");
             if (bestScore != null)
             {
-                if (mod.bestScore > 0) { bestScore.style.display = DisplayStyle.Flex; bestScore.text = $"Best: {mod.bestScore}%"; }
-                else bestScore.style.display = DisplayStyle.None;
+                bestScore.style.display = DisplayStyle.None;
             }
 
             var iconBox = card.Q("icon-box");

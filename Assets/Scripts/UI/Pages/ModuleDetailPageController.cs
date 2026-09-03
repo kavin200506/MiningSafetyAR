@@ -106,19 +106,7 @@ namespace MiningSafetyAR.UI.Pages
 
             if (bestScoreCard != null)
             {
-                if (mod.bestScore > 0)
-                {
-                    bestScoreCard.style.display = DisplayStyle.Flex;
-                    var track = bestScoreCard.Q("best-track");
-                    if (track != null) ProgressBarHelper.SetProgress(track, mod.bestScore);
-                    var bestText = root.Q<Label>("best-score-text");
-                    if (bestText != null) bestText.text = $"{mod.bestScore}%";
-                    var att = root.Q<Label>("attempt-count");
-                    if (att != null) att.text = $"{mod.attempts} attempts";
-                    var last = root.Q<Label>("last-attempt");
-                    if (last != null) last.text = $"Last: {mod.lastAttempt}";
-                }
-                else bestScoreCard.style.display = DisplayStyle.None;
+                bestScoreCard.style.display = DisplayStyle.None;
             }
 
             if (objectivesList != null)
@@ -145,7 +133,7 @@ namespace MiningSafetyAR.UI.Pages
                     scoreBars.Clear();
                     AddScoreBar("Hazard Recognition", mod.competencyScores.hazardRecognition);
                     AddScoreBar("Extinguisher Use", mod.competencyScores.extinguisherUse);
-                    AddScoreBar("PPE Selection", mod.competencyScores.ppeSelection);
+                    AddScoreBar("Time Taken", mod.competencyScores.ppeSelection);
                     AddScoreBar("Evacuation", mod.competencyScores.evacuation);
                 }
                 else if (competencySection != null) competencySection.style.display = DisplayStyle.None;

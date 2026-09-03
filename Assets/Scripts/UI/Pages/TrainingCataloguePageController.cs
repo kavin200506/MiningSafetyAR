@@ -134,7 +134,7 @@ namespace MiningSafetyAR.UI.Pages
         {
             var app = AppDataService.Instance;
             if (app == null) return;
-            var modules = app.GetAllModulesWithProgress();
+            var modules = app.GetAllModulesWithProgress().FindAll(m => string.IsNullOrEmpty(m.parentId));
             if (activeFilter != "all")
             {
                 ModuleStatus status = activeFilter switch
@@ -170,6 +170,6 @@ namespace MiningSafetyAR.UI.Pages
             }
         }
 
-        void OnModuleClicked(ModuleData mod) => NavigationManager.Instance.NavigateTo("UI_ModuleDetail", mod.id);
+        void OnModuleClicked(ModuleData mod) => NavigationManager.Instance.NavigateTo("UI_SubModuleList", mod.id);
     }
 }

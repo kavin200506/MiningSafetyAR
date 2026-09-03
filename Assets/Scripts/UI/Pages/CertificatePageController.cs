@@ -72,10 +72,38 @@ namespace MiningSafetyAR.UI.Pages
                 if (organization != null) organization.text = "Test Org";
                 return;
             }
-            bool passed = prog != null && prog.status == ModuleStatus.Completed;
-            int displayScore = prog != null ? prog.bestScore : mod.bestScore;
+            string displayTitle = mod?.title ?? moduleId;
+            int displayScore = prog != null ? prog.bestScore : (mod != null ? mod.bestScore : 0);
+
+            if (app != null && mod != null && !string.IsNullOrEmpty(mod.parentId))
+            {
+                var parentMod = app.GetModule(mod.parentId);
+                if (parentMod != null)
+                {
+                    displayTitle = parentMod.title;
+                    int totalScore = 0;
+                    int count = 0;
+                    var allMods = app.GetAllModules();
+                    foreach (var m in allMods)
+                    {
+                        if (m.parentId == mod.parentId)
+                        {
+                            var p = app.GetModuleProgress(m.id);
+                            if (p != null && p.bestScore > 0)
+                            {
+                                totalScore += p.bestScore;
+                                count++;
+                            }
+                        }
+                    }
+                    if (count > 0) displayScore = totalScore / count;
+                }
+            }
+
+            bool passed = displayScore >= 75; // Or check if prog.status == ModuleStatus.Completed
+
             if (workerName != null) workerName.text = worker.name;
-            if (moduleTitle != null) moduleTitle.text = mod.title ?? moduleId;
+            if (moduleTitle != null) moduleTitle.text = displayTitle;
             if (score != null) score.text = $"{displayScore}%";
             if (passedBadge != null)
             {

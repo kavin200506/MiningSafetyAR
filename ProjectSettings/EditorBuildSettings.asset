@@ -42,6 +42,9 @@ EditorBuildSettings:
     path: Assets/Scenes/UI_ModuleDetail.unity
     guid: 95106283642c7534d80cd63498dc3978
   - enabled: 1
+    path: Assets/Scenes/UI_SubModuleList.unity
+    guid: c7414b17fe9aee8488baf18e33c0dfd7
+  - enabled: 1
     path: Assets/Scenes/UI_Assessment.unity
     guid: e4a9c9ffc407bc1469ca02398d96a66b
   - enabled: 1

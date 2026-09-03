@@ -212,7 +212,7 @@ namespace MiningSafetyAR.UI.Pages
             int total = questions.Count;
             int mcqScore = total > 0 ? (int)((float)correctCount / total * 100f) : 0;
             int finalScore = (int)(simulationScore * 0.6f + mcqScore * 0.4f);
-            bool passed = finalScore >= 60;
+            bool passed = finalScore >= 75;
             if (AppDataService.Instance != null)
             {
                 AppDataService.Instance.SaveAttempt(moduleId, finalScore, passed);
