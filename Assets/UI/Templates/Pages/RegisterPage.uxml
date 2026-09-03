@@ -10,68 +10,68 @@
         <ui:ScrollView style="flex: 1; width: 100%;">
             <ui:VisualElement class="register" style="flex: 1; align-items: center; justify-content: flex-start; padding: 40px 24px; min-height: 1200px; padding-top: 60px;">
                 <ui:VisualElement name="app-logo" style="width: 112px; height: 83px; border-radius: 20px; align-items: center; justify-content: center; margin-bottom: 16px; background-color: transparent; -unity-background-scale-mode: scale-to-fit; background-image: url(&quot;project://database/Assets/UI/Sprites/AR_Logo.png?fileID=2800000&amp;guid=e2e5e39cb631c0f44b6438f78142e8d0&amp;type=3#AR_Logo&quot;);"/>
-                <ui:Label text="Create Your Account" style="font-size: 24px; font-weight: 800; color: var(--text-primary); letter-spacing: 1px; margin-bottom: 4px; -unity-font-style: bold; height: 33px; width: 271px;"/>
-                <ui:Label text="Join MineSafetyAR and start your training journey" style="font-size: 13px; color: var(--text-secondary); margin-bottom: 32px; text-align: center; height: 9px; width: 333px; -unity-text-align: upper-center; -unity-font-style: bold;"/>
-                <ui:VisualElement class="card" style="width: 354px; max-width: 450px; padding: 32px; background-color: var(--bg-card); border-radius: 24px; border-left-width: 0; margin-bottom: 32px; min-height: 700px;">
+                <ui:Label text="Create Your Account" style="font-size: 24px; font-weight: 800; color: #1A1A1A; letter-spacing: 1px; margin-bottom: 4px; -unity-font-style: bold; height: 33px; width: 271px;"/>
+                <ui:Label text="Join MineSafetyAR and start your training journey" style="font-size: 13px; color: #666666; margin-bottom: 32px; text-align: center; height: 9px; width: 333px; -unity-text-align: upper-center; -unity-font-style: bold;"/>
+                <ui:VisualElement class="card" style="width: 354px; max-width: 450px; padding: 32px; background-color: #FFFFFF; border-radius: 24px; border-left-width: 0; margin-bottom: 32px; min-height: 700px;">
                     
                     <!-- Upload Photo UI -->
                     <ui:VisualElement style="align-items: center; margin-bottom: 24px;">
-                        <ui:Button name="upload-photo-btn" style="width: 80px; height: 80px; border-radius: 40px; background-color: var(--border-light); border-width: 0; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 8px;">
+                        <ui:Button name="upload-photo-btn" style="width: 80px; height: 80px; border-radius: 40px; background-color: #F0F0F0; border-width: 0; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 8px;">
                             <ui:VisualElement name="upload-photo-icon" style="width: 24px; height: 24px; background-color: rgb(153, 153, 153); border-radius: 12px; margin-bottom: 4px;"/>
                             <ui:Label text="Upload" style="font-size: 10px; color: rgb(153, 153, 153); -unity-font-style: bold;"/>
                         </ui:Button>
                     </ui:VisualElement>
 
                     <ui:VisualElement class="form-group" style="width: 100%; margin-bottom: 16px;">
-                        <ui:Label text="Full Name" style="font-size: 12px; color: var(--text-primary); margin-bottom: 4px; font-weight: 600; -unity-font-style: bold;"/>
+                        <ui:Label text="Full Name" style="font-size: 12px; color: #1A1A1A; margin-bottom: 4px; font-weight: 600; -unity-font-style: bold;"/>
                         <ui:TextField name="name-input" value="" class="input-field" style="height: 36px; border-radius: 8px; border-color: rgb(224, 224, 224); width: 284px;"/>
                     </ui:VisualElement>
                     <ui:VisualElement class="form-group" style="width: 100%; margin-bottom: 16px;">
-                        <ui:Label text="Worker ID" style="font-size: 12px; color: var(--text-primary); margin-bottom: 4px; font-weight: 600; -unity-font-style: bold;"/>
+                        <ui:Label text="Worker ID" style="font-size: 12px; color: #1A1A1A; margin-bottom: 4px; font-weight: 600; -unity-font-style: bold;"/>
                         <ui:TextField name="worker-id" value="" class="input-field" style="height: 38px; border-radius: 8px; border-color: rgb(224, 224, 224); width: 282px;"/>
                     </ui:VisualElement>
                     <ui:VisualElement class="form-group" style="width: 100%; margin-bottom: 16px;">
-                        <ui:Label text="Organization / Mine Name" style="font-size: 12px; color: var(--text-primary); margin-bottom: 4px; font-weight: 600; -unity-font-style: bold;"/>
+                        <ui:Label text="Organization / Mine Name" style="font-size: 12px; color: #1A1A1A; margin-bottom: 4px; font-weight: 600; -unity-font-style: bold;"/>
                         <ui:TextField name="org-input" value="" class="input-field" style="height: 36px; border-radius: 8px; border-color: rgb(224, 224, 224); width: 280px;"/>
                     </ui:VisualElement>
                     <ui:VisualElement class="form-group" style="width: 100%; margin-bottom: 16px;">
-                        <ui:Label text="Sector" style="font-size: 12px; color: var(--text-primary); margin-bottom: 4px; font-weight: 600; -unity-font-style: bold;"/>
+                        <ui:Label text="Sector" style="font-size: 12px; color: #1A1A1A; margin-bottom: 4px; font-weight: 600; -unity-font-style: bold;"/>
                         <ui:DropdownField name="sector-dropdown" value="Select your sector" choices="Mining,Steel Manufacturing,Mica Processing,Construction,Other" class="input-field" style="height: 37px; border-radius: 8px; border-color: rgb(224, 224, 224); width: 280px;"/>
                     </ui:VisualElement>
                     <ui:VisualElement class="form-group" style="width: 100%; margin-bottom: 16px;">
-                        <ui:Label text="Phone Number" style="font-size: 12px; color: var(--text-primary); margin-bottom: 4px; font-weight: 600; -unity-font-style: bold;"/>
+                        <ui:Label text="Phone Number" style="font-size: 12px; color: #1A1A1A; margin-bottom: 4px; font-weight: 600; -unity-font-style: bold;"/>
                         <ui:TextField name="phone-input" value="Number" max-length="10" class="input-field" style="height: 40px; border-radius: 8px; border-color: rgb(224, 224, 224); width: 280px;"/>
                     </ui:VisualElement>
                     <ui:VisualElement style="flex-direction: row; width: 243px; margin-bottom: 24px; height: 53px;">
                         <ui:VisualElement class="form-group" style="flex: 1; margin-right: 8px;">
-                            <ui:Label text="Create PIN" style="font-size: 12px; color: var(--text-primary); margin-bottom: 4px; font-weight: 600; -unity-font-style: bold;"/>
+                            <ui:Label text="Create PIN" style="font-size: 12px; color: #1A1A1A; margin-bottom: 4px; font-weight: 600; -unity-font-style: bold;"/>
                             <ui:TextField name="pin" is-password-field="true" value="" max-length="4" class="input-field" style="height: 48px; border-radius: 8px; border-color: rgb(224, 224, 224);"/>
                         </ui:VisualElement>
                         <ui:VisualElement class="form-group" style="flex: 1; margin-left: 8px;">
-                            <ui:Label text="Confirm PIN" style="font-size: 12px; color: var(--text-primary); margin-bottom: 4px; font-weight: 600; -unity-font-style: bold;"/>
+                            <ui:Label text="Confirm PIN" style="font-size: 12px; color: #1A1A1A; margin-bottom: 4px; font-weight: 600; -unity-font-style: bold;"/>
                             <ui:TextField name="confirm-pin" is-password-field="true" value="" max-length="4" class="input-field" style="height: 48px; border-radius: 8px; border-color: rgb(224, 224, 224);"/>
                         </ui:VisualElement>
                     </ui:VisualElement>
                     <ui:VisualElement class="form-group" style="width: 100%; margin-bottom: 32px;">
-                        <ui:Label text="Preferred Language" style="font-size: 12px; color: var(--text-primary); margin-bottom: 8px; font-weight: 600; height: 13px; width: 238px; -unity-text-align: upper-left; -unity-font-style: bold;"/>
+                        <ui:Label text="Preferred Language" style="font-size: 12px; color: #1A1A1A; margin-bottom: 8px; font-weight: 600; height: 13px; width: 238px; -unity-text-align: upper-left; -unity-font-style: bold;"/>
                         <ui:VisualElement class="language-selector" style="flex-direction: row; width: 100%;">
                             <ui:Button name="lang-en" class="lang-btn lang-btn--active" style="flex: 1; height: 56px; background-color: rgb(255, 109, 0); border-width: 0; border-radius: 12px; margin-right: 8px; flex-direction: column; align-items: center; justify-content: center;">
                                 <ui:Label text="English" style="font-size: 13px; font-weight: 600; color: rgb(0, 0, 0);"/>
                             </ui:Button>
-                            <ui:Button name="lang-hi" class="lang-btn" style="flex: 1; height: 56px; background-color: var(--bg-card); border-color: rgb(224, 224, 224); border-width: 1px; border-radius: 12px; margin-right: 8px; flex-direction: column; align-items: center; justify-content: center;">
+                            <ui:Button name="lang-hi" class="lang-btn" style="flex: 1; height: 56px; background-color: #FFFFFF; border-color: rgb(224, 224, 224); border-width: 1px; border-radius: 12px; margin-right: 8px; flex-direction: column; align-items: center; justify-content: center;">
                                 <ui:Label text="हिंदी" style="font-size: 12px; font-weight: 700; color: rgb(0, 0, 0);"/>
-                                <ui:Label text="Hindi" style="font-size: 11px; color: var(--text-secondary);"/>
+                                <ui:Label text="Hindi" style="font-size: 11px; color: #666666;"/>
                             </ui:Button>
-                            <ui:Button name="lang-sat" class="lang-btn" style="flex: 1; height: 56px; background-color: var(--bg-card); border-color: rgb(224, 224, 224); border-width: 1px; border-radius: 12px; flex-direction: column; align-items: center; justify-content: center;">
+                            <ui:Button name="lang-sat" class="lang-btn" style="flex: 1; height: 56px; background-color: #FFFFFF; border-color: rgb(224, 224, 224); border-width: 1px; border-radius: 12px; flex-direction: column; align-items: center; justify-content: center;">
                                 <ui:Label text="ᱥᱟᱱᱛᱟᱞᱤ" style="font-size: 14px; font-weight: 700; color: rgb(0, 0, 0);"/>
-                                <ui:Label text="Santali" style="font-size: 11px; color: var(--text-secondary);"/>
+                                <ui:Label text="Santali" style="font-size: 11px; color: #666666;"/>
                             </ui:Button>
                         </ui:VisualElement>
                     </ui:VisualElement>
                     <ui:Label name="error-msg" text="" style="display: none; font-size: 13px; color: rgb(244, 67, 54); text-align: center; margin-bottom: 12px;"/>
                     <ui:Button name="register-btn" text="REGISTER" class="btn-primary" style="width: 288px; height: 39px; font-size: 16px; font-weight: 700; border-radius: 12px; margin-bottom: 16px; border-left-width: 0;"/>
                     <ui:VisualElement style="flex-direction: row; justify-content: center; align-items: center;">
-                        <ui:Label text="Already logged in? " style="font-size: 13px; color: var(--text-secondary);" />
+                        <ui:Label text="Already logged in? " style="font-size: 13px; color: #666666;" />
                         <ui:Button name="signin-btn" text="Sign In" style="font-size: 13px; font-weight: 700; color: rgb(255, 109, 0); background-color: transparent; border-width: 0; padding: 0; -unity-font-style: bold; margin: 0;" />
                     </ui:VisualElement>
                 </ui:VisualElement>

@@ -7,59 +7,59 @@
     <Style src="project://database/Assets/UI/Styles/Icons.uss" />
     <Style src="project://database/Assets/UI/Styles/Tables.uss" />
     
-    <ui:VisualElement class="page-container" style="background-color: var(--bg-primary);">
+    <ui:VisualElement class="page-container" style="background-color: #F5F7FA;">
         <ui:ScrollView class="scroll-area" style="flex: 1;">
             
             <!-- Dynamic Orange Hero Header -->
             <ui:VisualElement style="background-color: rgb(255, 109, 0); padding: 32px 20px 100px 20px; border-bottom-left-radius: 40px; border-bottom-right-radius: 40px;">
                 <ui:VisualElement style="flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                     <ui:Button class="header__back-btn" name="back-btn" style="width: 40px; height: 40px; background-color: rgba(255, 255, 255, 0.2); border-radius: 20px; border-width: 0; align-items: center; justify-content: center;">
-                        <ui:Label text="&lt;" style="color: var(--bg-card); font-size: 22px; font-weight: 700; -unity-font-style: bold; margin-bottom: 4px;" />
+                        <ui:Label text="&lt;" style="color: #FFFFFF; font-size: 22px; font-weight: 700; -unity-font-style: bold; margin-bottom: 4px;" />
                     </ui:Button>
-                    <ui:Label name="module-title" text="Module Title" style="font-size: 22px; font-weight: 700; color: var(--bg-card); -unity-font-style: bold; flex: 1; -unity-text-align: middle-center; white-space: normal;" />
+                    <ui:Label name="module-title" text="Module Title" style="font-size: 22px; font-weight: 700; color: #FFFFFF; -unity-font-style: bold; flex: 1; -unity-text-align: middle-center; white-space: normal;" />
                     <ui:VisualElement style="width: 40px; height: 40px;" /> <!-- Spacer for centering -->
                 </ui:VisualElement>
             </ui:VisualElement>
 
             <!-- Floating Hero Card (Overlaps the header) -->
             <ui:VisualElement style="padding: 0 16px; margin-top: -64px;">
-                <ui:VisualElement class="card" name="hero-section" style="background-color: var(--bg-card); border-radius: 24px; padding: 24px; border-width: 1px; border-color: var(--border); box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.05); margin-bottom: 24px; align-items: center;">
-                    <ui:VisualElement style="width: 80px; height: 80px; border-radius: 40px; background-color: var(--bg-card-accent); align-items: center; justify-content: center; margin-bottom: 16px; border-width: 4px; border-color: var(--bg-card); box-shadow: 0px 4px 10px rgba(255, 109, 0, 0.2);">
+                <ui:VisualElement class="card" name="hero-section" style="background-color: #FFFFFF; border-radius: 24px; padding: 24px; border-width: 1px; border-color: #E0E0E0; box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.05); margin-bottom: 24px; align-items: center;">
+                    <ui:VisualElement style="width: 80px; height: 80px; border-radius: 40px; background-color: #FFF3E0; align-items: center; justify-content: center; margin-bottom: 16px; border-width: 4px; border-color: #FFFFFF; box-shadow: 0px 4px 10px rgba(255, 109, 0, 0.2);">
                         <ui:VisualElement class="module-hero__emoji" name="hero-emoji" style="width: 70px; height: 70px; -unity-background-scale-mode: scale-to-fit;" />
                     </ui:VisualElement>
                     
                     <ui:Label class="badge" name="hero-badge" text="REQUIRED" style="background-color: rgb(232, 245, 233); color: rgb(76, 175, 80); padding: 6px 16px; border-radius: 12px; font-size: 11px; font-weight: 700; -unity-font-style: bold; margin-bottom: 16px;" />
                     
-                    <ui:Label name="description" text="Module description goes here..." style="font-size: 14px; color: var(--text-secondary); text-align: center; white-space: normal; line-height: 20px; margin-bottom: 24px;" />
+                    <ui:Label name="description" text="Module description goes here..." style="font-size: 14px; color: #666666; text-align: center; white-space: normal; line-height: 20px; margin-bottom: 24px;" />
                     
                     <!-- Info Pills -->
                     <ui:VisualElement name="meta-row" style="flex-direction: row; flex-wrap: wrap; justify-content: center;">
-                        <ui:VisualElement class="pill" style="background-color: var(--bg-input); border-radius: 16px; padding: 8px 16px; margin-right: 8px; margin-bottom: 8px;">
-                            <ui:Label name="duration" text="45 min" style="font-size: 12px; font-weight: 700; color: var(--text-primary); -unity-font-style: bold;" />
+                        <ui:VisualElement class="pill" style="background-color: #F5F5F5; border-radius: 16px; padding: 8px 16px; margin-right: 8px; margin-bottom: 8px;">
+                            <ui:Label name="duration" text="45 min" style="font-size: 12px; font-weight: 700; color: #1A1A1A; -unity-font-style: bold;" />
                         </ui:VisualElement>
-                        <ui:VisualElement class="pill" style="background-color: var(--bg-input); border-radius: 16px; padding: 8px 16px; margin-right: 8px; margin-bottom: 8px;">
-                            <ui:Label name="difficulty" text="Medium" style="font-size: 12px; font-weight: 700; color: var(--text-primary); -unity-font-style: bold;" />
+                        <ui:VisualElement class="pill" style="background-color: #F5F5F5; border-radius: 16px; padding: 8px 16px; margin-right: 8px; margin-bottom: 8px;">
+                            <ui:Label name="difficulty" text="Medium" style="font-size: 12px; font-weight: 700; color: #1A1A1A; -unity-font-style: bold;" />
                         </ui:VisualElement>
-                        <ui:VisualElement class="pill" style="background-color: var(--bg-input); border-radius: 16px; padding: 8px 16px; margin-bottom: 8px;">
-                            <ui:Label name="domain" text="Fire Safety" style="font-size: 12px; font-weight: 700; color: var(--text-primary); -unity-font-style: bold;" />
+                        <ui:VisualElement class="pill" style="background-color: #F5F5F5; border-radius: 16px; padding: 8px 16px; margin-bottom: 8px;">
+                            <ui:Label name="domain" text="Fire Safety" style="font-size: 12px; font-weight: 700; color: #1A1A1A; -unity-font-style: bold;" />
                         </ui:VisualElement>
                     </ui:VisualElement>
                 </ui:VisualElement>
                 
                 <!-- Action Buttons -->
                 <ui:VisualElement name="action-section" style="margin-bottom: 32px;">
-                    <ui:Button class="btn-primary" name="action-btn" text="START TRAINING" style="background-color: rgb(255, 109, 0); color: var(--bg-card); font-size: 16px; font-weight: 700; -unity-font-style: bold; padding: 16px; border-radius: 20px; border-width: 0; box-shadow: 0px 8px 16px rgba(255, 109, 0, 0.3);" />
-                    <ui:Button class="btn-secondary" name="cert-btn" text="VIEW CERTIFICATE" style="display: none; background-color: var(--bg-card); color: rgb(255, 109, 0); font-size: 14px; font-weight: 700; -unity-font-style: bold; padding: 16px; border-radius: 20px; border-width: 2px; border-color: rgb(255, 109, 0); margin-top: 12px;" />
-                    <ui:VisualElement name="locked-message" style="display: none; align-items: center; margin-top: 16px; background-color: var(--bg-input); padding: 16px; border-radius: 20px;">
+                    <ui:Button class="btn-primary" name="action-btn" text="START TRAINING" style="background-color: rgb(255, 109, 0); color: #FFFFFF; font-size: 16px; font-weight: 700; -unity-font-style: bold; padding: 16px; border-radius: 20px; border-width: 0; box-shadow: 0px 8px 16px rgba(255, 109, 0, 0.3);" />
+                    <ui:Button class="btn-secondary" name="cert-btn" text="VIEW CERTIFICATE" style="display: none; background-color: #FFFFFF; color: rgb(255, 109, 0); font-size: 14px; font-weight: 700; -unity-font-style: bold; padding: 16px; border-radius: 20px; border-width: 2px; border-color: rgb(255, 109, 0); margin-top: 12px;" />
+                    <ui:VisualElement name="locked-message" style="display: none; align-items: center; margin-top: 16px; background-color: #F5F5F5; padding: 16px; border-radius: 20px;">
                         <ui:VisualElement class="icon-lock" style="width: 24px; height: 24px; margin-bottom: 8px; -unity-background-image-tint-color: rgb(153, 153, 153);" />
                         <ui:Label text="Complete previous modules to unlock" style="color: rgb(153, 153, 153); font-size: 13px; text-align: center;" />
                     </ui:VisualElement>
                 </ui:VisualElement>
                 
                 <!-- Best Score Card -->
-                <ui:VisualElement class="card" name="best-score-card" style="background-color: var(--bg-card); border-radius: 24px; padding: 24px; border-width: 1px; border-color: var(--border); margin-bottom: 24px;">
-                    <ui:Label text="Best Score" style="font-size: 16px; font-weight: 700; color: var(--text-primary); -unity-font-style: bold; margin-bottom: 16px;" />
-                    <ui:VisualElement class="progress-track" name="best-track" style="height: 10px; background-color: var(--bg-input); border-radius: 5px; margin-bottom: 16px; overflow: hidden;">
+                <ui:VisualElement class="card" name="best-score-card" style="background-color: #FFFFFF; border-radius: 24px; padding: 24px; border-width: 1px; border-color: #E0E0E0; margin-bottom: 24px;">
+                    <ui:Label text="Best Score" style="font-size: 16px; font-weight: 700; color: #1A1A1A; -unity-font-style: bold; margin-bottom: 16px;" />
+                    <ui:VisualElement class="progress-track" name="best-track" style="height: 10px; background-color: #F5F5F5; border-radius: 5px; margin-bottom: 16px; overflow: hidden;">
                         <ui:VisualElement class="progress-fill" style="height: 100%; background-color: rgb(255, 109, 0); width: 0%;" />
                     </ui:VisualElement>
                     <ui:VisualElement style="flex-direction: row; justify-content: space-between; align-items: center;">
@@ -68,13 +68,13 @@
                 </ui:VisualElement>
                 
                 <!-- Learning Objectives -->
-                <ui:Label text="Learning Objectives" style="font-size: 18px; font-weight: 700; color: var(--text-primary); -unity-font-style: bold; margin-bottom: 12px; padding-left: 4px;" />
-                <ui:VisualElement class="card" name="objectives-list" style="background-color: var(--bg-card); border-radius: 20px; padding: 20px; border-width: 1px; border-color: var(--border); margin-bottom: 24px;" />
+                <ui:Label text="Learning Objectives" style="font-size: 18px; font-weight: 700; color: #1A1A1A; -unity-font-style: bold; margin-bottom: 12px; padding-left: 4px;" />
+                <ui:VisualElement class="card" name="objectives-list" style="background-color: #FFFFFF; border-radius: 20px; padding: 20px; border-width: 1px; border-color: #E0E0E0; margin-bottom: 24px;" />
                 
                 <!-- Competency Scores -->
                 <ui:VisualElement name="competency-section" style="margin-bottom: 24px; display: none;">
-                    <ui:Label text="Competency Scores" style="font-size: 18px; font-weight: 700; color: var(--text-primary); -unity-font-style: bold; margin-bottom: 12px; padding-left: 4px;" />
-                    <ui:VisualElement class="card" name="score-bars" style="background-color: var(--bg-card); border-radius: 20px; padding: 20px; border-width: 1px; border-color: var(--border);" />
+                    <ui:Label text="Competency Scores" style="font-size: 18px; font-weight: 700; color: #1A1A1A; -unity-font-style: bold; margin-bottom: 12px; padding-left: 4px;" />
+                    <ui:VisualElement class="card" name="score-bars" style="background-color: #FFFFFF; border-radius: 20px; padding: 20px; border-width: 1px; border-color: #E0E0E0;" />
                 </ui:VisualElement>
                 
 
