@@ -25,7 +25,7 @@ namespace MiningSafetyAR.UI.Pages
             SetUploadPhotoVisualState(true);
             Debug.Log("[Register] Mock photo picked in Editor");
 #else
-            NativeGallery.Permission permission = NativeGallery.GetImageFromGallery((path) =>
+            NativeGallery.GetImageFromGallery((path) =>
             {
                 if (path != null)
                 {
