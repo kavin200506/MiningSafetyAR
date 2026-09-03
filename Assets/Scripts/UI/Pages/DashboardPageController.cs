@@ -114,7 +114,7 @@ namespace MiningSafetyAR.UI.Pages
 
         void OnModuleClicked(ModuleData mod)
         {
-            NavigationManager.Instance.NavigateTo("UI_ModuleDetail", mod.id);
+            NavigationManager.Instance.NavigateTo("UI_SubModuleList", mod.id);
         }
     }
 }

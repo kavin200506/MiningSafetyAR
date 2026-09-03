@@ -86,9 +86,8 @@ namespace MiningSafetyAR.UI.Pages
                 }
                 AddScoreBar("Hazard Recognition", hazardCount > 0 ? hazardRec / hazardCount : 0);
                 AddScoreBar("Extinguisher Use", extCount > 0 ? extUse / extCount : 0);
-                AddScoreBar("PPE Selection", ppeCount > 0 ? ppeSel / ppeCount : 0);
+                AddScoreBar("Time Taken", ppeCount > 0 ? ppeSel / ppeCount : 0);
                 AddScoreBar("Evacuation", evacCount > 0 ? evac / evacCount : 0);
-                AddScoreBar("Emergency Response", emergCount > 0 ? emergResp / emergCount : 0);
             }
 
             if (moduleRows != null)
@@ -108,7 +107,7 @@ namespace MiningSafetyAR.UI.Pages
                     IconLoader.ApplyModuleIcon(icon, mod.id);
                     var info = new VisualElement(); info.style.flexGrow = 1;
                     var title = new Label(mod.title); title.style.fontSize = 13; title.style.color = new StyleColor(new Color(0.1f,0.1f,0.1f));
-                    var meta = new Label($"{mod.progress}% · Best: {mod.bestScore}%"); meta.style.fontSize = 11; meta.style.color = new StyleColor(new Color(0.44f,0.44f,0.44f));
+                    var meta = new Label($"{mod.progress}%"); meta.style.fontSize = 11; meta.style.color = new StyleColor(new Color(0.44f,0.44f,0.44f));
                     info.Add(title); info.Add(meta);
                     var badge = new Label(mod.status.ToString()); badge.AddToClassList($"badge--{mod.status.ToString().ToLower()}"); badge.AddToClassList("badge");
                     row.Add(icon); row.Add(info); row.Add(badge);

@@ -27,6 +27,7 @@ namespace MiningSafetyAR.Data
         public string id;
         public string title;
         public string iconEmoji;
+        public string parentId;
         public string domain;
         public string duration;
         public string difficulty;

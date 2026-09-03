@@ -129,24 +129,27 @@ namespace MiningSafetyAR.UI.Pages
                 competencyBars.Clear();
                 var prog = AppDataService.Instance != null ? AppDataService.Instance.GetModuleProgress(moduleId) : null;
                 var cs = prog?.competencyScores;
-                if (cs != null && (cs.hazardRecognition > 0 || cs.extinguisherUse > 0 || cs.ppeSelection > 0 || cs.evacuation > 0 || cs.emergencyResponse > 0))
+                if (cs != null && (cs.hazardRecognition > 0 || cs.extinguisherUse > 0 || cs.ppeSelection > 0 || cs.evacuation > 0))
                 {
                     AddScoreBar("Hazard Recognition", cs.hazardRecognition);
                     AddScoreBar("Extinguisher Use", cs.extinguisherUse);
-                    AddScoreBar("PPE Selection", cs.ppeSelection);
+                    AddScoreBar("Time Taken", cs.ppeSelection);
                     AddScoreBar("Evacuation", cs.evacuation);
-                    AddScoreBar("Emergency Response", cs.emergencyResponse);
                 }
                 else
                 {
                     AddScoreBar("Hazard Recognition", 0);
                     AddScoreBar("Extinguisher Use", 0);
-                    AddScoreBar("PPE Selection", 0);
+                    AddScoreBar("Time Taken", 0);
                     AddScoreBar("Evacuation", 0);
-                    AddScoreBar("Emergency Response", 0);
                 }
             }
-            if (certBtn != null) certBtn.style.display = passed ? DisplayStyle.Flex : DisplayStyle.None;
+            if (certBtn != null)
+            {
+                var progForCert = AppDataService.Instance != null ? AppDataService.Instance.GetModuleProgress(moduleId) : null;
+                bool hasCert = progForCert != null && !string.IsNullOrEmpty(progForCert.certificateId);
+                certBtn.style.display = hasCert ? DisplayStyle.Flex : DisplayStyle.None;
+            }
             // Store for navigation
             resultsData["moduleId"] = moduleId;
         }
@@ -169,12 +172,23 @@ namespace MiningSafetyAR.UI.Pages
         void OnRetry()
         {
             string mid = resultsData.ContainsKey("moduleId") ? resultsData["moduleId"] as string : "fire_safety";
-            Debug.Log($"[Results] Retaking training for module '{mid}' -> Launching AR Plane Detection Placement scene...");
-            NavigationManager.Instance.NavigateTo("AR Plane Detection Placement", mid);
+            Debug.Log($"[Results] Retaking assessment for module '{mid}' -> Launching UI_Assessment...");
+            NavigationManager.Instance.NavigateTo("UI_Assessment", mid);
         }
         void OnBackToModule()
         {
             string mid = resultsData.ContainsKey("moduleId") ? resultsData["moduleId"] as string : "fire_safety";
+            var app = AppDataService.Instance;
+            if (app != null)
+            {
+                var mod = app.GetModule(mid);
+                if (mod != null && !string.IsNullOrEmpty(mod.parentId))
+                {
+                    Debug.Log($"[Results] Back to Module clicked for '{mid}' -> Redirecting to parent '{mod.parentId}' via UI_SubModuleList");
+                    NavigationManager.Instance.NavigateTo("UI_SubModuleList", mod.parentId);
+                    return;
+                }
+            }
             NavigationManager.Instance.NavigateTo("UI_ModuleDetail", mid);
         }
     }

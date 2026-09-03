@@ -274,10 +274,33 @@ namespace MiningSafetyAR.Data
 
         void FinalizeProgressLoad(string firebaseUid)
         {
+            bool needsSave = false;
+
+            // Legacy cleanup: Remove certificates from all modules except the final one
+            foreach (var kv in progressMap)
+            {
+                if (!string.IsNullOrEmpty(kv.Value.certificateId) && kv.Key != "heights_safety_sub5")
+                {
+                    kv.Value.certificateId = "";
+                    needsSave = true;
+                    // Push cleaned up progress to Firestore
+                    SaveModuleProgressToFirestore(firebaseUid, kv.Key, kv.Value);
+                }
+            }
+
             RecomputeWorkerStatsFromMap();
-            CacheWorkerLocally(CurrentWorker);
-            PlayerPrefs.SetString("ProgressMap_" + firebaseUid, ProgressMapToJson());
-            PlayerPrefs.Save();
+
+            if (needsSave)
+            {
+                SaveWorkerProfile();
+            }
+            else
+            {
+                CacheWorkerLocally(CurrentWorker);
+                PlayerPrefs.SetString("ProgressMap_" + firebaseUid, ProgressMapToJson());
+                PlayerPrefs.Save();
+            }
+
             OnWorkerLoaded?.Invoke(CurrentWorker);
             Debug.Log($"[AppDataService] Worker ready: {CurrentWorker.name} ({CurrentWorker.id}) overall={CurrentWorker.overallProgress}% certs={CurrentWorker.certificatesEarned}");
         }
@@ -377,7 +400,11 @@ namespace MiningSafetyAR.Data
 
         public List<ModuleData> GetAllModules()
         {
-            if (moduleDatabase == null) moduleDatabase = Resources.Load<ModuleDatabase>("Data/ModuleDatabase");
+            // Force load from Resources in case the wrong one is assigned in the Inspector
+            if (moduleDatabase == null || moduleDatabase.modules.Count < 10) 
+            {
+                moduleDatabase = Resources.Load<ModuleDatabase>("Data/ModuleDatabase");
+            }
             return moduleDatabase != null ? moduleDatabase.GetAll() : new List<ModuleData>();
         }
 
@@ -405,7 +432,7 @@ namespace MiningSafetyAR.Data
                 var p = GetModuleProgress(m.id);
                 var copy = new ModuleData
                 {
-                    id = m.id, title = m.title, iconEmoji = m.iconEmoji, domain = m.domain, duration = m.duration, difficulty = m.difficulty,
+                    id = m.id, parentId = m.parentId, title = m.title, iconEmoji = m.iconEmoji, domain = m.domain, duration = m.duration, difficulty = m.difficulty,
                     status = p != null ? p.status : m.status,
                     progress = p != null ? p.progress : 0,
                     bestScore = p != null ? p.bestScore : 0,
@@ -416,18 +443,84 @@ namespace MiningSafetyAR.Data
                     // Use dynamic competency scores from progress, fall back to static defaults
                     competencyScores = (p != null && p.competencyScores != null) ? p.competencyScores : m.competencyScores
                 };
-                if (m.id == "heights_safety" && copy.status == ModuleStatus.Locked)
-                {
-                    bool allPrevCompleted = true;
-                    foreach (var prev in all) if (prev.id != "heights_safety")
-                    {
-                        var pp = GetModuleProgress(prev.id);
-                        if (pp == null || pp.status != ModuleStatus.Completed) { allPrevCompleted = false; break; }
-                    }
-                    if (allPrevCompleted) copy.status = ModuleStatus.NotStarted;
-                }
                 result.Add(copy);
             }
+
+            // Group by Main Modules
+            var mainModules = result.FindAll(m => string.IsNullOrEmpty(m.parentId));
+            foreach (var main in mainModules)
+            {
+                var subs = result.FindAll(m => m.parentId == main.id);
+                if (subs.Count > 0)
+                {
+                    // Compute parent module status based on sub-modules
+                    bool allSubsCompleted = subs.TrueForAll(s => s.status == ModuleStatus.Completed);
+                    if (allSubsCompleted)
+                    {
+                        main.status = ModuleStatus.Completed;
+                        main.progress = 100;
+                    }
+                    else
+                    {
+                        if (main.status == ModuleStatus.Completed)
+                        {
+                            main.status = ModuleStatus.InProgress;
+                            main.certificateId = "";
+                            var mainProgress = GetModuleProgress(main.id);
+                            if (mainProgress != null)
+                            {
+                                mainProgress.status = ModuleStatus.InProgress;
+                                mainProgress.certificateId = "";
+                            }
+                        }
+                    }
+
+                    // Enforce Sequential Locking on sub-modules
+                    for (int i = 1; i < subs.Count; i++)
+                    {
+                        var prevSub = subs[i - 1];
+                        var currSub = subs[i];
+                        if (prevSub.status != ModuleStatus.Completed)
+                        {
+                            currSub.status = ModuleStatus.Locked;
+                        }
+                        else if (currSub.status == ModuleStatus.Locked)
+                        {
+                            currSub.status = ModuleStatus.NotStarted;
+                        }
+                    }
+                }
+            }
+
+            // Enforce Sequential Locking on Main Modules
+            for (int i = 1; i < mainModules.Count; i++)
+            {
+                var prevMain = mainModules[i - 1];
+                var currMain = mainModules[i];
+                if (prevMain.status != ModuleStatus.Completed)
+                {
+                    currMain.status = ModuleStatus.Locked;
+                    
+                    // Also lock all its sub-modules
+                    var currSubs = result.FindAll(m => m.parentId == currMain.id);
+                    foreach (var sub in currSubs)
+                    {
+                        sub.status = ModuleStatus.Locked;
+                    }
+                }
+                else if (currMain.status == ModuleStatus.Locked)
+                {
+                    currMain.status = ModuleStatus.NotStarted;
+                    
+                    // Unlock the first sub-module if any
+                    var currSubs = result.FindAll(m => m.parentId == currMain.id);
+                    if (currSubs.Count > 0 && currSubs[0].status == ModuleStatus.Locked)
+                    {
+                        currSubs[0].status = ModuleStatus.NotStarted;
+                    }
+                }
+            }
+
             return result;
         }
 
@@ -481,8 +574,24 @@ namespace MiningSafetyAR.Data
             PlayerPrefs.Save();
         }
 
-        public List<ModuleData> GetModulesByStatusDynamic(ModuleStatus status) => GetAllModulesWithProgress().FindAll(m => m.status == status);
+        public List<ModuleData> GetModulesByStatusDynamic(ModuleStatus status) => GetAllModulesWithProgress().FindAll(m => m.status == status && string.IsNullOrEmpty(m.parentId));
         public List<ModuleData> GetModulesByStatus(ModuleStatus status) => GetModulesByStatusDynamic(status);
+
+        public List<ModuleData> GetSubModules(string parentId)
+        {
+            return GetAllModules().FindAll(m => m.parentId == parentId);
+        }
+
+        public List<ModuleData> GetSubModulesWithProgress(string parentId)
+        {
+            var all = GetAllModulesWithProgress();
+            var filtered = all.FindAll(m => m.parentId == parentId);
+            UnityEngine.Debug.Log($"[Nav] GetSubModulesWithProgress({parentId}) - Total modules: {all.Count}, Filtered: {filtered.Count}");
+            foreach (var m in all) {
+                if (m.id.Contains("sub")) UnityEngine.Debug.Log($"[Nav] Found sub-module: {m.id} with parentId: '{m.parentId}'");
+            }
+            return filtered;
+        }
 
         // ================================================================
         // QUESTIONS
@@ -491,7 +600,15 @@ namespace MiningSafetyAR.Data
         public List<QuizQuestionData> GetQuestions(string moduleId)
         {
             if (questionDatabase == null) questionDatabase = Resources.Load<QuestionDatabase>("Data/QuestionDatabase");
-            return questionDatabase != null ? questionDatabase.GetForModule(moduleId) : new List<QuizQuestionData>();
+            if (questionDatabase != null)
+            {
+                if (moduleId.StartsWith("fire_safety_sub"))
+                {
+                    return questionDatabase.GetForModule("fire_safety");
+                }
+                return questionDatabase.GetForModule(moduleId);
+            }
+            return new List<QuizQuestionData>();
         }
 
         // ================================================================
@@ -563,11 +680,36 @@ namespace MiningSafetyAR.Data
                 prog.progress = passed ? 100 : Mathf.Max(prog.progress, score);
                 prog.status = passed ? ModuleStatus.Completed : ModuleStatus.InProgress;
                 prog.lastAttempt = System.DateTime.UtcNow.ToString("yyyy-MM-dd");
-                if (passed && string.IsNullOrEmpty(prog.certificateId))
+                
+                // Only award the final certification when a 5th sub-module is completed
+                if (passed && string.IsNullOrEmpty(prog.certificateId) && moduleId.EndsWith("_sub5"))
                 {
-                    prog.certificateId = $"JH-{moduleId.ToUpper().Substring(0, System.Math.Min(4, moduleId.Length))}-{Random.Range(100000,999999)}";
+                    var modDef = GetModule(moduleId);
+                    if (modDef != null && !string.IsNullOrEmpty(modDef.parentId))
+                    {
+                        int totalScore = 0;
+                        int count = 0;
+                        var allMods = GetAllModules();
+                        foreach (var m in allMods)
+                        {
+                            if (m.parentId == modDef.parentId)
+                            {
+                                var subProg = GetModuleProgress(m.id);
+                                if (subProg != null && subProg.bestScore > 0)
+                                {
+                                    totalScore += subProg.bestScore;
+                                    count++;
+                                }
+                            }
+                        }
+                        
+                        int averageScore = count > 0 ? totalScore / count : 0;
+                        if (averageScore >= 75)
+                        {
+                            prog.certificateId = $"JH-{modDef.parentId.ToUpper()}-{Random.Range(100000,999999)}";
+                        }
+                    }
                 }
-                if (passed) CheckUnlockHeights();
 
                 // Save this module's progress to its own Firestore document
                 SaveModuleProgressToFirestore(CurrentWorker.firebaseUid, moduleId, prog);
@@ -575,20 +717,6 @@ namespace MiningSafetyAR.Data
 
             RecomputeWorkerStatsFromMap();
             SaveWorkerProfile();
-        }
-
-        void CheckUnlockHeights()
-        {
-            var heights = GetModuleProgress("heights_safety");
-            if (heights == null || heights.status != ModuleStatus.Locked) return;
-            var all = GetAllModules();
-            bool allPrevCompleted = true;
-            foreach (var m in all) if (m.id != "heights_safety")
-            {
-                var p = GetModuleProgress(m.id);
-                if (p == null || p.status != ModuleStatus.Completed) { allPrevCompleted = false; break; }
-            }
-            if (allPrevCompleted) heights.status = ModuleStatus.NotStarted;
         }
 
         // ================================================================

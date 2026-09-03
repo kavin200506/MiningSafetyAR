@@ -1,0 +1,46 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Styles/Theme.uss?fileID=7433441132597879392&amp;guid=9c058c37ebd69534dae984e55ac8de84&amp;type=3#Theme"/>
+    <Style src="project://database/Assets/UI/Styles/Reset.uss?fileID=7433441132597879392&amp;guid=2221f5ca94566ea48871403dc278208b&amp;type=3#Reset"/>
+    <Style src="project://database/Assets/UI/Styles/Components.uss?fileID=7433441132597879392&amp;guid=95ed0fa63ed8f1b40bbf80091559f46b&amp;type=3#Components"/>
+    <Style src="project://database/Assets/UI/Styles/Header.uss?fileID=7433441132597879392&amp;guid=4aa99dd6c3c3ee74f8efa10450679978&amp;type=3#Header"/>
+    <Style src="project://database/Assets/UI/Styles/BottomNav.uss?fileID=7433441132597879392&amp;guid=2efbc4ad3addbec42b50c21c4d27ada6&amp;type=3#BottomNav"/>
+    <Style src="project://database/Assets/UI/Styles/Icons.uss?fileID=7433441132597879392&amp;guid=27bbf8a071ea19e42b8b10e5dd4bf912&amp;type=3#Icons"/>
+    <Style src="project://database/Assets/UI/Styles/Animations.uss?fileID=7433441132597879392&amp;guid=cd6e8d02f125b714cb01e3e2d0813209&amp;type=3#Animations"/>
+    <ui:VisualElement class="page-container" style="background-color: rgb(245, 247, 250);">
+        <ui:ScrollView class="scroll-area" style="flex: 1;">
+            <ui:VisualElement style="background-color: rgb(255, 109, 0); padding: 32px 20px 80px 20px; border-bottom-left-radius: 40px; border-bottom-right-radius: 40px; height: 217px; width: 316px;">
+                <ui:VisualElement style="flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <ui:Button name="back-btn" class="header__back-btn" style="width: 32px; height: 32px; background-color: rgba(255, 255, 255, 0.2); border-radius: 16px; border-width: 0; align-items: center; justify-content: center; margin-left: -8px;">
+                        <ui:Label text="&lt;" style="color: rgb(255, 255, 255); font-size: 18px; font-weight: 700; -unity-font-style: bold; margin-bottom: 2px;"/>
+                    </ui:Button>
+                    <ui:VisualElement style="width: 32px; height: 32px;"/>
+                </ui:VisualElement>
+                <ui:Label name="parent-module-title" text="Sub-Modules" style="font-size: 32px; font-weight: 700; color: rgb(255, 255, 255); -unity-font-style: bold; margin-bottom: 8px; white-space: normal; -unity-text-align: upper-center;"/>
+                <ui:Label name="parent-module-desc" text="Select a specific hazard scenario." style="font-size: 14px; color: rgb(255, 224, 178); white-space: normal; -unity-text-align: upper-center;"/>
+            </ui:VisualElement>
+            <ui:VisualElement style="padding: 0 16px; margin-top: -32px;">
+                <ui:VisualElement style="flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-left: 4px;"/>
+                <ui:VisualElement name="module-list" style="margin-bottom: 24px;"/>
+                <ui:VisualElement style="height: 100px;"/>
+            </ui:VisualElement>
+        </ui:ScrollView>
+        <ui:VisualElement name="bottom-nav" class="bottom-nav">
+            <ui:Button name="tab-home" class="bottom-nav__tab">
+                <ui:VisualElement class="icon-home" style="margin-bottom: 2px; width: 32px;"/>
+                <ui:Label text="Home" class="bottom-nav__tab-label" style="-unity-font-style: bold; -unity-font-definition: url(&quot;project://database/Assets/TextMesh%20Pro/Fonts/Rajdhani/Rajdhani-Medium.ttf?fileID=12800000&amp;guid=e667d5aeff8d1314eb115a34c389a259&amp;type=3#Rajdhani-Medium&quot;);"/>
+            </ui:Button>
+            <ui:Button name="tab-training" class="bottom-nav__tab bottom-nav__tab--active">
+                <ui:VisualElement class="icon-training" style="margin-bottom: 2px; width: 36px;"/>
+                <ui:Label text="Training" class="bottom-nav__tab-label" style="-unity-font-style: bold; -unity-font-definition: url(&quot;project://database/Assets/TextMesh%20Pro/Fonts/Rajdhani/Rajdhani-Medium.ttf?fileID=12800000&amp;guid=e667d5aeff8d1314eb115a34c389a259&amp;type=3#Rajdhani-Medium&quot;);"/>
+            </ui:Button>
+            <ui:Button name="tab-progress" class="bottom-nav__tab">
+                <ui:VisualElement class="icon-progress" style="margin-bottom: 2px;"/>
+                <ui:Label text="Progress" class="bottom-nav__tab-label" style="-unity-font-style: bold; -unity-font-definition: url(&quot;project://database/Assets/TextMesh%20Pro/Fonts/Rajdhani/Rajdhani-Medium.ttf?fileID=12800000&amp;guid=e667d5aeff8d1314eb115a34c389a259&amp;type=3#Rajdhani-Medium&quot;);"/>
+            </ui:Button>
+            <ui:Button name="tab-settings" class="bottom-nav__tab">
+                <ui:VisualElement class="icon-settings" style="margin-bottom: 2px;"/>
+                <ui:Label text="Settings" class="bottom-nav__tab-label" style="-unity-font-style: bold; -unity-font-definition: url(&quot;project://database/Assets/TextMesh%20Pro/Fonts/Rajdhani/Rajdhani-Medium.ttf?fileID=12800000&amp;guid=e667d5aeff8d1314eb115a34c389a259&amp;type=3#Rajdhani-Medium&quot;);"/>
+            </ui:Button>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
