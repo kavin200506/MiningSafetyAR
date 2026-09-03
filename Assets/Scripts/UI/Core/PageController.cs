@@ -27,6 +27,7 @@ namespace MiningSafetyAR.UI
                     BindUI();
                     IconLoader.ApplyBottomNavIcons(root);
                     IconLoader.ApplyCommonIcons(root);
+                    ApplyTheme(root);
                     TryAutoEnter();
                 }
                 else
@@ -46,6 +47,7 @@ namespace MiningSafetyAR.UI
                 BindUI();
                 IconLoader.ApplyBottomNavIcons(root);
                 IconLoader.ApplyCommonIcons(root);
+                ApplyTheme(root);
                 TryAutoEnter();
             }
             else
@@ -73,6 +75,20 @@ namespace MiningSafetyAR.UI
         public void MarkEntered()
         {
             hasEntered = true;
+        }
+
+        protected void ApplyTheme(VisualElement rootElement)
+        {
+            if (rootElement == null) return;
+            bool isDark = PlayerPrefs.GetInt("DarkMode", 0) == 1;
+            if (isDark)
+            {
+                rootElement.AddToClassList("dark-theme");
+            }
+            else
+            {
+                rootElement.RemoveFromClassList("dark-theme");
+            }
         }
 
         public virtual void SetNavigationParameter(object param)

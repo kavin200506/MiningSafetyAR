@@ -12,6 +12,7 @@ namespace MiningSafetyAR.Data
         public string sector;
         public string phone;
         public string language;
+        public string profilePicUrl;
         public string joinDate;
         public int overallProgress;
         public int certificatesEarned;

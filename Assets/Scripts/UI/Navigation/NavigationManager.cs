@@ -81,7 +81,11 @@ namespace MiningSafetyAR.UI.Navigation
         {
             if (backStack.Count == 0)
             {
-                Debug.LogWarning("[Nav] Back stack empty.");
+                if (currentScene != "UI_Dashboard") 
+                {
+                    Debug.LogWarning("[Nav] Back stack empty. Defaulting to Dashboard.");
+                    NavigateToRoot("UI_Dashboard");
+                }
                 return;
             }
             string previousScene = backStack.Pop();

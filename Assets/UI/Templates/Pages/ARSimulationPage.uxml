@@ -9,10 +9,10 @@
         <ui:VisualElement class="ar__hud" style="flex-direction: row; justify-content: space-between; padding: 16px 20px; background-color: rgba(0,0,0,0.4);">
             <ui:VisualElement class="ar__score-pill" style="flex-direction: row; background-color: rgba(255,255,255,0.2); border-radius: 20px; padding: 8px 16px; align-items: center;">
                 <ui:VisualElement class="icon-trophy" style="width: 16px; height: 16px; margin-right: 8px;" />
-                <ui:Label class="ar__score-value" name="score-value" text="50" style="color: #FFFFFF; font-size: 16px; font-weight: bold;" />
+                <ui:Label class="ar__score-value" name="score-value" text="50" style="color: var(--bg-card); font-size: 16px; font-weight: bold;" />
             </ui:VisualElement>
             <ui:VisualElement class="ar__timer-pill" name="timer-pill" style="flex-direction: row; background-color: rgba(255,255,255,0.2); border-radius: 20px; padding: 8px 16px; align-items: center;">
-                <ui:Label text="⏱" style="font-size: 16px; margin-right: 6px; color: #FFFFFF;" />
+                <ui:Label text="⏱" style="font-size: 16px; margin-right: 6px; color: var(--bg-card);" />
                 <ui:Label class="ar__timer-value timer-green" name="timer-value" text="120s" style="color: #4CAF50; font-size: 16px; font-weight: bold;" />
             </ui:VisualElement>
         </ui:VisualElement>
@@ -22,7 +22,7 @@
             <ui:VisualElement class="ar__scan-line" name="scan-line" style="position: absolute; width: 90%; height: 2px; background-color: #FF6D00; display: none;" />
             <ui:VisualElement class="ar__phase-content" name="phase-content" style="align-items: center; padding: 16px; background-color: rgba(0,0,0,0.5); border-radius: 12px; display: none;">
                 <ui:VisualElement class="ar__phase-emoji" name="phase-emoji" style="width: 48px; height: 48px; margin-bottom: 12px;" />
-                <ui:Label class="ar__phase-instruction" name="phase-instruction" text="" style="font-size: 14px; color: #FFFFFF; text-align: center;" />
+                <ui:Label class="ar__phase-instruction" name="phase-instruction" text="" style="font-size: 14px; color: var(--bg-card); text-align: center;" />
                 <ui:VisualElement class="ar__phase-visual" name="phase-visual" style="margin-top: 16px;" />
             </ui:VisualElement>
         </ui:VisualElement>
@@ -30,7 +30,7 @@
         <!-- Bottom Instruction Bar -->
         <ui:VisualElement style="position: relative; padding: 16px; background-color: rgba(0,0,0,0.4); flex-direction: row; justify-content: space-between; align-items: center;">
             <ui:VisualElement class="ar__instruction-bar" name="instruction-bar" style="background-color: rgba(255,109,0,0.25); border-radius: 8px; padding: 10px 16px; flex: 1; border-width: 1px; border-color: #FF6D00;">
-                <ui:Label class="ar__instruction-text" name="instruction-text" text="AR Simulation Active: Scan room floor, tap to place hazard, walk to discover extinguisher" style="font-size: 13px; color: #FFFFFF; font-weight: bold; white-space: normal;" />
+                <ui:Label class="ar__instruction-text" name="instruction-text" text="AR Simulation Active: Scan room floor, tap to place hazard, walk to discover extinguisher" style="font-size: 13px; color: var(--bg-card); font-weight: bold; white-space: normal;" />
             </ui:VisualElement>
         </ui:VisualElement>
 

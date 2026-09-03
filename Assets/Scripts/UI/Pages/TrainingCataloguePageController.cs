@@ -33,11 +33,13 @@ namespace MiningSafetyAR.UI.Pages
                 if (searchIconBtn != null)
                 {
                     searchIconBtn.RegisterCallback<PointerDownEvent>(e => searchField.Focus());
+                    searchIconBtn.RegisterCallback<ClickEvent>(e => searchField.Focus());
                 }
                 
                 if (searchContainer != null)
                 {
                     searchContainer.RegisterCallback<PointerDownEvent>(e => searchField.Focus());
+                    searchContainer.RegisterCallback<ClickEvent>(e => searchField.Focus());
                 }
                 
                 searchField.RegisterValueChangedCallback(e => {
