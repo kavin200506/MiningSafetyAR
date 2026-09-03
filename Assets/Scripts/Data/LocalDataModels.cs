@@ -74,13 +74,24 @@ namespace MiningSafetyAR.Data
     [Serializable]
     public class CertificatePayload
     {
+        public int v = 1;
         public string certificateId;
         public string workerId;
+        public string workerName;
+        public string moduleId;
         public string moduleName;
         public int score;
         public string issuedAt;
+        public string expiryDate;
+        public string organization;
         public string verificationUrl;
         public string signatureHash;
+    }
+
+    [Serializable]
+    public class CertificateListWrapper
+    {
+        public List<CertificateData> certificates = new List<CertificateData>();
     }
 
     [Serializable]

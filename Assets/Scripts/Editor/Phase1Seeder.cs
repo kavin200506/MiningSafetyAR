@@ -144,8 +144,8 @@ public static class Phase1Seeder
         var db = ScriptableObject.CreateInstance<CertificateDatabase>();
         db.certificates = new System.Collections.Generic.List<CertificateData>
         {
-            new CertificateData{ id="JH-FIRE-001928", workerName="Ramesh Kumar", workerId="JH10293", moduleId="fire_safety", moduleTitle="Fire & Explosion Response", score=85, issuedDate="2026-08-26", expiryDate="2027-08-26", organization="Jharkhand Steel Works", status="valid" },
-            new CertificateData{ id="JH-GAS-002156", workerName="Ramesh Kumar", workerId="JH10293", moduleId="gas_safety", moduleTitle="Gas Leak & Confined Space", score=72, issuedDate="2026-08-28", expiryDate="2027-08-28", organization="Jharkhand Steel Works", status="valid" },
+            new CertificateData{ id="JH-FIRE-001928", workerName="Ramesh Kumar", workerId="W-10492", moduleId="fire_safety", moduleTitle="Fire & Explosion Response", score=85, issuedDate="2026-08-26", expiryDate="2027-08-26", organization="Jharkhand Steel Works", status="VALID", signatureHash="" },
+            new CertificateData{ id="JH-GAS-002156", workerName="Ramesh Kumar", workerId="W-10492", moduleId="gas_safety", moduleTitle="Gas Leak & Confined Space", score=72, issuedDate="2026-08-28", expiryDate="2027-08-28", organization="Jharkhand Steel Works", status="VALID", signatureHash="" },
         };
         System.IO.Directory.CreateDirectory("Assets/Data");
         AssetDatabase.CreateAsset(db, path);

@@ -6,61 +6,87 @@
     <Style src="project://database/Assets/UI/Styles/BottomNav.uss" />
     <Style src="project://database/Assets/UI/Styles/Icons.uss" />
     <ui:VisualElement class="page-container">
+        <!-- Top Header -->
         <ui:VisualElement class="header">
             <ui:Button class="header__back-btn" name="back-btn">
                 <ui:VisualElement class="icon-back" style="width: 20px; height: 20px;" />
             </ui:Button>
-            <ui:Label class="header__title" text="Certificate" />
+            <ui:Label class="header__title" text="My Safety Certificates" />
             <ui:VisualElement class="header__right-action" />
         </ui:VisualElement>
+
         <ui:ScrollView class="scroll-area">
-            <ui:VisualElement class="card" name="cert-card" style="padding: 0; overflow: hidden;">
+            <!-- Main Official Certificate Card -->
+            <ui:VisualElement class="card" name="cert-card" style="padding: 0; overflow: hidden; margin: 12px 16px;">
+                <!-- Orange Header Banner -->
                 <ui:VisualElement style="background-color: #FF6D00; padding: 16px; align-items: center;">
-                    <ui:VisualElement class="logo-shield" style="width: 28px; height: 28px;" />
-                    <ui:Label text="SAFETY CERTIFICATE" style="font-size: 14px; font-weight: 700; color: #FFFFFF; letter-spacing: 2px; margin-top: 4px;" />
-                    <ui:Label text="Government of Jharkhand" style="font-size: 11px; color: #FFFFFF; margin-top: 2px;" />
+                    <ui:VisualElement class="logo-shield" style="width: 32px; height: 32px;" />
+                    <ui:Label text="DGMS SAFETY CERTIFICATE" style="font-size: 13px; font-weight: 700; color: #FFFFFF; letter-spacing: 2px; margin-top: 6px;" />
+                    <ui:Label text="Department of Mines Safety • Govt of Jharkhand" style="font-size: 10px; color: #FFE0B2; margin-top: 2px;" />
                 </ui:VisualElement>
-                <ui:VisualElement style="padding: 16px; align-items: center;">
-                    <ui:Label text="This certifies that" style="font-size: 12px; color: #999999;" />
-                    <ui:Label name="worker-name" text="" style="font-size: 18px; font-weight: 700; color: #1A1A1A; margin-top: 4px;" />
-                    <ui:Label text="has successfully completed" style="font-size: 12px; color: #999999; margin-top: 4px;" />
-                    <ui:Label name="module-title" text="" style="font-size: 14px; font-weight: 600; color: #FF6D00; margin-top: 4px; text-align: center;" />
+
+                <!-- Certificate Body Content -->
+                <ui:VisualElement style="padding: 20px 16px; align-items: center;">
+                    <ui:Label text="This is to certify that" style="font-size: 11px; color: #757575;" />
+                    <ui:Label name="worker-name" text="Ramesh Kumar" style="font-size: 20px; font-weight: 700; color: #1A1A1A; margin-top: 4px;" />
+                    
+                    <ui:Label text="has successfully completed training for" style="font-size: 11px; color: #757575; margin-top: 8px;" />
+                    <ui:Label name="module-title" text="Fire &amp; Explosion Safety" style="font-size: 15px; font-weight: 700; color: #FF6D00; margin-top: 4px; text-align: center;" />
+                    
+                    <!-- Score & Pass Badge Row -->
                     <ui:VisualElement style="flex-direction: row; align-items: center; margin-top: 12px;">
-                        <ui:Label name="score" text="85%" style="font-size: 16px; font-weight: 700; color: #1A1A1A; margin-right: 8px;" />
-                        <ui:Label class="badge badge--pass" text="PASSED" />
+                        <ui:Label text="Score:" style="font-size: 12px; color: #757575; margin-right: 4px;" />
+                        <ui:Label name="score" text="88%" style="font-size: 16px; font-weight: 700; color: #1A1A1A; margin-right: 12px;" />
+                        <ui:Label name="passed-badge" class="badge badge--pass" text="PASSED" />
                     </ui:VisualElement>
-                    <ui:VisualElement style="width: 120px; height: 120px; background-color: #F5F5F5; border-color: #E0E0E0; border-width: 1px; border-radius: 8px; align-items: center; justify-content: center; margin-top: 16px;">
-                        <ui:Label text="QR Code" style="font-size: 11px; color: #999999;" />
-                        <ui:Label name="cert-id" text="" style="font-size: 10px; color: #1A1A1A; margin-top: 4px;" />
+
+                    <!-- QR Code Display Box -->
+                    <ui:VisualElement style="width: 140px; height: 140px; background-color: #FFFFFF; border-color: #E0E0E0; border-width: 1px; border-radius: 10px; align-items: center; justify-content: center; margin-top: 16px; padding: 6px;">
+                        <ui:VisualElement name="qr-image" style="width: 110px; height: 110px; background-color: #FAFAFA; align-items: center; justify-content: center;">
+                            <ui:Label text="[QR CODE]" style="font-size: 10px; color: #B0BEC5;" />
+                        </ui:VisualElement>
+                        <ui:Label name="cert-id" text="JH-FIRE-849201" style="font-size: 9px; font-weight: 700; color: #424242; margin-top: 4px;" />
                     </ui:VisualElement>
-                    <ui:Label text="Scan to verify certificate" style="font-size: 10px; color: #999999; margin-top: 8px;" />
-                    <ui:VisualElement style="width: 100%; margin-top: 16px;">
+                    <ui:Label text="Official Verification QR Code" style="font-size: 10px; color: #9E9E9E; margin-top: 6px;" />
+
+                    <!-- Certificate Metadata List -->
+                    <ui:VisualElement style="width: 100%; margin-top: 20px; border-top-color: #EEEEEE; border-top-width: 1px; padding-top: 12px;">
                         <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 6px;">
-                            <ui:Label text="Certificate ID" style="font-size: 11px; color: #999999;" />
-                            <ui:Label name="cert-id-meta" text="" style="font-size: 11px; color: #1A1A1A;" />
+                            <ui:Label text="Certificate ID" style="font-size: 11px; color: #757575;" />
+                            <ui:Label name="cert-id-meta" text="JH-FIRE-849201" style="font-size: 11px; font-weight: 600; color: #212121;" />
                         </ui:VisualElement>
                         <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 6px;">
-                            <ui:Label text="Issued" style="font-size: 11px; color: #999999;" />
-                            <ui:Label name="issued-date" text="" style="font-size: 11px; color: #1A1A1A;" />
+                            <ui:Label text="Issue Date" style="font-size: 11px; color: #757575;" />
+                            <ui:Label name="issued-date" text="2026-09-03" style="font-size: 11px; color: #212121;" />
                         </ui:VisualElement>
                         <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 6px;">
-                            <ui:Label text="Expires" style="font-size: 11px; color: #999999;" />
-                            <ui:Label name="expiry-date" text="" style="font-size: 11px; color: #1A1A1A;" />
+                            <ui:Label text="Valid Until" style="font-size: 11px; color: #757575;" />
+                            <ui:Label name="expiry-date" text="2027-09-03" style="font-size: 11px; color: #212121;" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 6px;">
+                            <ui:Label text="Organization" style="font-size: 11px; color: #757575;" />
+                            <ui:Label name="organization" text="Bharat Coking Coal Ltd" style="font-size: 11px; color: #212121;" />
                         </ui:VisualElement>
                         <ui:VisualElement style="flex-direction: row; justify-content: space-between;">
-                            <ui:Label text="Organization" style="font-size: 11px; color: #999999;" />
-                            <ui:Label name="organization" text="" style="font-size: 11px; color: #1A1A1A;" />
+                            <ui:Label text="Security Hash" style="font-size: 11px; color: #757575;" />
+                            <ui:Label name="security-status" text="HMAC-SHA256 Signed" style="font-size: 10px; font-weight: 700; color: #2E7D32;" />
                         </ui:VisualElement>
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
-            <ui:VisualElement style="margin-top: 16px; padding: 0 16px;">
-                <ui:Button class="btn-primary" name="download-btn" text="Download Certificate" />
-                <ui:Button class="btn-secondary" name="share-btn" text="Share Certificate" style="margin-top: 8px;" />
-                <ui:Button class="btn-secondary" name="verify-btn" text="Verify Certificate" style="margin-top: 8px;" />
+
+            <!-- Worker Action Buttons -->
+            <ui:VisualElement style="margin-top: 8px; padding: 0 16px;">
+                <ui:Button class="btn-primary" name="download-btn" text="Download Certificate (PNG)" style="height: 44px; font-size: 13px; font-weight: 700;" />
+                <ui:Button class="btn-secondary" name="share-btn" text="Share Certificate" style="height: 40px; margin-top: 8px; font-size: 12px;" />
+                <ui:Button class="btn-secondary" name="view-all-certs-btn" text="View All My Certificates" style="height: 40px; margin-top: 8px; font-size: 12px;" />
             </ui:VisualElement>
+
+            <!-- Bottom Spacer -->
             <ui:VisualElement style="height: 80px;" />
         </ui:ScrollView>
+
+        <!-- Bottom Navigation Bar -->
         <ui:VisualElement name="bottom-nav" class="bottom-nav">
             <ui:Button name="tab-home" class="bottom-nav__tab">
                 <ui:VisualElement class="icon-home" style="margin-bottom: 2px;" />

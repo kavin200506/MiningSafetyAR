@@ -167,7 +167,41 @@ namespace MiningSafetyAR.Firebase
         }
 
         // ----------------------------------------------------------------
-        // JSON -> FIRESTORE FIELDS CONVERSION
+        // CERTIFICATES API
+        // ----------------------------------------------------------------
+
+        public void SaveCertificateToFirestore(string firebaseUid, string certId, string certJson, Action<bool, string> cb)
+        {
+            if (string.IsNullOrEmpty(firebaseUid) || string.IsNullOrEmpty(certId))
+            {
+                cb?.Invoke(false, "Invalid params");
+                return;
+            }
+
+            // Save under worker's subcollection: workers/{uid}/certificates/{certId}
+            StartCoroutine(PatchDocument($"workers/{firebaseUid}/certificates/{certId}", certJson, (ok1, resp1) =>
+            {
+                // Also save under global public collection: certificates/{certId}
+                StartCoroutine(PatchDocument($"certificates/{certId}", certJson, (ok2, resp2) =>
+                {
+                    cb?.Invoke(ok1 || ok2, resp1);
+                }, useAuth: false));
+            }));
+        }
+
+        public void GetCertificateFromFirestore(string certId, Action<bool, string> cb)
+        {
+            if (string.IsNullOrEmpty(certId))
+            {
+                cb?.Invoke(false, "Empty certId");
+                return;
+            }
+
+            StartCoroutine(GetDocument($"certificates/{certId}", cb, useAuth: false));
+        }
+
+        // ----------------------------------------------------------------
+        // HELPER: CONVERT JSON TO FIRESTORE FIELDS FORMAT
         // ----------------------------------------------------------------
 
         string ConvertToFirestoreFields(string flatJson)

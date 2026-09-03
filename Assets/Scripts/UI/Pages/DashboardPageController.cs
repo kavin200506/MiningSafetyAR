@@ -51,7 +51,7 @@ namespace MiningSafetyAR.UI.Pages
             if (tabSettings != null) tabSettings.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateToTab("UI_Settings"));
 
             if (seeAllBtn != null) seeAllBtn.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateTo("UI_TrainingCatalogue"));
-            if (viewCertsBtn != null) viewCertsBtn.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateTo("UI_Progress"));
+            if (viewCertsBtn != null) viewCertsBtn.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateTo("UI_CertificatesList"));
 
             // Subscribe to worker loaded event — re-Refresh when async Firestore load completes
             if (AppDataService.Instance != null)

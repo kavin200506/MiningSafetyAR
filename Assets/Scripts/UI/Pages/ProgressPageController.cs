@@ -22,6 +22,10 @@ namespace MiningSafetyAR.UI.Pages
             completedCount = root.Q<Label>("completed-count");
             totalAttempts = root.Q<Label>("total-attempts");
             certCount = root.Q<Label>("cert-count");
+            if (certCount != null)
+            {
+                certCount.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateTo("UI_CertificatesList"));
+            }
             overviewTrack = root.Q("overview-track");
             competencyBars = root.Q("competency-bars");
             moduleRows = root.Q("module-rows");

@@ -221,11 +221,7 @@ namespace MiningSafetyAR.AR
 
             Debug.Log($"[ARStepCounterTracker] Step target reached ({currentStepCount}/{targetSteps})! Auto-scanning for nearby vertical wall plane for 5 seconds...");
 
-            if (wallScanCoroutine != null)
-            {
-                StopCoroutine(wallScanCoroutine);
-            }
-            wallScanCoroutine = StartCoroutine(AutoScanAndSpawnExtinguisherRoutine());
+            yield return AutoScanAndSpawnExtinguisherRoutine();
         }
 
         /// <summary>
