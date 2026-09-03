@@ -44,12 +44,6 @@
                             <ui:VisualElement class="toggle-switch__knob" />
                         </ui:VisualElement>
                     </ui:VisualElement>
-                    <ui:VisualElement style="flex-direction: row; justify-content: space-between; align-items: center; padding-top: 16px;">
-                        <ui:Label text="Dark Mode" style="font-size: 15px; font-weight: 600; color: #1A1A1A;" />
-                        <ui:VisualElement class="toggle-switch" name="toggle-dark-mode">
-                            <ui:VisualElement class="toggle-switch__knob" />
-                        </ui:VisualElement>
-                    </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:Label text="System" style="font-size: 16px; font-weight: 700; color: #1A1A1A; -unity-font-style: bold; margin-bottom: 12px; padding-left: 4px;"/>
                 <ui:VisualElement class="card" style="background-color: #FFFFFF; border-radius: 20px; padding: 16px; margin-bottom: 32px; border-width: 1px; border-color: #E0E0E0;">
