@@ -1,0 +1,377 @@
+/* ═══════════════════════════════════════════════════════════════════
+   AR Simulation Overlay Styles
+   Used by: ARSimulationPage.uxml
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ─── Top Toolbar ─── */
+#ar-toolbar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    align-items: center;
+    padding: 6px 8px;
+    background-color: rgba(0, 0, 0, 0.65);
+}
+
+/* ─── Toolbar Buttons ─── */
+#btn-exit,
+#btn-move,
+#btn-mesh,
+#btn-hint {
+    width: 34px;
+    height: 34px;
+    border-radius: 17px;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 15px;
+    -unity-text-align: middle-center;
+    margin: 2px;
+}
+
+#btn-hint {
+    background-color: rgba(33, 150, 243, 0.6);
+}
+
+/* ─── Timer Pill ─── */
+#timer-pill {
+    flex-direction: row;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 16px;
+    background-color: rgba(0, 0, 0, 0.6);
+    margin: 2px;
+}
+
+/* ─── Score Badge ─── */
+#btn-score-dropdown {
+    flex-direction: row;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 16px;
+    background-color: rgba(0, 0, 0, 0.6);
+    margin: 2px;
+}
+
+/* ─── Bottom Instruction Bar (Tier 1) ─── */
+#instruction-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    flex-direction: row;
+    align-items: center;
+    padding: 12px 20px;
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
+/* ─── Tier 2: Proximity Warning Banner ─── */
+#banner-warning {
+    position: absolute;
+    bottom: 60px;
+    left: 16px;
+    right: 16px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background-color: rgba(255, 87, 34, 0.9);
+    flex-direction: row;
+    align-items: center;
+}
+
+/* ─── Tier 3: Critical Hazard Alert ─── */
+#banner-critical {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+#critical-card {
+    width: 300px;
+    padding: 24px;
+    border-radius: 12px;
+    background-color: #FFD600;
+    align-items: center;
+}
+
+#critical-title {
+    font-size: 22px;
+    -unity-font-style: bold;
+    color: #212121;
+}
+
+#critical-text {
+    font-size: 14px;
+    color: #424242;
+    -unity-text-align: middle-center;
+    white-space: normal;
+}
+
+#btn-retry {
+    width: 64px;
+    height: 64px;
+    border-radius: 32px;
+    background-color: #FF6D00;
+    color: white;
+    font-size: 24px;
+    -unity-text-align: middle-center;
+}
+
+/* ─── Score History Modal ─── */
+#modal-score-history {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+#modal-card {
+    width: 340px;
+    padding: 20px;
+    border-radius: 12px;
+    background-color: #1E1E1E;
+}
+
+#modal-title {
+    font-size: 16px;
+    -unity-font-style: bold;
+    color: #FFD600;
+    margin-bottom: 12px;
+}
+
+/* ─── Score Table ─── */
+#table-header {
+    flex-direction: row;
+    border-bottom-width: 1px;
+    border-bottom-color: #444;
+    padding: 8px 0;
+}
+
+#table-header > Label {
+    flex: 1;
+    font-size: 11px;
+    color: #888;
+}
+
+#table-step-rows {
+    /* Dynamic rows added via C# */
+}
+
+.table-row {
+    flex-direction: row;
+    padding: 10px 0;
+    border-bottom-width: 1px;
+    border-bottom-color: #333;
+}
+
+.table-row > Label {
+    flex: 1;
+    font-size: 13px;
+    color: white;
+}
+
+#table-footer {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-top-width: 2px;
+    border-top-color: #FF6D00;
+    margin-top: 8px;
+}
+
+#btn-close-modal {
+    margin-top: 8px;
+    padding: 10px;
+    border-radius: 8px;
+    background-color: #333;
+    color: white;
+    font-size: 14px;
+    -unity-text-align: middle-center;
+}
+
+/* ─── Tutorial Vignette ─── */
+#tutorial-vignette {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
+/* ─── Tutorial Callout (TIP 1/3) ─── */
+#tutorial-callout {
+    position: absolute;
+    top: 100px;
+    left: 50%;
+    translate: -50% 0;
+    width: 300px;
+    padding: 16px;
+    border-radius: 12px;
+    background-color: #2196F3;
+    align-items: center;
+}
+
+#tip-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 8px;
+}
+
+#tip-text {
+    font-size: 14px;
+    color: white;
+    -unity-text-align: middle-center;
+    white-space: normal;
+    margin-bottom: 12px;
+}
+
+#btn-close-tip {
+    padding: 8px 24px;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 13px;
+    margin-bottom: 6px;
+    -unity-text-align: middle-center;
+}
+
+#btn-skip-tutorial {
+    background-color: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+}
+
+/* ─── Mission Briefing Modal ─── */
+#mission-modal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+#mission-card {
+    width: 320px;
+    padding: 24px;
+    border-radius: 12px;
+    background-color: #1E1E1E;
+    align-items: center;
+}
+
+#mission-title {
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: white;
+    margin-bottom: 8px;
+}
+
+#mission-text {
+    font-size: 14px;
+    color: white;
+    -unity-text-align: middle-center;
+    white-space: normal;
+    margin-bottom: 20px;
+}
+
+#btn-start-mission {
+    padding: 14px 48px;
+    border-radius: 8px;
+    background-color: #FF6D00;
+    color: white;
+    font-size: 16px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+/* ─── P.A.S.S. Action Buttons (Mobile) ─── */
+#pass-button-panel {
+    position: absolute;
+    right: 16px;
+    bottom: 120px;
+    flex-direction: column;
+}
+
+#btn-pass-grab {
+    width: 80px;
+    height: 80px;
+    border-radius: 40px;
+    background-color: rgba(76, 175, 80, 0.9);
+    color: white;
+    font-size: 13px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    border-width: 3px;
+    border-color: white;
+    margin-bottom: 10px;
+}
+
+#btn-pass-pin {
+    width: 80px;
+    height: 80px;
+    border-radius: 40px;
+    background-color: rgba(255, 152, 0, 0.9);
+    color: white;
+    font-size: 12px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    border-width: 3px;
+    border-color: white;
+    margin-bottom: 10px;
+}
+
+#btn-pass-aim {
+    width: 80px;
+    height: 80px;
+    border-radius: 40px;
+    background-color: rgba(33, 150, 243, 0.9);
+    color: white;
+    font-size: 13px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    border-width: 3px;
+    border-color: white;
+    margin-bottom: 10px;
+}
+
+#btn-pass-squeeze {
+    width: 80px;
+    height: 80px;
+    border-radius: 40px;
+    background-color: rgba(244, 67, 54, 0.9);
+    color: white;
+    font-size: 11px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    border-width: 3px;
+    border-color: white;
+}
+
+#pass-status {
+    position: absolute;
+    right: 16px;
+    bottom: 220px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+#pass-status-text {
+    color: #FFD600;
+    font-size: 12px;
+    -unity-font-style: bold;
+}

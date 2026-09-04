@@ -7,9 +7,10 @@ namespace MiningSafetyAR.Data
     [Serializable]
     public enum Language
     {
-        English,
-        Hindi,
-        Santali
+        English  = 0,   // PlayerPrefs int value — DO NOT renumber existing values
+        Hindi    = 1,   // PlayerPrefs int value — DO NOT renumber existing values
+        Santali  = 2,   // PlayerPrefs int value — DO NOT renumber existing values
+        Tamil    = 3    // Added for voice command & TTS support (v2.0)
     }
 
     [Serializable]
@@ -33,6 +34,15 @@ namespace MiningSafetyAR.Data
         public float completionTimeSeconds;
         public string timestamp;
         public bool synced;
+        public List<StepMetric> stepMetrics = new List<StepMetric>();
+
+        // Geo Location fields for regional analytics
+        public double latitude;
+        public double longitude;
+        public float locationAccuracyMeters;
+        public string locationName;
+        public bool hasLocation;
+        public bool capturedOffline;
 
         public TrainingResult()
         {
@@ -71,5 +81,14 @@ namespace MiningSafetyAR.Data
         public string issuedAt;
         public string verificationUrl;
         public string signatureHash;
+    }
+
+    [Serializable]
+    public struct StepMetric
+    {
+        public string stepName;
+        public int errorCount;
+        public float durationSeconds;
+        public int score;
     }
 }

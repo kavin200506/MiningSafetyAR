@@ -39,6 +39,9 @@ EditorBuildSettings:
     path: Assets/Scenes/UI_ARSimulation.unity
     guid: c7d51dd814519fd41a3e3f00734da6d9
   - enabled: 1
+    path: Assets/Scenes/ar_fire_safety.unity
+    guid: b9d43183438d0d34ba9587b746632cd7
+  - enabled: 1
     path: Assets/Scenes/UI_ModuleDetail.unity
     guid: 95106283642c7534d80cd63498dc3978
   - enabled: 1
