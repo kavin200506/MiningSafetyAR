@@ -432,8 +432,14 @@ namespace MiningSafetyAR.AR
                 string hitTypeString = "";
                 TrackableId hitTrackableId = TrackableId.invalidId;
 
-                // Tier 1: Real AR Plane Surface
-                TrackableType planeTypes = TrackableType.AllTypes | TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds | TrackableType.Planes;
+                // Tier 1: Real AR Plane Surface. Deliberately NOT TrackableType.AllTypes — that flag
+                // alone already includes every trackable kind (feature points, estimated planes,
+                // faces, images, depth), so OR-ing specific plane flags into it was a no-op; it made
+                // this raycast accept literally any textured surface (table tops, objects, etc.) as
+                // a "plane" hit, contradicting the "fire ONLY spawns on a real detected plane"
+                // contract below. Restricting to just the plane-specific flags is what actually
+                // enforces that.
+                TrackableType planeTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds | TrackableType.Planes;
                 if (raycastManager != null && raycastManager.Raycast(touchPosition, hits, planeTypes) && hits.Count > 0)
                 {
                     hitPose = hits[0].pose;
