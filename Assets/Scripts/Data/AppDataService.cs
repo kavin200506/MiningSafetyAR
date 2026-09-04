@@ -394,18 +394,74 @@ namespace MiningSafetyAR.Data
 
         public ModuleData GetModule(string id)
         {
-            if (moduleDatabase == null) moduleDatabase = Resources.Load<ModuleDatabase>("Data/ModuleDatabase");
-            return moduleDatabase != null ? moduleDatabase.GetById(id) : null;
+            var all = GetAllModules();
+            return all != null ? all.Find(m => m.id == id) : null;
         }
 
         public List<ModuleData> GetAllModules()
         {
             // Force load from Resources in case the wrong one is assigned in the Inspector
-            if (moduleDatabase == null || moduleDatabase.modules.Count < 10) 
+            if (moduleDatabase == null) 
             {
                 moduleDatabase = Resources.Load<ModuleDatabase>("Data/ModuleDatabase");
             }
-            return moduleDatabase != null ? moduleDatabase.GetAll() : new List<ModuleData>();
+            var list = moduleDatabase != null ? moduleDatabase.GetAll() : new List<ModuleData>();
+            EnsureSubModulesLoaded(list);
+            return list;
+        }
+
+        private void EnsureSubModulesLoaded(List<ModuleData> list)
+        {
+            if (list == null) return;
+            if (list.Exists(m => !string.IsNullOrEmpty(m.parentId))) return;
+
+            var categories = new Dictionary<string, string[]>
+            {
+                { "fire_safety", new[] { "Fire Extinguisher Protocol", "High-Voltage Panel Arc Flash", "Suspended Coal Dust Ignition", "Hydraulic Fluid Spill Fire", "Methane Gas Pocket Ignition" } },
+                { "gas_safety", new[] { "Hydrogen Sulfide (H2S) Sump Leak", "Methane Pocket Strike During Drilling", "Blackdamp Accumulation in Abandoned Shaft", "Unprepared Confined Space Entry Rescue", "Diesel Exhaust Inhalation" } },
+                { "electrical_safety", new[] { "Unshored Trench Wall Cave-In", "Room-and-Pillar Roof Collapse", "Overloaded Scaffolding Collapse", "Material Silo Structural Rupture", "Open-Pit Highwall Landslide" } },
+                { "machinery_safety", new[] { "Dump Truck Blind Spot Crushing", "Excavator Rollover on Uneven Terrain", "Conveyor Belt Entanglement", "Haul Truck Brake Failure on Incline", "Suspended Crane Load Drop" } },
+                { "heights_safety", new[] { "Fall from Unprotected Highwall Edge", "Slip on Oil-Coated Walkway", "Broken Rung Ladder Fall", "Plunge through Unmarked Floor Opening", "Trip over Unsecured Power Cables" } }
+            };
+
+            var emojis = new Dictionary<string, string> {
+                { "fire_safety", "🔥" }, { "gas_safety", "☠️" }, { "electrical_safety", "🏗️" }, { "machinery_safety", "⚙️" }, { "heights_safety", "⚠️" }
+            };
+
+            var domains = new Dictionary<string, string> {
+                { "fire_safety", "Fire Safety" }, { "gas_safety", "Gas/Hazmat" }, { "electrical_safety", "Structural" }, { "machinery_safety", "Machinery" }, { "heights_safety", "Slips & Falls" }
+            };
+
+            var colors = new Dictionary<string, string> {
+                { "fire_safety", "#FFCDD2" }, { "gas_safety", "#E1BEE7" }, { "electrical_safety", "#FFE0B2" }, { "machinery_safety", "#B3E5FC" }, { "heights_safety", "#C8E6C9" }
+            };
+
+            foreach (var kvp in categories)
+            {
+                string parentId = kvp.Key;
+                string[] subNames = kvp.Value;
+                for (int i = 0; i < subNames.Length; i++)
+                {
+                    string subId = $"{parentId}_sub{i + 1}";
+                    if (!list.Exists(m => m.id == subId))
+                    {
+                        list.Add(new ModuleData
+                        {
+                            id = subId,
+                            parentId = parentId,
+                            title = subNames[i],
+                            iconEmoji = emojis.ContainsKey(parentId) ? emojis[parentId] : "⚡",
+                            domain = domains.ContainsKey(parentId) ? domains[parentId] : "Safety",
+                            duration = "15 min",
+                            difficulty = "Medium",
+                            status = ModuleStatus.NotStarted,
+                            color = colors.ContainsKey(parentId) ? colors[parentId] : "#ECEFF1",
+                            description = $"Learn how to handle {subNames[i].ToLower()} safely and efficiently in an interactive AR environment.",
+                            objectives = new[] { "Identify hazards", "Apply correct protocols", "Evacuate safely" }
+                        });
+                    }
+                }
+            }
         }
 
         // ================================================================

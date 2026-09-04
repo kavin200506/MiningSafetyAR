@@ -820,8 +820,29 @@ namespace MiningSafetyAR.UI.Pages
         private void OnModuleCompleted(List<StepMetric> metrics)
         {
             timerRunning = false;
-            ShowTier1Info("Module complete! Tap the score badge to view your results.");
-            ShowScoreModal(metrics);
+            ShowTier1Info("🎉 LEVEL COMPLETED! Redirecting to Quiz...");
+            StartCoroutine(RedirectToQuizAfterDelay(metrics, 2.5f));
+        }
+
+        private IEnumerator RedirectToQuizAfterDelay(List<StepMetric> metrics, float delay)
+        {
+            ShowTier1Info("🎉 LEVEL COMPLETED! Redirecting to Quiz...");
+            if (bannerWarning != null) bannerWarning.style.display = DisplayStyle.None;
+
+            if (missionModal != null)
+            {
+                if (missionText != null) missionText.text = "🎉 LEVEL COMPLETED!\n\nYou have successfully extinguished the fire hazard! Get ready for your assessment quiz.";
+                missionModal.style.display = DisplayStyle.Flex;
+                if (btnStartMission != null) btnStartMission.style.display = DisplayStyle.None;
+            }
+
+            yield return new WaitForSeconds(delay);
+
+            if (missionModal != null) missionModal.style.display = DisplayStyle.None;
+
+            string targetModule = string.IsNullOrEmpty(moduleId) ? "fire_safety" : moduleId;
+            Debug.Log($"[ARSimulationPageController] LEVEL COMPLETED: Redirecting to Quiz ('UI_Assessment') for module '{targetModule}'...");
+            NavigationManager.Instance?.NavigateTo("UI_Assessment", targetModule);
         }
 
         // ═══════════════════════════════════════════════════════

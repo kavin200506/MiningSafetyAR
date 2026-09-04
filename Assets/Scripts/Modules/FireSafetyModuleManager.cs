@@ -330,6 +330,13 @@ namespace MiningSafetyAR.Modules
         private void HandleFireExtinguished()
         {
             Debug.Log("[FireSafetyModuleManager] Fire extinguished — drill complete.");
+            if (isModuleActive)
+            {
+                while (isModuleActive && currentStepIndex < totalSteps)
+                {
+                    CompleteCurrentStep();
+                }
+            }
         }
 
         private void HandleExtinguisherDepleted()
