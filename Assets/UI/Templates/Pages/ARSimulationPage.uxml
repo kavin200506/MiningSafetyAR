@@ -4,36 +4,138 @@
     <Style src="project://database/Assets/UI/Styles/Components.uss" />
     <Style src="project://database/Assets/UI/Styles/Animations.uss" />
     <Style src="project://database/Assets/UI/Styles/Icons.uss" />
-    <ui:VisualElement class="page-container" style="background-color: rgba(0,0,0,0); flex: 1; justify-content: space-between;">
-        <!-- Top HUD Bar -->
-        <ui:VisualElement class="ar__hud" style="flex-direction: row; justify-content: space-between; padding: 16px 20px; background-color: rgba(0,0,0,0.4);">
-            <ui:VisualElement class="ar__score-pill" style="flex-direction: row; background-color: rgba(255,255,255,0.2); border-radius: 20px; padding: 8px 16px; align-items: center;">
-                <ui:VisualElement class="icon-trophy" style="width: 16px; height: 16px; margin-right: 8px;" />
-                <ui:Label class="ar__score-value" name="score-value" text="50" style="color: #FFFFFF; font-size: 16px; font-weight: bold;" />
+
+    <!-- FULL SCREEN OVERLAY (transparent background for AR passthrough) -->
+    <ui:VisualElement name="ar-overlay" picking-mode="Ignore" style="width: 100%; height: 100%;">
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- TOP TOOLBAR (6 controls)                                    -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <ui:VisualElement name="ar-toolbar" style="position: absolute; top: 0; left: 0; right: 0; flex-direction: row; justify-content: space-between; align-items: center; padding: 10px 16px; background-color: rgba(0,0,0,0.5);">
+            <!-- Exit Button -->
+            <ui:Button name="btn-exit" text="X" style="width: 40px; height: 40px; border-radius: 20px; background-color: rgba(255,255,255,0.2); color: white; font-size: 18px; -unity-text-align: middle-center; margin-right: 4px;" />
+            <!-- Move Target -->
+            <ui:Button name="btn-move" text="↕↔" style="width: 40px; height: 40px; border-radius: 20px; background-color: rgba(255,255,255,0.2); color: white; font-size: 18px; -unity-text-align: middle-center; margin-right: 4px;" />
+            <!-- Plane Mesh Grid -->
+            <ui:Button name="btn-mesh" text="▦" style="width: 40px; height: 40px; border-radius: 20px; background-color: rgba(255,255,255,0.2); color: white; font-size: 18px; -unity-text-align: middle-center; margin-right: 4px;" />
+            <!-- Hint System -->
+            <ui:Button name="btn-hint" text="?" style="width: 40px; height: 40px; border-radius: 20px; background-color: rgba(33,150,243,0.6); color: white; font-size: 18px; -unity-text-align: middle-center; margin-right: 8px;" />
+            <!-- Stopwatch Timer Pill -->
+            <ui:VisualElement name="timer-pill" style="flex-direction: row; align-items: center; padding: 6px 14px; border-radius: 20px; background-color: rgba(0,0,0,0.6); margin-right: 8px;">
+                <ui:Label text="⏱" style="font-size: 14px; color: white; margin-right: 4px;" />
+                <ui:Label name="timer-value" text="00:00" style="color: #4CAF50; font-size: 14px; font-weight: bold;" />
             </ui:VisualElement>
-            <ui:VisualElement class="ar__timer-pill" name="timer-pill" style="flex-direction: row; background-color: rgba(255,255,255,0.2); border-radius: 20px; padding: 8px 16px; align-items: center;">
-                <ui:Label text="⏱" style="font-size: 16px; margin-right: 6px; color: #FFFFFF;" />
-                <ui:Label class="ar__timer-value timer-green" name="timer-value" text="120s" style="color: #4CAF50; font-size: 16px; font-weight: bold;" />
+            <!-- Dynamic Score Badge -->
+            <ui:Button name="btn-score-dropdown" style="flex-direction: row; align-items: center; padding: 6px 14px; border-radius: 20px; background-color: rgba(0,0,0,0.6);">
+                <ui:Label name="score-value" text="100" style="color: #FFD600; font-size: 14px; font-weight: bold; margin-right: 4px;" />
+                <ui:Label text="∨" style="color: white; font-size: 12px;" />
+            </ui:Button>
+        </ui:VisualElement>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- BOTTOM INSTRUCTION BAR (Tier 1: always visible)            -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <ui:VisualElement name="instruction-bar" style="position: absolute; bottom: 0; left: 0; right: 0; flex-direction: row; align-items: center; padding: 12px 20px; background-color: rgba(0,0,0,0.6);">
+            <ui:Label name="instruction-icon" text="ⓘ" style="font-size: 16px; color: #FF6D00; margin-right: 10px;" />
+            <ui:Label name="instruction-text" text="Scan floor to detect planes..." style="font-size: 13px; color: white; font-weight: bold; white-space: normal; flex: 1;" />
+        </ui:VisualElement>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- TIER 2: PROXIMITY WARNING BANNER (hidden by default)       -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <ui:VisualElement name="banner-warning" picking-mode="Ignore" style="position: absolute; bottom: 60px; left: 16px; right: 16px; padding: 12px 16px; border-radius: 8px; background-color: rgba(255,87,34,0.9); flex-direction: row; align-items: center; display: none;">
+            <ui:Label name="warning-icon" text="✕" style="font-size: 18px; color: white; margin-right: 10px;" />
+            <ui:Label name="warning-text" text="" style="font-size: 13px; color: white; flex: 1; white-space: normal;" />
+        </ui:VisualElement>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- TIER 3: CRITICAL HAZARD ALERT (hidden by default)          -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <ui:VisualElement name="banner-critical" picking-mode="Ignore" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; justify-content: center; align-items: center; background-color: rgba(0,0,0,0.8); display: none;">
+            <ui:VisualElement name="critical-card" style="width: 300px; padding: 24px; border-radius: 12px; background-color: #FFD600; align-items: center;">
+                <ui:Label name="critical-icon" text="⚡" style="font-size: 36px; margin-bottom: 8px;" />
+                <ui:Label name="critical-title" text="ALERT!" style="font-size: 22px; font-weight: bold; color: #212121; margin-bottom: 8px;" />
+                <ui:Label name="critical-text" text="" style="font-size: 14px; color: #424242; text-align: center; white-space: normal; margin-bottom: 16px;" />
+                <ui:Button name="btn-retry" text="▶ RETRY" style="width: 64px; height: 64px; border-radius: 32px; background-color: #FF6D00; color: white; font-size: 24px; -unity-text-align: middle-center;" />
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <!-- Center Passthrough Container -->
-        <ui:VisualElement class="ar__scene" name="ar-scene" style="flex: 1; align-items: center; justify-content: center; background-color: rgba(0,0,0,0);">
-            <ui:VisualElement class="ar__scan-line" name="scan-line" style="position: absolute; width: 90%; height: 2px; background-color: #FF6D00; display: none;" />
-            <ui:VisualElement class="ar__phase-content" name="phase-content" style="align-items: center; padding: 16px; background-color: rgba(0,0,0,0.5); border-radius: 12px; display: none;">
-                <ui:VisualElement class="ar__phase-emoji" name="phase-emoji" style="width: 48px; height: 48px; margin-bottom: 12px;" />
-                <ui:Label class="ar__phase-instruction" name="phase-instruction" text="" style="font-size: 14px; color: #FFFFFF; text-align: center;" />
-                <ui:VisualElement class="ar__phase-visual" name="phase-visual" style="margin-top: 16px;" />
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- SCORE HISTORY MODAL (hidden by default)                    -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <ui:VisualElement name="modal-score-history" picking-mode="Ignore" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; justify-content: center; align-items: center; background-color: rgba(0,0,0,0.7); display: none;">
+            <ui:VisualElement name="modal-card" style="width: 340px; padding: 20px; border-radius: 12px; background-color: #1E1E1E;">
+                <ui:Label name="modal-title" text="⏱ SCORE HISTORY" style="font-size: 16px; font-weight: bold; color: #FFD600; margin-bottom: 12px;" />
+                <!-- Table Header -->
+                <ui:VisualElement name="table-header" style="flex-direction: row; border-bottom-width: 1px; border-bottom-color: #444; padding: 8px 0;">
+                    <ui:Label text="STEP" style="flex: 1; font-size: 11px; color: #888;" />
+                    <ui:Label text="ERRORS" style="flex: 1; font-size: 11px; color: #888;" />
+                    <ui:Label text="TIME" style="flex: 1; font-size: 11px; color: #888;" />
+                    <ui:Label text="SCORE" style="flex: 1; font-size: 11px; color: #888;" />
+                </ui:VisualElement>
+                <!-- Step rows container (populated dynamically) -->
+                <ui:VisualElement name="table-step-rows" />
+                <!-- Table Footer -->
+                <ui:VisualElement name="table-footer" style="flex-direction: row; justify-content: space-between; padding: 12px 0; border-top-width: 2px; border-top-color: #FF6D00; margin-top: 8px;">
+                    <ui:Label name="total-duration" text="TOTAL: 00:00" style="font-size: 13px; color: white; font-weight: bold;" />
+                    <ui:Label name="total-score" text="SCORE: 0/500" style="font-size: 13px; color: #FFD600; font-weight: bold;" />
+                </ui:VisualElement>
+                <ui:Button name="btn-close-modal" text="CLOSE" style="margin-top: 8px; padding: 10px; border-radius: 8px; background-color: #333; color: white; font-size: 14px; -unity-text-align: middle-center;" />
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <!-- Bottom Instruction Bar -->
-        <ui:VisualElement style="position: relative; padding: 16px; background-color: rgba(0,0,0,0.4); flex-direction: row; justify-content: space-between; align-items: center;">
-            <ui:VisualElement class="ar__instruction-bar" name="instruction-bar" style="background-color: rgba(255,109,0,0.25); border-radius: 8px; padding: 10px 16px; flex: 1; border-width: 1px; border-color: #FF6D00;">
-                <ui:Label class="ar__instruction-text" name="instruction-text" text="AR Simulation Active: Scan room floor, tap to place hazard, walk to discover extinguisher" style="font-size: 13px; color: #FFFFFF; font-weight: bold; white-space: normal;" />
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- RETICLE CONFIRMATION CARD (hidden by default)               -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <ui:VisualElement name="reticle-confirm-card" picking-mode="Ignore" style="position: absolute; top: 50%; left: 50%; translate: -50% -50%; width: 280px; padding: 20px; border-radius: 12px; background-color: rgba(255,109,0,0.95); align-items: center; display: none;">
+            <ui:Label name="reticle-checkmark" text="✓" style="font-size: 48px; color: white; margin-bottom: 8px;" />
+            <ui:Label name="reticle-title" text="FIRE PLACED" style="font-size: 16px; font-weight: bold; color: white; margin-bottom: 4px;" />
+            <ui:Label name="reticle-subtitle" text="Fire hazard ignited on floor" style="font-size: 12px; color: rgba(255,255,255,0.8); white-space: normal; text-align: center;" />
+        </ui:VisualElement>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- TUTORIAL VIGNETTE (hidden by default)                      -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <ui:VisualElement name="tutorial-vignette" picking-mode="Ignore" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.6); display: none;" />
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- TUTORIAL CALLOUT — TIP 1/3 (hidden by default)             -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <ui:VisualElement name="tutorial-callout" picking-mode="Ignore" style="position: absolute; top: 100px; left: 50%; translate: -50% 0; width: 300px; padding: 16px; border-radius: 12px; background-color: #2196F3; align-items: center; display: none;">
+            <ui:Label name="tip-label" text="TIP 1/3" style="font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 8px;" />
+            <ui:Label name="tip-text" text="Need help to progress? Just tap this light bulb icon then follow the blue arrow." style="font-size: 14px; color: white; text-align: center; white-space: normal; margin-bottom: 12px;" />
+            <ui:Button name="btn-close-tip" text="CLOSE" style="padding: 8px 24px; border-radius: 6px; background-color: rgba(255,255,255,0.2); color: white; font-size: 13px; margin-bottom: 6px; -unity-text-align: middle-center;" />
+            <ui:Button name="btn-skip-tutorial" text="SKIP TUTORIAL" style="background-color: transparent; color: rgba(255,255,255,0.6); font-size: 12px;" />
+        </ui:VisualElement>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- P.A.S.S. ACTION BUTTONS (Mobile-friendly, hidden by default) -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <ui:VisualElement name="pass-button-panel" picking-mode="Ignore" style="position: absolute; right: 16px; bottom: 120px; flex-direction: column; display: none;">
+            <ui:Button name="btn-pass-grab" text="GRAB" style="width: 80px; height: 80px; border-radius: 40px; background-color: rgba(76,175,80,0.9); color: white; font-size: 13px; font-weight: bold; -unity-text-align: middle-center; border-width: 3px; border-color: white; margin-bottom: 10px;" />
+            <ui:Button name="btn-pass-pin" text="PULL PIN" style="width: 80px; height: 80px; border-radius: 40px; background-color: rgba(255,152,0,0.9); color: white; font-size: 12px; font-weight: bold; -unity-text-align: middle-center; border-width: 3px; border-color: white; display: none; margin-bottom: 10px;" />
+            <ui:Button name="btn-pass-aim" text="AIM" style="width: 80px; height: 80px; border-radius: 40px; background-color: rgba(33,150,243,0.9); color: white; font-size: 13px; font-weight: bold; -unity-text-align: middle-center; border-width: 3px; border-color: white; display: none; margin-bottom: 10px;" />
+            <ui:Button name="btn-pass-squeeze" text="SQUEEZE" style="width: 80px; height: 80px; border-radius: 40px; background-color: rgba(244,67,54,0.9); color: white; font-size: 11px; font-weight: bold; -unity-text-align: middle-center; border-width: 3px; border-color: white; display: none;" />
+        </ui:VisualElement>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- P.A.S.S. STATUS LABEL (shows current step)                 -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <ui:VisualElement name="pass-status" picking-mode="Ignore" style="position: absolute; right: 16px; bottom: 220px; padding: 8px 14px; border-radius: 8px; background-color: rgba(0,0,0,0.7); display: none;">
+            <ui:Label name="pass-status-text" text="" style="color: #FFD600; font-size: 12px; font-weight: bold;" />
+        </ui:VisualElement>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- MISSION BRIEFING MODAL (hidden by default)                 -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <ui:VisualElement name="mission-modal" picking-mode="Ignore" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; justify-content: center; align-items: center; background-color: rgba(0,0,0,0.7); display: none;">
+            <ui:VisualElement name="mission-card" style="width: 320px; padding: 24px; border-radius: 12px; background-color: #1E1E1E; align-items: center;">
+                <ui:Label name="mission-icon" text="ⓘ" style="font-size: 28px; color: #FF6D00; margin-bottom: 8px;" />
+                <ui:Label name="mission-title" text="YOUR MISSION" style="font-size: 18px; font-weight: bold; color: #FFD600; margin-bottom: 12px;" />
+                <ui:Label name="mission-text" text="A fire just started in a trash can! What should you do?" style="font-size: 14px; color: white; text-align: center; white-space: normal; margin-bottom: 20px;" />
+                <ui:Button name="btn-start-mission" text="START" style="padding: 14px 48px; border-radius: 8px; background-color: #FF6D00; color: white; font-size: 16px; font-weight: bold; -unity-text-align: middle-center;" />
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <ui:VisualElement class="ar__phase-dots" name="phase-dots" style="display: none;" />
     </ui:VisualElement>
 </ui:UXML>

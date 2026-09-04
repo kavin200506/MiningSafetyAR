@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 4570201747925438264}
   - component: {fileID: 1917394217579813926}
   - component: {fileID: 792271699164849729}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: GroundFireParticles
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4849,5 +4849,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 47c177c528be94c75b18ebd222195ea0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.Modules.GroundFireController
-  groundFireParticles: {fileID: 4570201747925438264}
-  showTestUI: 1
+  groundFireParticles:
+  - {fileID: 4570201747925438264}
+  lowSpecMode: 1
+  maxFireHealth: 100
+  foamPower: 8
