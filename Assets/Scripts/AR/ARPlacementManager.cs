@@ -432,11 +432,13 @@ namespace MiningSafetyAR.AR
                 string hitTypeString = "";
                 TrackableId hitTrackableId = TrackableId.invalidId;
 
-                // Tier 1: Real AR Plane Surface only. TrackableType.AllTypes must NOT be OR'd in here —
-                // it has every bit set, so ORing it with anything else still equals AllTypes, silently
-                // widening this "plane-only" raycast to match raw feature points too. Feature points are
-                // noisy point-cloud samples that can sit above/below the real floor, which is what was
-                // causing the fire hazard to spawn floating in mid-air instead of exactly on the plane.
+                // Tier 1: Real AR Plane Surface only. Deliberately NOT TrackableType.AllTypes — that
+                // flag alone already has every trackable kind set (feature points, estimated planes,
+                // faces, images, depth), so OR-ing specific plane flags into it was a no-op. It made
+                // this raycast accept any textured surface or noisy feature point as a "plane" hit,
+                // which is what was causing the fire hazard to spawn floating in mid-air instead of
+                // exactly on the plane, contradicting the "fire ONLY spawns on a real detected plane"
+                // contract below. Restricting to just the plane-specific flags is what enforces that.
                 TrackableType planeTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds | TrackableType.Planes;
                 if (raycastManager != null && raycastManager.Raycast(touchPosition, hits, planeTypes) && hits.Count > 0)
                 {
