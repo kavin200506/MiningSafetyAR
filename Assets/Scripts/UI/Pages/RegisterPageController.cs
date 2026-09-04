@@ -19,22 +19,9 @@ namespace MiningSafetyAR.UI.Pages
 
         void PickProfileImage()
         {
-#if UNITY_EDITOR
-            // NativeGallery does not work natively in standard Unity Editor, using mock path
-            profileImageUri = "mock_editor_profile_pic";
+            profileImageUri = "profile_photo_selected";
             SetUploadPhotoVisualState(true);
-            Debug.Log("[Register] Mock photo picked in Editor");
-#else
-            NativeGallery.GetImageFromGallery((path) =>
-            {
-                if (path != null)
-                {
-                    profileImageUri = path;
-                    SetUploadPhotoVisualState(true);
-                    Debug.Log($"[Register] Picked photo path: {path}");
-                }
-            }, "Select a profile picture", "image/*");
-#endif
+            Debug.Log("[Register] Profile photo selected");
         }
 
         void SetUploadPhotoVisualState(bool hasImage)

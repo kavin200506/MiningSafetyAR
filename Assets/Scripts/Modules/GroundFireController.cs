@@ -31,6 +31,8 @@ namespace MiningSafetyAR.Modules
         [Header("Fire Health System")]
         [SerializeField] private float maxFireHealth = 40f;
         [SerializeField] private float foamPower = 25f;
+        [Tooltip("Extra suppression (HP/sec) applied at full (1.0) sweep intensity, on top of foamPower. See documents/sweep.md.")]
+        [SerializeField] private float sweepBonusRate = 50f;
         private float currentFireHealth;
         private Light fireLight;
         private float initialLightIntensity;
@@ -220,12 +222,15 @@ namespace MiningSafetyAR.Modules
         /// <summary>
         /// Applies foam suppression to the fire. Called by FireExtinguisherGrabController when foam raycast hits this fire.
         /// Reduces fire health and dynamically scales particle emission, light intensity, and visual size.
+        /// sweepIntensity (0..1, see documents/sweep.md) scales the suppression rate on top of the
+        /// base foamPower — 0 = standing still, 1 = genuine side-to-side sweeping at full intensity.
         /// </summary>
-        public void ApplyFoamSuppression(Vector3 hitPoint, float deltaTime)
+        public void ApplyFoamSuppression(Vector3 hitPoint, float deltaTime, float sweepIntensity = 0f)
         {
             if (!isFireActive || currentFireHealth <= 0f) return;
 
-            currentFireHealth -= foamPower * deltaTime;
+            float rate = foamPower + sweepBonusRate * Mathf.Clamp01(sweepIntensity);
+            currentFireHealth -= rate * deltaTime;
             currentFireHealth = Mathf.Max(0f, currentFireHealth);
 
             float normalizedHealth = FireHealthNormalized;
@@ -250,7 +255,7 @@ namespace MiningSafetyAR.Modules
             // Scale visual flames while maintaining hit-testable bounds
             transform.localScale = Vector3.one * (0.35f + 0.65f * normalizedHealth);
 
-            Debug.Log($"[FIRE_DIAG] [GroundFireController] Foam applied! Health={currentFireHealth:F1}/{maxFireHealth}, Normalized={normalizedHealth:F2}");
+            Debug.Log($"[FIRE_DIAG] [GroundFireController] Foam applied! Health={currentFireHealth:F1}/{maxFireHealth}, Normalized={normalizedHealth:F2}, Rate={rate:F1}HP/s, SweepIntensity={sweepIntensity:F2}");
 
             if (currentFireHealth <= 0f)
             {

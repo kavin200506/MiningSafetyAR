@@ -30,8 +30,7 @@ namespace MiningSafetyAR.AR
             None,
             PinPulled,
             NozzleAimed,
-            HandleSqueezed,
-            SweepComplete
+            HandleSqueezed
         }
 
         [Header("Grab & Carry State")]
@@ -103,9 +102,20 @@ namespace MiningSafetyAR.AR
         private Ray lastRay;
         private bool isSqueezing = false;
         public bool IsSqueezing => isSqueezing;
-        private float sweepAccumulated = 0f;
         private Vector3 lastSweepPosition;
-        private float sweepThreshold = 0.3f;
+
+        [Header("Sweep Detection — see documents/sweep.md")]
+        [Tooltip("Rolling window (seconds) over which lateral sweep speed is averaged.")]
+        [SerializeField] private float sweepWindowDuration = 0.6f;
+        [Tooltip("Lateral speed (m/s) that counts as 100% sweep intensity.")]
+        [SerializeField] private float idealSweepSpeed = 1.0f;
+        [Tooltip("How fast currentSweepIntensity ramps toward its target value (higher = snappier).")]
+        [SerializeField] private float sweepIntensitySmoothing = 8f;
+        [Tooltip("Debug-only: show a live sweep intensity readout via OnGUI while squeezing.")]
+        [SerializeField] private bool debugShowSweepIntensity = true;
+        private readonly Queue<(float time, float lateralSpeed)> sweepSamples = new Queue<(float, float)>();
+        private float currentSweepIntensity = 0f;
+        public float CurrentSweepIntensity => currentSweepIntensity;
 
         [Header("Pin Drag Gesture")]
         [Tooltip("Minimum screen-space movement (pixels) before a press-then-release on the pin counts as a real drag rather than an accidental tap.")]
@@ -181,7 +191,6 @@ namespace MiningSafetyAR.AR
         public event Action OnPinPulled;
         public event Action OnNozzleAimed;
         public event Action OnSprayStarted;
-        public event Action OnSweepDetected;
         public event Action OnExtinguisherDepleted;
 
         private void Awake()
@@ -1514,7 +1523,6 @@ namespace MiningSafetyAR.AR
 
             currentPassState = PassStepState.HandleSqueezed;
             isSqueezing = true;
-            sweepAccumulated = 0f;
             lastSweepPosition = targetExtinguisher != null ? targetExtinguisher.transform.position : Vector3.zero;
             Debug.Log("[FireExtinguisherGrabController] P.A.S.S. Step: HANDLE SQUEEZED — spraying foam");
             OnSprayStarted?.Invoke();
@@ -1790,6 +1798,42 @@ namespace MiningSafetyAR.AR
             foamRaycastBeam.SetActive(false);
         }
 
+        /// <summary>
+        /// Phase 1 of the sweep redesign (see documents/sweep.md): measures genuine left-right
+        /// motion of the held extinguisher, isolated from forward/backward approach by projecting
+        /// frame-to-frame movement onto the camera's right axis only. Produces a smoothed 0..1
+        /// currentSweepIntensity value. Does not yet affect suppression rate (Phase 2).
+        /// </summary>
+        private void UpdateSweepIntensity()
+        {
+            Camera cam = Camera.main ?? FindFirstObjectByType<Camera>();
+            if (cam == null || targetExtinguisher == null) return;
+
+            Vector3 currentPos = targetExtinguisher.transform.position;
+            Vector3 delta = currentPos - lastSweepPosition;
+            lastSweepPosition = currentPos;
+
+            // Project onto camera.right only — isolates true side-to-side sweep from forward
+            // approach toward the fire or incidental depth drift.
+            float lateralDistance = Mathf.Abs(Vector3.Dot(delta, cam.transform.right));
+            float lateralSpeed = Time.deltaTime > 0f ? lateralDistance / Time.deltaTime : 0f;
+
+            sweepSamples.Enqueue((Time.time, lateralSpeed));
+            while (sweepSamples.Count > 0 && Time.time - sweepSamples.Peek().time > sweepWindowDuration)
+            {
+                sweepSamples.Dequeue();
+            }
+
+            // Average absolute lateral speed over the window — absolute (not net) displacement so
+            // a genuine left-right-left sweep counts fully even though it cancels out positionally.
+            float avgLateralSpeed = 0f;
+            foreach (var sample in sweepSamples) avgLateralSpeed += sample.lateralSpeed;
+            if (sweepSamples.Count > 0) avgLateralSpeed /= sweepSamples.Count;
+
+            float targetIntensity = Mathf.Clamp01(avgLateralSpeed / idealSweepSpeed);
+            currentSweepIntensity = Mathf.MoveTowards(currentSweepIntensity, targetIntensity, Time.deltaTime * sweepIntensitySmoothing);
+        }
+
         private void UpdateFoamSpray()
         {
             EnsureFoamRaycastVisualBeam();
@@ -1805,8 +1849,15 @@ namespace MiningSafetyAR.AR
                 {
                     foamRaycastBeam.SetActive(false);
                 }
+                currentSweepIntensity = 0f;
+                sweepSamples.Clear();
                 return;
             }
+
+            // Compute live sweep intensity from real lateral motion (see documents/sweep.md) and
+            // feed it into GroundFireController.ApplyFoamSuppression below so genuine side-to-side
+            // sweeping actually extinguishes the fire faster than standing still.
+            UpdateSweepIntensity();
 
             Camera mainCam = Camera.main ?? FindFirstObjectByType<Camera>();
 
@@ -1876,7 +1927,7 @@ namespace MiningSafetyAR.AR
                 float distanceToFire = Vector3.Distance(playerPos, fire.transform.position);
                 if (distanceToFire <= maxSprayRange)
                 {
-                    fire.ApplyFoamSuppression(fire.transform.position, Time.deltaTime);
+                    fire.ApplyFoamSuppression(fire.transform.position, Time.deltaTime, currentSweepIntensity);
                     fireHit = true;
                     Debug.DrawLine(origin, fire.transform.position, Color.green);
                 }
@@ -1922,20 +1973,6 @@ namespace MiningSafetyAR.AR
                 Debug.Log($"[FIRE_DIAG] No fire detected. Origin={origin}, Dir={dir}, Range={maxSprayRange}");
             }
 
-            if (currentPassState == PassStepState.HandleSqueezed && targetExtinguisher != null)
-            {
-                Vector3 currentPos = targetExtinguisher.transform.position;
-                float sweepDelta = Vector3.Distance(new Vector3(currentPos.x, 0, currentPos.z), new Vector3(lastSweepPosition.x, 0, lastSweepPosition.z));
-                sweepAccumulated += (sweepDelta + 0.08f * Time.deltaTime);
-                lastSweepPosition = currentPos;
-
-                if (sweepAccumulated >= sweepThreshold && currentPassState == PassStepState.HandleSqueezed)
-                {
-                    currentPassState = PassStepState.SweepComplete;
-                    Debug.Log("[FireExtinguisherGrabController] P.A.S.S. Step: SWEEP COMPLETE");
-                    OnSweepDetected?.Invoke();
-                }
-            }
         }
 
         private void CheckArrivalAtFireHazard()
@@ -2010,7 +2047,8 @@ namespace MiningSafetyAR.AR
             isSqueezing = false;
             targetHoldingRotationOffset = holdingRotationOffset;
             currentFoamCapacity = maxFoamCapacity;
-            sweepAccumulated = 0f;
+            currentSweepIntensity = 0f;
+            sweepSamples.Clear();
 
             if (foamParticles != null && foamParticles.isPlaying)
             {
@@ -2095,15 +2133,13 @@ namespace MiningSafetyAR.AR
             StartSqueezing();
         }
 
-        [ContextMenu("Test Sweep Complete")]
-        public void TestSweepComplete()
+        [ContextMenu("Test Force Max Sweep Intensity")]
+        public void TestForceMaxSweepIntensity()
         {
             currentState = GrabState.Held;
             currentPassState = PassStepState.HandleSqueezed;
-            sweepAccumulated = sweepThreshold;
-            currentPassState = PassStepState.SweepComplete;
-            Debug.Log("[FireExtinguisherGrabController] [TEST] Simulated Sweep Complete!");
-            OnSweepDetected?.Invoke();
+            currentSweepIntensity = 1f;
+            Debug.Log("[FireExtinguisherGrabController] [TEST] Forced sweep intensity to 100% for verification.");
         }
 
         [ContextMenu("Test Foam Depletion")]
@@ -2201,7 +2237,9 @@ namespace MiningSafetyAR.AR
                     float maxHp = fire.MaxFireHealth;
                     float pct = fire.FireHealthNormalized * 100f;
 
-                    GUI.Box(new Rect(10, 10, 260, 90), "");
+                    bool showSweep = debugShowSweepIntensity;
+                    float boxH = showSweep ? 150f : 90f;
+                    GUI.Box(new Rect(10, 10, 260, boxH), "");
 
                     GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
                     {
@@ -2224,6 +2262,18 @@ namespace MiningSafetyAR.AR
                     GUI.color = hp > maxHp * 0.5f ? Color.red : (hp > maxHp * 0.25f ? Color.yellow : Color.green);
                     GUI.DrawTexture(new Rect(16, 83, barWidth, 10), Texture2D.whiteTexture);
                     GUI.color = Color.white;
+
+                    if (showSweep)
+                    {
+                        // Phase 1 verification readout — see documents/sweep.md. Not yet linked to
+                        // suppression rate; this is purely to confirm the intensity signal behaves.
+                        GUI.Label(new Rect(15, 100, 250, 20), $"Sweep Intensity: {currentSweepIntensity * 100f:F0}%", hpStyle);
+                        GUI.Box(new Rect(15, 122, 240, 12), "");
+                        float sweepBarWidth = Mathf.Clamp01(currentSweepIntensity) * 238f;
+                        GUI.color = Color.cyan;
+                        GUI.DrawTexture(new Rect(16, 123, sweepBarWidth, 10), Texture2D.whiteTexture);
+                        GUI.color = Color.white;
+                    }
                 }
             }
         }

@@ -394,13 +394,12 @@ namespace MiningSafetyAR.UI.Pages
                         UpdatePassStatus("Pin pulled — tap AIM to aim nozzle");
                         break;
                     case AR.FireExtinguisherGrabController.PassStepState.NozzleAimed:
-                    case AR.FireExtinguisherGrabController.PassStepState.HandleSqueezed:
                         if (btnPassSqueeze != null) btnPassSqueeze.style.display = DisplayStyle.Flex;
                         UpdatePassStatus("Aimed — tap SQUEEZE to spray foam");
                         break;
-                    case AR.FireExtinguisherGrabController.PassStepState.SweepComplete:
-                        UpdatePassStatus("Sweep complete — keep spraying!");
+                    case AR.FireExtinguisherGrabController.PassStepState.HandleSqueezed:
                         if (btnPassSqueeze != null) btnPassSqueeze.style.display = DisplayStyle.Flex;
+                        UpdatePassStatus("Keep spraying — sweep side to side at the base of the fire!");
                         break;
                 }
             }

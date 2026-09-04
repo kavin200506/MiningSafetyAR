@@ -432,8 +432,12 @@ namespace MiningSafetyAR.AR
                 string hitTypeString = "";
                 TrackableId hitTrackableId = TrackableId.invalidId;
 
-                // Tier 1: Real AR Plane Surface
-                TrackableType planeTypes = TrackableType.AllTypes | TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds | TrackableType.Planes;
+                // Tier 1: Real AR Plane Surface only. TrackableType.AllTypes must NOT be OR'd in here —
+                // it has every bit set, so ORing it with anything else still equals AllTypes, silently
+                // widening this "plane-only" raycast to match raw feature points too. Feature points are
+                // noisy point-cloud samples that can sit above/below the real floor, which is what was
+                // causing the fire hazard to spawn floating in mid-air instead of exactly on the plane.
+                TrackableType planeTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds | TrackableType.Planes;
                 if (raycastManager != null && raycastManager.Raycast(touchPosition, hits, planeTypes) && hits.Count > 0)
                 {
                     hitPose = hits[0].pose;
@@ -529,7 +533,9 @@ namespace MiningSafetyAR.AR
                     if (AR.ARStepCounterTracker.Instance != null && 
                         AR.ARStepCounterTracker.Instance.CurrentState == AR.ARStepCounterTracker.StepTrackerState.ScanningForWall)
                     {
-                        AR.ARStepCounterTracker.Instance.SpawnExtinguisherOnWall(hitPose.position, hitPose.rotation);
+                        // Same fix as the auto wall-scan path: keep world-up as up, don't inherit
+                        // the vertical plane's raw pose rotation (whose up-axis is the wall normal).
+                        AR.ARStepCounterTracker.Instance.SpawnExtinguisherOnWall(hitPose.position, Quaternion.LookRotation(hitPose.up, Vector3.up));
                         return true;
                     }
                 }
@@ -558,8 +564,11 @@ namespace MiningSafetyAR.AR
                 Quaternion spawnRotation;
                 if (isWallPlacement)
                 {
-                    // Wall Fire Extinguisher: Orient relative to the vertical wall surface normal
-                    spawnRotation = hitPose.rotation;
+                    // Wall Fire Extinguisher: for a vertical plane, hitPose.up is the wall's outward
+                    // normal (horizontal), NOT world-up — using hitPose.rotation directly would rotate
+                    // the model's own up-axis sideways, laying it flat instead of standing it upright.
+                    // Keep world-up as up, and face outward along the wall's normal instead.
+                    spawnRotation = Quaternion.LookRotation(hitPose.up, Vector3.up);
                 }
                 else
                 {

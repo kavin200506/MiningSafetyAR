@@ -81,7 +81,6 @@ namespace MiningSafetyAR.Modules
             {
                 FireExtinguisherGrabController.Instance.OnPinPulled += HandlePinPulled;
                 FireExtinguisherGrabController.Instance.OnSprayStarted += HandleSprayStarted;
-                FireExtinguisherGrabController.Instance.OnSweepDetected += HandleSweepDetected;
                 FireExtinguisherGrabController.Instance.OnExtinguisherDepleted += HandleExtinguisherDepleted;
             }
 
@@ -97,7 +96,6 @@ namespace MiningSafetyAR.Modules
             {
                 FireExtinguisherGrabController.Instance.OnPinPulled -= HandlePinPulled;
                 FireExtinguisherGrabController.Instance.OnSprayStarted -= HandleSprayStarted;
-                FireExtinguisherGrabController.Instance.OnSweepDetected -= HandleSweepDetected;
                 FireExtinguisherGrabController.Instance.OnExtinguisherDepleted -= HandleExtinguisherDepleted;
             }
 
@@ -309,20 +307,6 @@ namespace MiningSafetyAR.Modules
                 while (currentStepIndex <= 3 && isModuleActive && currentStepIndex < totalSteps - 1)
                 {
                     CompleteCurrentStep();
-                }
-            }
-        }
-
-        private void HandleSweepDetected()
-        {
-            if (isModuleActive && currentStepIndex <= 4)
-            {
-                if (currentStepIndex < 4)
-                {
-                    while (currentStepIndex < 4 && isModuleActive)
-                    {
-                        CompleteCurrentStep();
-                    }
                 }
             }
         }
