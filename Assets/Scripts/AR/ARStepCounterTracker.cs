@@ -260,7 +260,10 @@ namespace MiningSafetyAR.AR
                             if (hitPlane != null && hitPlane.alignment == UnityEngine.XR.ARSubsystems.PlaneAlignment.Vertical)
                             {
                                 spawnPos = hit.pose.position;
-                                spawnRot = hit.pose.rotation;
+                                // hit.pose.up is the wall's outward normal (horizontal) for a vertical
+                                // plane, not world-up — using it directly would lay the extinguisher on
+                                // its side. Keep world-up as up, face outward along the wall's normal.
+                                spawnRot = Quaternion.LookRotation(hit.pose.up, Vector3.up);
                                 wallFound = true;
                                 Debug.Log($"[WALL_SCAN_DIAG] 🧯 VERTICAL WALL DETECTED during 5s scan! Target position={spawnPos}");
                                 break;
