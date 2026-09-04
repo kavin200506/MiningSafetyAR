@@ -57,11 +57,9 @@ Assets/XR/Temp/
 google-services*.json
 *firebase-adminsdk*.json
 
-# Firebase Large Desktop Binaries & Native Repositories (>50MB)
+# Firebase Large Desktop Binaries (>50MB)
 Assets/Firebase/Plugins/x86_64/
 Assets/Firebase/Plugins/x86_64.meta
-Assets/Firebase/m2repository/
-Assets/Firebase/m2repository.meta
 Assets/GeneratedLocalRepo/
 Assets/GeneratedLocalRepo.meta
 
