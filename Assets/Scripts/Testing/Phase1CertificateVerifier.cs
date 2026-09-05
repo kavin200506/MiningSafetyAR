@@ -119,18 +119,18 @@ namespace MiningSafetyAR.Testing
             Debug.Log("[Phase1CertVerifier]     [CertificateGenerator] Created Certificate: JH-FIRE-XXXXXX for Worker: [name] ([id])");
             Debug.Log("[Phase1CertVerifier]   (This log is produced by CertificateGenerator.GenerateCertificate at line 62)");
 
-            Debug.Log("[Phase1CertVerifier] --- Step 6: Inspect PlayerPrefs Local Storage ---");
+            Debug.Log("[Phase1CertVerifier] --- Step 6: Inspect Offline Store Local Storage ---");
             stepCount++;
-            string playerPrefsKey = "Certificates_" + worker.id;
-            string certJson = PlayerPrefs.GetString(playerPrefsKey, "");
+            string storeKey = "Certificates_" + worker.id;
+            string certJson = MiningSafetyAR.Data.OfflineStore.GetString(storeKey, "");
             if (!string.IsNullOrEmpty(certJson))
             {
-                Debug.Log($"[Phase1CertVerifier]   PASS: PlayerPrefs[{playerPrefsKey}] found ({certJson.Length} bytes)");
+                Debug.Log($"[Phase1CertVerifier]   PASS: OfflineStore[{storeKey}] found ({certJson.Length} bytes)");
                 Debug.Log($"[Phase1CertVerifier]   JSON Preview: {certJson.Substring(0, Mathf.Min(200, certJson.Length))}...");
             }
             else
             {
-                Debug.LogError($"[Phase1CertVerifier]   FAIL: PlayerPrefs[{playerPrefsKey}] is EMPTY");
+                Debug.LogError($"[Phase1CertVerifier]   FAIL: OfflineStore[{storeKey}] is EMPTY");
                 allPassed = false;
             }
 

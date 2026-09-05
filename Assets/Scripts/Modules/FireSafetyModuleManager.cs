@@ -333,33 +333,16 @@ namespace MiningSafetyAR.Modules
             int drillScore = GetTotalScore();
             int drillMaxScore = GetMaxPossibleScore();
             float drillPercentage = drillMaxScore > 0 ? (float)drillScore / drillMaxScore * 100f : 0f;
-            bool drillPassed = drillPercentage >= ScoringConstants.PassThresholdPercentage;
 
             int hazardRecognitionPct = ComputeHazardRecognitionScore();
             int extinguisherUsePct = ComputeExtinguisherUseScore();
             int timeManagementPct = ComputeTimeScore(timeTaken);
             int evacuationPct = stepMetrics.Count > EvacuationStepIndex ? stepMetrics[EvacuationStepIndex].score : 0;
 
-            TrainingResult localResult = new TrainingResult
-            {
-                workerId = PlayerPrefs.GetString("WorkerID", "WORKER_001"),
-                moduleName = moduleName,
-                score = drillScore,
-                maxScore = drillMaxScore,
-                percentage = drillPercentage,
-                passed = drillPassed,
-                mistakesCount = mistakesCount,
-                completionTimeSeconds = timeTaken,
-                stepMetrics = new List<StepMetric>(stepMetrics)
-            };
-
-            // Local backup only — NOT the shared/Firestore save. The real, unified save happens
-            // once, after the quiz, in AssessmentPageController.ShowResults() (see
-            // documents/technical_scoring_explained.md §3.8 and §4.3).
-            if (LocalScoreManager.Instance != null)
-            {
-                LocalScoreManager.Instance.SaveResult(localResult);
-            }
+            // The real, unified save (local JSON cache + offline-queue-aware Firestore push) happens
+            // once, after the quiz, in AssessmentPageController.ShowResults() via
+            // AppDataService.SaveAttempt (see documents/technical_scoring_explained.md §3.8 and
+            // §4.3).
 
             lastDrillResult = new DrillResultPayload
             {

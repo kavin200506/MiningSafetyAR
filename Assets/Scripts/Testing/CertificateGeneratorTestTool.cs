@@ -254,18 +254,18 @@ namespace MiningSafetyAR.Testing
                 Debug.LogWarning($"{LOG} QR Texture generation returned null");
             }
 
-            // --- Save to PlayerPrefs (local cache) ---
+            // --- Save to the offline JSON store (local cache) ---
             Debug.Log($"{LOG} --- Saving Locally ---");
             AppDataService.Instance.SaveCertificate(certData);
-            string playerPrefsKey = "Certificates_" + currentWorker.id;
-            string stored = PlayerPrefs.GetString(playerPrefsKey, "");
+            string storeKey = "Certificates_" + currentWorker.id;
+            string stored = MiningSafetyAR.Data.OfflineStore.GetString(storeKey, "");
             if (!string.IsNullOrEmpty(stored))
             {
-                Debug.Log($"{LOG} PASS: PlayerPrefs[{playerPrefsKey}] saved ({stored.Length} bytes)");
+                Debug.Log($"{LOG} PASS: OfflineStore[{storeKey}] saved ({stored.Length} bytes)");
             }
             else
             {
-                Debug.LogError($"{LOG} FAIL: PlayerPrefs[{playerPrefsKey}] is empty after save");
+                Debug.LogError($"{LOG} FAIL: OfflineStore[{storeKey}] is empty after save");
             }
 
             // --- Firestore sync status ---

@@ -43,26 +43,47 @@ namespace MiningSafetyAR.UI.Pages
             if (statusLabel != null) statusLabel.text = "Ready";
             yield return new WaitForSeconds(0.3f);
 
-            // If already logged in (Firebase auto-login), go to Dashboard
-            try
+            void GoTo(bool loggedIn)
             {
-                bool isLoggedIn = Firebase.FirebaseAuthManager.Instance != null && Firebase.FirebaseAuthManager.Instance.IsLoggedIn;
-                var nav = NavigationManager.Instance;
-                if (nav != null)
+                try
                 {
-                    if (isLoggedIn) nav.NavigateToRoot("UI_Dashboard");
-                    else nav.NavigateTo("UI_Login");
+                    var nav = NavigationManager.Instance;
+                    if (nav != null)
+                    {
+                        if (loggedIn) nav.NavigateToRoot("UI_Dashboard");
+                        else nav.NavigateTo("UI_Login");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[Splash] NavigationManager missing — using SceneManager fallback");
+                        UnityEngine.SceneManagement.SceneManager.LoadScene(loggedIn ? "UI_Dashboard" : "UI_Login");
+                    }
                 }
-                else
+                catch (System.Exception ex)
                 {
-                    Debug.LogWarning("[Splash] NavigationManager missing — using SceneManager fallback");
-                    UnityEngine.SceneManagement.SceneManager.LoadScene(isLoggedIn ? "UI_Dashboard" : "UI_Login");
+                    Debug.LogError($"[Splash] Navigate failed: {ex}");
+                    UnityEngine.SceneManagement.SceneManager.LoadScene("UI_Login");
                 }
             }
-            catch (System.Exception ex)
+
+            var auth = Firebase.FirebaseAuthManager.Instance;
+            if (auth != null && auth.IsLoggedIn)
             {
-                Debug.LogError($"[Splash] Navigate failed: {ex}");
-                UnityEngine.SceneManagement.SceneManager.LoadScene("UI_Login");
+                // Already logged in this process (e.g. scene reload without an app restart).
+                GoTo(true);
+            }
+            else if (auth != null)
+            {
+                // Not logged in yet this launch — try restoring a persisted session (silent refresh
+                // if online, or an offline fallback using the last cached worker if not) before
+                // falling back to the login screen. See FirebaseAuthManager.TryRestoreSession.
+                if (statusLabel != null) statusLabel.text = "Restoring session...";
+                auth.TryRestoreSession(restored => GoTo(restored));
+            }
+            else
+            {
+                Debug.LogWarning("[Splash] FirebaseAuthManager missing — going to Login.");
+                GoTo(false);
             }
         }
     }

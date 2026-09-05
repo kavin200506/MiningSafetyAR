@@ -70,6 +70,17 @@ namespace MiningSafetyAR.Data
                 Debug.Log("[AppDataService] Auto-attached CertificateGenerator so certificate issuance works from any scene.");
             }
 
+            // Same reasoning as CertificateGenerator above — CloudSyncManager currently only exists
+            // as a serialized component in a few scenes (ar_fire_safety, SampleScene, AR Plane
+            // Detection Placement). If a worker earns progress while offline in some other scene and
+            // never visits one of those, the sync queue would sit unflushed until they happened to.
+            // Guarantee it exists from app boot instead.
+            if (MiningSafetyAR.Sync.CloudSyncManager.Instance == null)
+            {
+                gameObject.AddComponent<MiningSafetyAR.Sync.CloudSyncManager>();
+                Debug.Log("[AppDataService] Auto-attached CloudSyncManager so the offline write queue flushes from any scene.");
+            }
+
             LoadCachedWorker();
 
             Debug.Log($"[AppDataService] Databases: Modules={moduleDatabase?.GetAll()?.Count ?? 0}, Questions={questionDatabase?.questions?.Count ?? 0}, Certs={certificateDatabase?.certificates?.Count ?? 0}");
@@ -101,6 +112,51 @@ namespace MiningSafetyAR.Data
             }
         }
 
+        // ================================================================
+        // OFFLINE SYNC — every Firestore write funnels through here. Offline, or on a failed
+        // attempt, the write lands in OfflineStore's JSON-backed queue instead of being lost;
+        // SyncManager replays it once connectivity returns. See OfflineStore.cs / SyncManager.cs.
+        // ================================================================
+
+        static bool IsOffline() => Application.internetReachability == NetworkReachability.NotReachable
+            || (Firebase.FirebaseAuthManager.Instance != null && Firebase.FirebaseAuthManager.Instance.IsOfflineSession);
+
+        /// <summary>Public so call sites outside AppDataService (e.g. RegisterPageController's initial
+        /// worker-profile save) can route through the same offline-safe path instead of calling
+        /// FirestoreService directly.</summary>
+        public void PushOrQueue(string kind, string firebaseUid, string subId, string flatJson)
+        {
+            if (string.IsNullOrEmpty(firebaseUid)) return;
+
+            if (IsOffline())
+            {
+                OfflineStore.EnqueuePendingChange(kind, firebaseUid, subId, flatJson);
+                Debug.Log($"[AppDataService] Offline — queued {kind} change for later sync ({firebaseUid}/{subId}).");
+                return;
+            }
+
+            System.Action<bool, string> onResult = (ok, resp) =>
+            {
+                if (ok)
+                {
+                    Debug.Log($"[AppDataService] {kind} synced OK ({firebaseUid}/{subId}).");
+                }
+                else
+                {
+                    OfflineStore.EnqueuePendingChange(kind, firebaseUid, subId, flatJson);
+                    Debug.LogWarning($"[AppDataService] {kind} save failed ({resp}), queued for retry ({firebaseUid}/{subId}).");
+                }
+            };
+
+            switch (kind)
+            {
+                case "worker": Firebase.FirestoreService.Instance.SaveWorker(firebaseUid, flatJson, onResult); break;
+                case "progress": Firebase.FirestoreService.Instance.SaveModuleProgress(firebaseUid, subId, flatJson, onResult); break;
+                case "result": Firebase.FirestoreService.Instance.SaveTrainingResult(firebaseUid, subId, flatJson, onResult); break;
+                case "certificate": Firebase.FirestoreService.Instance.SaveCertificateToFirestore(firebaseUid, subId, flatJson, onResult); break;
+            }
+        }
+
         void OnFirebaseLoginSuccess(FirebaseUser user)
         {
             string uid = user != null ? user.UserId : Firebase.FirebaseAuthManager.Instance.CurrentUserId;
@@ -114,9 +170,9 @@ namespace MiningSafetyAR.Data
             CurrentWorker = null;
             progressMap.Clear();
             allAttempts.Clear();
-            PlayerPrefs.DeleteKey("CachedWorker");
+            OfflineStore.DeleteKey("CachedWorker");
             // DO NOT delete ProgressMap so it persists across sessions!
-            // if (!string.IsNullOrEmpty(uid)) PlayerPrefs.DeleteKey("ProgressMap_" + uid);
+            // if (!string.IsNullOrEmpty(uid)) OfflineStore.DeleteKey("ProgressMap_" + uid);
             OnWorkerLoggedOut?.Invoke();
         }
 
@@ -133,7 +189,7 @@ namespace MiningSafetyAR.Data
                     Debug.LogWarning($"[AppDataService] Firestore load failed for {firebaseUid}, using cache");
                     
                     // Try to recover from the persistent user cache
-                    string userCache = PlayerPrefs.GetString("CachedWorker_" + firebaseUid, "");
+                    string userCache = OfflineStore.GetString("CachedWorker_" + firebaseUid, "");
                     if (!string.IsNullOrEmpty(userCache))
                     {
                         Debug.Log($"[AppDataService] Recovered worker from local cache for {firebaseUid}");
@@ -311,8 +367,7 @@ namespace MiningSafetyAR.Data
             else
             {
                 CacheWorkerLocally(CurrentWorker);
-                PlayerPrefs.SetString("ProgressMap_" + firebaseUid, ProgressMapToJson());
-                PlayerPrefs.Save();
+                OfflineStore.SetString("ProgressMap_" + firebaseUid, ProgressMapToJson());
             }
 
             OnWorkerLoaded?.Invoke(CurrentWorker);
@@ -346,7 +401,7 @@ namespace MiningSafetyAR.Data
                 };
             }
             string flatJson = MiniJSON.Json.Serialize(data);
-            Firebase.FirestoreService.Instance.SaveModuleProgress(firebaseUid, moduleId, flatJson);
+            PushOrQueue("progress", firebaseUid, moduleId, flatJson);
         }
 
         void InitProgressMapForNewWorker()
@@ -375,7 +430,7 @@ namespace MiningSafetyAR.Data
         {
             try
             {
-                string cached = PlayerPrefs.GetString("ProgressMap_" + firebaseUid, "");
+                string cached = OfflineStore.GetString("ProgressMap_" + firebaseUid, "");
                 if (string.IsNullOrEmpty(cached)) return;
                 var wrapper = JsonUtility.FromJson<ProgressMapWrapper>(cached);
                 if (wrapper?.list == null) return;
@@ -642,8 +697,7 @@ namespace MiningSafetyAR.Data
             // Save to Firestore
             SaveModuleProgressToFirestore(CurrentWorker.firebaseUid, moduleId, prog);
             // Update local cache
-            PlayerPrefs.SetString("ProgressMap_" + CurrentWorker.firebaseUid, ProgressMapToJson());
-            PlayerPrefs.Save();
+            OfflineStore.SetString("ProgressMap_" + CurrentWorker.firebaseUid, ProgressMapToJson());
         }
 
         /// <summary>
@@ -671,8 +725,7 @@ namespace MiningSafetyAR.Data
             prog.competencyScores.quizScore = Mathf.Max(prog.competencyScores.quizScore, quizScorePct);
 
             SaveModuleProgressToFirestore(CurrentWorker.firebaseUid, moduleId, prog);
-            PlayerPrefs.SetString("ProgressMap_" + CurrentWorker.firebaseUid, ProgressMapToJson());
-            PlayerPrefs.Save();
+            OfflineStore.SetString("ProgressMap_" + CurrentWorker.firebaseUid, ProgressMapToJson());
         }
 
         public List<ModuleData> GetModulesByStatusDynamic(ModuleStatus status) => GetAllModulesWithProgress().FindAll(m => m.status == status && string.IsNullOrEmpty(m.parentId));
@@ -802,13 +855,10 @@ namespace MiningSafetyAR.Data
             dynamicCertificates.Add(cert);
             SaveCertificatesLocally();
 
-            if (CurrentWorker != null && !string.IsNullOrEmpty(CurrentWorker.firebaseUid) && Firebase.FirestoreService.Instance != null)
+            if (CurrentWorker != null && !string.IsNullOrEmpty(CurrentWorker.firebaseUid))
             {
                 string certJson = JsonUtility.ToJson(cert);
-                Firebase.FirestoreService.Instance.SaveCertificateToFirestore(CurrentWorker.firebaseUid, cert.id, certJson, (ok, resp) =>
-                {
-                    Debug.Log($"[AppDataService] Certificate Cloud Sync {(ok ? "SUCCESS" : "FAIL")}: {cert.id}");
-                });
+                PushOrQueue("certificate", CurrentWorker.firebaseUid, cert.id, certJson);
             }
         }
 
@@ -816,14 +866,13 @@ namespace MiningSafetyAR.Data
         {
             if (CurrentWorker == null) return;
             var wrapper = new CertificateListWrapper { certificates = dynamicCertificates };
-            PlayerPrefs.SetString("Certificates_" + CurrentWorker.id, JsonUtility.ToJson(wrapper));
-            PlayerPrefs.Save();
+            OfflineStore.SetString("Certificates_" + CurrentWorker.id, JsonUtility.ToJson(wrapper));
         }
 
         void LoadCertificatesLocally(string workerId)
         {
             dynamicCertificates.Clear();
-            string json = PlayerPrefs.GetString("Certificates_" + workerId, "");
+            string json = OfflineStore.GetString("Certificates_" + workerId, "");
             if (!string.IsNullOrEmpty(json))
             {
                 var wrapper = JsonUtility.FromJson<CertificateListWrapper>(json);
@@ -881,8 +930,27 @@ namespace MiningSafetyAR.Data
             if (CurrentWorker != null)
             {
                 string json = JsonUtility.ToJson(result);
-                Firebase.FirestoreService.Instance.SaveTrainingResult(CurrentWorker.firebaseUid, result.resultId, json,
-                    (ok, resp) => Debug.Log($"[AppDataService] Attempt {(ok ? "saved" : "FAIL")} {moduleId} {score}%"));
+                if (IsOffline())
+                {
+                    OfflineStore.EnqueuePendingChange("result", CurrentWorker.firebaseUid, result.resultId, json);
+                    Debug.Log($"[AppDataService] Offline — queued attempt {moduleId} {score}% for later sync.");
+                }
+                else
+                {
+                    Firebase.FirestoreService.Instance.SaveTrainingResult(CurrentWorker.firebaseUid, result.resultId, json, (ok, resp) =>
+                    {
+                        Debug.Log($"[AppDataService] Attempt {(ok ? "saved" : "FAIL")} {moduleId} {score}%");
+                        if (ok)
+                        {
+                            result.synced = true;
+                            SaveAttemptsLocally();
+                        }
+                        else
+                        {
+                            OfflineStore.EnqueuePendingChange("result", CurrentWorker.firebaseUid, result.resultId, json);
+                        }
+                    });
+                }
             }
             else
             {
@@ -911,7 +979,15 @@ namespace MiningSafetyAR.Data
                 // `moduleId.EndsWith("_sub5")` gate, re-add the cross-sub-module average-score loop
                 // (git history has the previous version), and issue the cert for modDef.parentId
                 // instead of moduleId directly.
-                if (passed && string.IsNullOrEmpty(prog.certificateId) && score >= 75)
+                // A non-empty prog.certificateId is only trusted if a real CertificateData record
+                // actually backs it (GetCertificate). Without this check, a module that once got a
+                // bare fallback ID (see the "CertificateGenerator.Instance not found" branch below —
+                // a real, now-fixed bug from earlier testing) would be permanently stuck: the gate
+                // would see certificateId as "already set" forever and never try again, even on a
+                // perfect later attempt, while the congratulations screen shows with no certificate
+                // to actually view (found 2026-09-06).
+                bool hasRealCertificate = !string.IsNullOrEmpty(prog.certificateId) && GetCertificate(prog.certificateId) != null;
+                if (passed && !hasRealCertificate && score >= 75)
                 {
                     var modDef = GetModule(moduleId);
                     if (modDef != null)
@@ -955,6 +1031,14 @@ namespace MiningSafetyAR.Data
                             prog.certificateId = $"JH-{moduleCode}-{Random.Range(100000,999999)}";
                         }
                     }
+                    else
+                    {
+                        // This used to fail silently — score >= 75 and passed, but no matching
+                        // ModuleData for moduleId, so the whole award block was skipped with zero log
+                        // output. Left as an error now so a moduleId/database mismatch is visible
+                        // instead of looking like a random, unexplained missing certificate.
+                        Debug.LogError($"[AppDataService] Certificate award skipped for '{moduleId}' — GetModule() found no matching ModuleData. Check moduleDatabase / sub-module id naming.");
+                    }
                 }
 
                 // Save this module's progress to its own Firestore document — skipped when
@@ -993,12 +1077,11 @@ namespace MiningSafetyAR.Data
             };
             string workerJson = JsonUtility.ToJson(saveData);
 
-            Firebase.FirestoreService.Instance.SaveWorker(CurrentWorker.firebaseUid, workerJson);
+            PushOrQueue("worker", CurrentWorker.firebaseUid, "", workerJson);
             CacheWorkerLocally(CurrentWorker);
 
             // Cache progress map locally
-            PlayerPrefs.SetString("ProgressMap_" + CurrentWorker.firebaseUid, ProgressMapToJson());
-            PlayerPrefs.Save();
+            OfflineStore.SetString("ProgressMap_" + CurrentWorker.firebaseUid, ProgressMapToJson());
         }
 
         // ================================================================
@@ -1017,16 +1100,15 @@ namespace MiningSafetyAR.Data
         void CacheWorkerLocally(WorkerData worker)
         {
             string json = JsonUtility.ToJson(worker);
-            PlayerPrefs.SetString("CachedWorker", json);
-            PlayerPrefs.SetString("CachedWorker_" + worker.firebaseUid, json);
-            PlayerPrefs.Save();
+            OfflineStore.SetString("CachedWorker", json);
+            OfflineStore.SetString("CachedWorker_" + worker.firebaseUid, json);
         }
 
         void LoadCachedWorker()
         {
             try
             {
-                string json = PlayerPrefs.GetString("CachedWorker", "");
+                string json = OfflineStore.GetString("CachedWorker", "");
                 if (string.IsNullOrEmpty(json)) return;
                 var worker = JsonUtility.FromJson<WorkerData>(json);
                 if (worker == null || string.IsNullOrEmpty(worker.id) || worker.id == "NEW") return;
@@ -1044,15 +1126,14 @@ namespace MiningSafetyAR.Data
             if (CurrentWorker == null) return;
             var wrapper = new AttemptListWrapper { list = allAttempts };
             string json = JsonUtility.ToJson(wrapper);
-            PlayerPrefs.SetString("Attempts_" + CurrentWorker.id, json);
-            PlayerPrefs.Save();
+            OfflineStore.SetString("Attempts_" + CurrentWorker.id, json);
         }
 
         public void LoadAttemptsLocally(string workerId)
         {
             allAttempts.Clear();
             if (string.IsNullOrEmpty(workerId)) return;
-            string json = PlayerPrefs.GetString("Attempts_" + workerId, "");
+            string json = OfflineStore.GetString("Attempts_" + workerId, "");
             if (string.IsNullOrEmpty(json)) return;
             var wrapper = JsonUtility.FromJson<AttemptListWrapper>(json);
             if (wrapper?.list != null) allAttempts = wrapper.list;

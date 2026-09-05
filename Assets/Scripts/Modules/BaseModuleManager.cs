@@ -87,10 +87,6 @@ namespace MiningSafetyAR.Modules
                 completionTimeSeconds = timeTaken
             };
 
-            if (LocalScoreManager.Instance != null)
-            {
-                LocalScoreManager.Instance.SaveResult(result);
-            }
             // Also save to Firestore via AppDataService
             if (Data.AppDataService.Instance != null)
             {

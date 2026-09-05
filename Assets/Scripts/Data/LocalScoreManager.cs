@@ -5,6 +5,15 @@ using UnityEngine;
 
 namespace MiningSafetyAR.Data
 {
+    /// <summary>
+    /// RETIRED (2026-09-05): this was an early, never-wired-up offline-queue prototype (writes to
+    /// its own file, nothing ever read it back). Real offline support now lives in OfflineStore.cs
+    /// (session + pending-write queue) + AppDataService.PushOrQueue + CloudSyncManager (the actual
+    /// sync-on-reconnect flush). No code calls this class anymore. Kept in place, unused, rather than
+    /// deleted, because several existing scenes (ar_fire_safety.unity, AR Plane Detection
+    /// Placement.unity, SampleScene.unity) reference this component by GUID — removing the file would
+    /// leave those GameObjects with a "missing script" that only the Unity Editor can clean up.
+    /// </summary>
     public class LocalScoreManager : MonoBehaviour
     {
         public static LocalScoreManager Instance { get; private set; }
