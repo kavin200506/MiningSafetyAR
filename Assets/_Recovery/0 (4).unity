@@ -361,10 +361,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.AR.ARStepCounterTracker
   currentState: 0
-  minRequiredSteps: 10
-  maxRequiredSteps: 15
+  minRequiredSteps: 7
+  maxRequiredSteps: 13
   averageStepLengthMeters: 0.65
   showDebugUI: 0
+  wallScanDuration: 5
   fireExtinguisherPrefab: {fileID: 6134629332891498935, guid: 5a826361964774ca698cdf00d54cdcae, type: 3}
   extinguisherSpawnScale: 0.42
 --- !u!1 &55010855
@@ -466,6 +467,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.AR.ARProximitySafetyValidator
   safeDistanceThreshold: 1.0668
   hysteresisMargin: 0.15
+  penaltyPoints: 50
 --- !u!4 &113135142
 Transform:
   m_ObjectHideFlags: 0
@@ -1094,17 +1096,11 @@ MonoBehaviour:
   step4AudioEN: {fileID: 0}
   step4AudioHI: {fileID: 0}
   step4AudioSAT: {fileID: 0}
+  step5AudioEN: {fileID: 0}
+  step5AudioHI: {fileID: 0}
+  step5AudioSAT: {fileID: 0}
   pointsPerStep: 100
-  sweepQualityFloor: 30
-  evacuationSafeDistance: 5
-  evacuationArrivalRadius: 1
-  evacuationSustainDuration: 1.5
-  evacuationTimeBudgetSeconds: 15
-  evacuationLatePenaltyPerSecond: 4
-  evacuationScoreFloor: 40
-  hazardRecognitionPenaltyPerBreach: 20
-  parTimeSeconds: 40
-  timeScorePointsLostPerSecondOver: 2
+  penaltyPerError: 25
 --- !u!4 &1816745009
 Transform:
   m_ObjectHideFlags: 0

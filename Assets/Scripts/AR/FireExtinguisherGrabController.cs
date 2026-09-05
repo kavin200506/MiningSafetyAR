@@ -117,6 +117,13 @@ namespace MiningSafetyAR.AR
         private float currentSweepIntensity = 0f;
         public float CurrentSweepIntensity => currentSweepIntensity;
 
+        // Running average of currentSweepIntensity for the whole current spray attempt — read by
+        // FireSafetyModuleManager to quality-score the Squeeze & Sweep step (see
+        // documents/technical_scoring_explained.md §3.5). Reset alongside currentSweepIntensity.
+        private float sweepIntensityAccumulator = 0f;
+        private int sweepIntensitySampleCount = 0;
+        public float AverageSweepIntensity => sweepIntensitySampleCount > 0 ? sweepIntensityAccumulator / sweepIntensitySampleCount : 0f;
+
         [Header("Pin Drag Gesture")]
         [Tooltip("Minimum screen-space movement (pixels) before a press-then-release on the pin counts as a real drag rather than an accidental tap.")]
         [SerializeField] private float pinDragMinPixels = 6f;
@@ -204,6 +211,12 @@ namespace MiningSafetyAR.AR
 
             pressAction = new InputAction("grab_touch", binding: "<Pointer>/press");
             pressAction.started += OnPointerPressBegan;
+
+            // This controller is spawned at runtime, after FireSafetyModuleManager's own OnEnable()
+            // already tried (and likely failed) to subscribe to OnPinPulled/OnSprayStarted/
+            // OnExtinguisherDepleted. Tell it we're ready now. See
+            // documents/technical_scoring_explained.md investigation notes.
+            Modules.FireSafetyModuleManager.Instance?.NotifyGrabControllerReady();
         }
 
         private void OnEnable()
@@ -1025,7 +1038,7 @@ namespace MiningSafetyAR.AR
             }
 
             currentPassState = PassStepState.PinPulled;
-            Debug.Log("[FireExtinguisherGrabController] P.A.S.S. Step: PIN PULLED (drag)");
+            Debug.Log("[SCORING_DIAG] [FireExtinguisherGrabController] P.A.S.S. Step: PIN PULLED (drag) — invoking OnPinPulled.");
             OnPinPulled?.Invoke();
 
             // Estimate a release velocity from the last frame of motion for a natural toss.
@@ -1218,7 +1231,7 @@ namespace MiningSafetyAR.AR
             }
 
             currentPassState = PassStepState.PinPulled;
-            Debug.Log("[FireExtinguisherGrabController] P.A.S.S. Step: PIN PULLED");
+            Debug.Log("[SCORING_DIAG] [FireExtinguisherGrabController] P.A.S.S. Step: PIN PULLED — invoking OnPinPulled.");
             OnPinPulled?.Invoke();
             TriggerPinPullTurn();
 
@@ -1524,7 +1537,7 @@ namespace MiningSafetyAR.AR
             currentPassState = PassStepState.HandleSqueezed;
             isSqueezing = true;
             lastSweepPosition = targetExtinguisher != null ? targetExtinguisher.transform.position : Vector3.zero;
-            Debug.Log("[FireExtinguisherGrabController] P.A.S.S. Step: HANDLE SQUEEZED — spraying foam");
+            Debug.Log("[SCORING_DIAG] [FireExtinguisherGrabController] P.A.S.S. Step: HANDLE SQUEEZED — spraying foam — invoking OnSprayStarted.");
             OnSprayStarted?.Invoke();
         }
 
@@ -1832,6 +1845,9 @@ namespace MiningSafetyAR.AR
 
             float targetIntensity = Mathf.Clamp01(avgLateralSpeed / idealSweepSpeed);
             currentSweepIntensity = Mathf.MoveTowards(currentSweepIntensity, targetIntensity, Time.deltaTime * sweepIntensitySmoothing);
+
+            sweepIntensityAccumulator += currentSweepIntensity;
+            sweepIntensitySampleCount++;
         }
 
         private void UpdateFoamSpray()
@@ -1851,6 +1867,8 @@ namespace MiningSafetyAR.AR
                 }
                 currentSweepIntensity = 0f;
                 sweepSamples.Clear();
+                sweepIntensityAccumulator = 0f;
+                sweepIntensitySampleCount = 0;
                 return;
             }
 
@@ -2049,6 +2067,8 @@ namespace MiningSafetyAR.AR
             currentFoamCapacity = maxFoamCapacity;
             currentSweepIntensity = 0f;
             sweepSamples.Clear();
+            sweepIntensityAccumulator = 0f;
+            sweepIntensitySampleCount = 0;
 
             if (foamParticles != null && foamParticles.isPlaying)
             {

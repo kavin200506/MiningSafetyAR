@@ -118,6 +118,12 @@ namespace MiningSafetyAR.AR
             planeManager = GetComponent<ARPlaneManager>();
             occlusionManager = GetComponent<AROcclusionManager>() ?? FindFirstObjectByType<AROcclusionManager>();
 
+            // Start restricted to whatever plane type the fire hazard is allowed to spawn on
+            // (Horizontal by default) — ARStepCounterTracker widens this to include Vertical once
+            // the wall-scan phase begins, otherwise ARCore would never even track a vertical wall
+            // for that scan to find.
+            ApplyPlaneDetectionMode(fireHazardAllowedPlane);
+
             if (FindFirstObjectByType<ARStepCounterTracker>() == null)
             {
                 gameObject.AddComponent<ARStepCounterTracker>();
@@ -184,6 +190,59 @@ namespace MiningSafetyAR.AR
         {
             get => placementMode;
             set => placementMode = value;
+        }
+
+        /// <summary>Which AR plane alignment(s) an object is allowed to spawn on.</summary>
+        public enum AllowedPlaneType
+        {
+            Horizontal,
+            Vertical,
+            Both
+        }
+
+        [Header("Fire Hazard Plane Restriction")]
+        [Tooltip("Which AR plane type(s) the fire hazard may spawn on. Default: Horizontal only (floor). Also controls what ARPlaneManager actually detects while the fire hazard is being placed — e.g. with Horizontal selected, vertical planes are not tracked at all during that phase.")]
+        [SerializeField] private AllowedPlaneType fireHazardAllowedPlane = AllowedPlaneType.Horizontal;
+        public AllowedPlaneType FireHazardAllowedPlane => fireHazardAllowedPlane;
+
+        [Header("Fire Extinguisher Plane Restriction")]
+        [Tooltip("Which AR plane type(s) the fire extinguisher may spawn on when manually tapped during the wall-scan phase. Default: Vertical only (wall-mounted).")]
+        [SerializeField] private AllowedPlaneType extinguisherAllowedPlane = AllowedPlaneType.Vertical;
+        public AllowedPlaneType ExtinguisherAllowedPlane => extinguisherAllowedPlane;
+
+        private static bool IsAlignmentAllowed(PlaneAlignment alignment, AllowedPlaneType allowed)
+        {
+            bool isHorizontal = alignment == PlaneAlignment.HorizontalUp || alignment == PlaneAlignment.HorizontalDown;
+            bool isVertical = alignment == PlaneAlignment.Vertical;
+            switch (allowed)
+            {
+                case AllowedPlaneType.Horizontal: return isHorizontal;
+                case AllowedPlaneType.Vertical: return isVertical;
+                default: return isHorizontal || isVertical; // Both
+            }
+        }
+
+        private static PlaneDetectionMode ToDetectionMode(AllowedPlaneType allowed)
+        {
+            switch (allowed)
+            {
+                case AllowedPlaneType.Horizontal: return PlaneDetectionMode.Horizontal;
+                case AllowedPlaneType.Vertical: return PlaneDetectionMode.Vertical;
+                default: return PlaneDetectionMode.Horizontal | PlaneDetectionMode.Vertical;
+            }
+        }
+
+        /// <summary>
+        /// Restricts ARPlaneManager's live detection to the given plane type(s). Call this when
+        /// switching between placement phases (e.g. fire-hazard phase vs. wall-scan phase) so the
+        /// AR system genuinely stops tracking the plane type that phase doesn't need, rather than
+        /// relying only on code-side filtering after the fact.
+        /// </summary>
+        public void ApplyPlaneDetectionMode(AllowedPlaneType allowed)
+        {
+            if (planeManager == null) return;
+            planeManager.requestedDetectionMode = ToDetectionMode(allowed);
+            Debug.Log($"[ARPlacementManager] Plane detection mode set to {planeManager.requestedDetectionMode} (for {allowed}).");
         }
 
         private void OnPlanesChanged(ARTrackablesChangedEventArgs<ARPlane> eventArgs)
@@ -506,6 +565,21 @@ namespace MiningSafetyAR.AR
                 // Determine whether target is Wall Extinguisher vs Ground Hazard
                 bool isWallPlacement = (hitPlane != null && isVerticalPlane) || (hitPlane == null && placementMode == PlacementTargetMode.WallFireExtinguisher);
 
+                // Reject a plane hit that the determined target isn't configured to spawn on. With
+                // the default Horizontal-only fire hazard / Vertical-only extinguisher, this is
+                // normally unreachable because ApplyPlaneDetectionMode already stops the disallowed
+                // plane type from being detected in the first place — this is a defense-in-depth
+                // check that also makes a custom "Both" configuration behave correctly.
+                if (hitPlane != null)
+                {
+                    AllowedPlaneType allowedFor = isWallPlacement ? extinguisherAllowedPlane : fireHazardAllowedPlane;
+                    if (!IsAlignmentAllowed(alignment, allowedFor))
+                    {
+                        Debug.LogWarning($"[WARN] [ARPlacementManager] Rejected tap: plane alignment '{alignment}' is not allowed for the {(isWallPlacement ? "fire extinguisher" : "fire hazard")} (configured: {allowedFor}).");
+                        return false;
+                    }
+                }
+
                 // Requirement 6: Apply 3-second placement lockout ONLY to Ground Fire Hazard
                 // Allow reposition and rescale modes to bypass the lock
                 if (!isWallPlacement && isPlacementLocked && !RepositionMode && !RescaleMode)
@@ -616,28 +690,29 @@ namespace MiningSafetyAR.AR
                         Debug.Log($"[INFO] [ARPlacementManager] First ground placement registered! 3-second placement window started at Time={placementStartTime:F2}s");
                     }
 
-                    if (spawnedObject == null)
+                    if (spawnedObject != null)
                     {
-                        spawnedObject = Instantiate(targetPrefab, hitPose.position, spawnRotation);
-                        if (Application.isPlaying && !Application.isEditor)
-                        {
-                            spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
-                        }
-                        Debug.Log($"[INFO] [ARPlacementManager] Successfully spawned Ground Fire Hazard '{targetPrefab.name}' via {hitTypeString} at {hitPose.position}");
+                        // Ground Fire Hazard already exists — once spawned, its position must
+                        // never change again for the rest of the scene, even from an accidental
+                        // tap while moving the camera around (confirmed requirement 2026-09-05).
+                        // Previously this branch called SetPositionAndRotation() here on every
+                        // extra tap that landed on a plane before the 3-second lock elapsed,
+                        // which is exactly what let the fire silently slide around. Ignore the
+                        // tap entirely instead — no reposition, no re-ignite (re-igniting would
+                        // have also reset its health back to full every time).
+                        Debug.Log($"[INFO] [ARPlacementManager] Ground Fire Hazard already placed at {spawnedObject.transform.position} — ignoring tap, position is locked for the rest of the scene.");
+                        lastPlacementDiagStatus = "Ground Fire Hazard is already placed — position locked.";
+                        lastPlacementErrorLog = "";
+                        Debug.Log($"[DIAG] [ARPlacementManager] {lastPlacementDiagStatus}");
+                        return true;
                     }
-                    else
+
+                    spawnedObject = Instantiate(targetPrefab, hitPose.position, spawnRotation);
+                    if (Application.isPlaying && !Application.isEditor)
                     {
-                        if (spawnedAnchor != null)
-                        {
-                            DestroyImmediate(spawnedAnchor);
-                        }
-                        spawnedObject.transform.SetPositionAndRotation(hitPose.position, spawnRotation);
-                        if (Application.isPlaying && !Application.isEditor)
-                        {
-                            spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
-                        }
-                        Debug.Log($"[INFO] [ARPlacementManager] Repositioned Ground Fire Hazard '{spawnedObject.name}' to {hitPose.position}");
+                        spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
                     }
+                    Debug.Log($"[INFO] [ARPlacementManager] Successfully spawned Ground Fire Hazard '{targetPrefab.name}' via {hitTypeString} at {hitPose.position}");
 
                     // Ignite Fire Hazard
                     GroundFireController fireController = spawnedObject.GetComponent<GroundFireController>() ?? spawnedObject.GetComponentInChildren<GroundFireController>();

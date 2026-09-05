@@ -18,10 +18,13 @@ namespace MiningSafetyAR.UI.Pages
     /// </summary>
     public class ARSimulationPageController : PageController
     {
+        public static ARSimulationPageController Instance { get; private set; }
+
         private string moduleId;
         private int currentScore = 100;
         private float elapsedTime = 0f;
         private bool timerRunning = false;
+        private bool awaitingQuizConfirm = false; // true while the post-drill "Go to Quiz" prompt is showing
 
         // ── Toolbar ──
         private Button btnExit;
@@ -93,6 +96,23 @@ namespace MiningSafetyAR.UI.Pages
             "Point your camera at the floor to detect surfaces for placing the fire hazard.",
             "Walk 5-15 steps to discover the fire extinguisher on a wall or stand."
         };
+
+        private void Awake()
+        {
+            Instance = this;
+        }
+
+        /// <summary>
+        /// FireSafetyModuleManager can be instantiated later than this page (its Awake() has been
+        /// observed running AFTER PageController.OnEnable() already tried and failed to subscribe
+        /// to it — see [SCORING_DIAG] investigation). It calls this from its own Awake() so the
+        /// real subscription happens once it actually exists, instead of silently never happening.
+        /// </summary>
+        public void NotifyFireSafetyModuleManagerReady()
+        {
+            Debug.Log("[SCORING_DIAG] [ARSimulationPageController] NotifyFireSafetyModuleManagerReady() — re-subscribing now.");
+            SubscribeToEvents();
+        }
 
         protected override void BindUI()
         {
@@ -194,6 +214,7 @@ namespace MiningSafetyAR.UI.Pages
             meshVisible = false;
             modalOpen = false;
             currentTipIndex = 0;
+            awaitingQuizConfirm = false;
 
             if (string.IsNullOrEmpty(moduleId)) moduleId = "fire_safety";
 
@@ -212,6 +233,7 @@ namespace MiningSafetyAR.UI.Pages
 
         public override void OnPageExit()
         {
+            Debug.Log("[SCORING_DIAG] [ARSimulationPageController] OnPageExit() called — StopAllCoroutines() about to run (this kills any pending quiz redirect).");
             StopAllCoroutines();
             timerRunning = false;
             UnsubscribeFromEvents();
@@ -223,12 +245,19 @@ namespace MiningSafetyAR.UI.Pages
 
         private void SubscribeToEvents()
         {
+            UnsubscribeFromEvents(); // idempotent — safe to call repeatedly (e.g. from NotifyFireSafetyModuleManagerReady())
+
             if (FireSafetyModuleManager.Instance != null)
             {
                 FireSafetyModuleManager.Instance.OnStepChanged += OnStepChanged;
                 FireSafetyModuleManager.Instance.OnMistakeMade += OnMistakeMade;
                 FireSafetyModuleManager.Instance.OnFailureEscalated += OnFailureEscalated;
                 FireSafetyModuleManager.Instance.OnModuleCompletedWithMetrics += OnModuleCompleted;
+                Debug.Log($"[SCORING_DIAG] [ARSimulationPageController] SubscribeToEvents() — subscribed to FireSafetyModuleManager.InstanceID={FireSafetyModuleManager.Instance.GetInstanceID()}.");
+            }
+            else
+            {
+                Debug.LogWarning("[SCORING_DIAG] [ARSimulationPageController] SubscribeToEvents() — FireSafetyModuleManager.Instance was NULL, subscription SKIPPED entirely.");
             }
 
             if (AR.ARProximitySafetyValidator.Instance != null)
@@ -763,10 +792,20 @@ namespace MiningSafetyAR.UI.Pages
 
         private void OnStartMissionClicked(ClickEvent evt)
         {
+            // Same button, reused for the post-drill "Go to Quiz" prompt — its click action
+            // depends on which state the mission modal is currently showing.
+            if (awaitingQuizConfirm)
+            {
+                AR.ARSimulationLogger.LogButton("btn-start-mission", "Confirmed Go to Quiz");
+                NavigateToQuiz();
+                return;
+            }
+
             AR.ARSimulationLogger.LogButton("btn-start-mission", "Started Mission Drill");
             HideMissionModal();
             StartTimer();
 
+            Debug.Log($"[SCORING_DIAG] [ARSimulationPageController] OnStartMissionClicked() — FireSafetyModuleManager.Instance {(FireSafetyModuleManager.Instance != null ? "FOUND" : "NOT FOUND (null)")}.");
             if (FireSafetyModuleManager.Instance != null)
             {
                 FireSafetyModuleManager.Instance.StartModule();
@@ -780,6 +819,11 @@ namespace MiningSafetyAR.UI.Pages
         private void OnStepChanged(int step, string instruction)
         {
             ShowTier1Info(instruction);
+            // Keep the 💡 hint button's contextual text in sync with whatever step you're
+            // actually on — previously this was never called, so the hint always showed the
+            // Pull Pin tip no matter what step you were on. See documents/
+            // technical_scoring_explained.md §6.2.
+            AR.ARGuidanceController.Instance?.SetCurrentStepIndex(step);
             if (FireSafetyModuleManager.Instance != null)
             {
                 UpdateScoreBadge(FireSafetyModuleManager.Instance.GetTotalScore());
@@ -818,30 +862,70 @@ namespace MiningSafetyAR.UI.Pages
 
         private void OnModuleCompleted(List<StepMetric> metrics)
         {
+            Debug.Log($"[SCORING_DIAG] [ARSimulationPageController] OnModuleCompleted() received — gameObject.activeInHierarchy={gameObject.activeInHierarchy}, enabled={enabled}.");
             timerRunning = false;
-            ShowTier1Info("🎉 LEVEL COMPLETED! Redirecting to Quiz...");
-            StartCoroutine(RedirectToQuizAfterDelay(metrics, 2.5f));
-        }
-
-        private IEnumerator RedirectToQuizAfterDelay(List<StepMetric> metrics, float delay)
-        {
-            ShowTier1Info("🎉 LEVEL COMPLETED! Redirecting to Quiz...");
             if (bannerWarning != null) bannerWarning.style.display = DisplayStyle.None;
 
+            // Show the real breakdown and wait for the worker to actively choose to continue,
+            // instead of a fixed timer silently redirecting them (decided 2026-09-05 — they should
+            // get to read their own performance before moving on).
+            var payload = FireSafetyModuleManager.Instance?.LastDrillResult;
             if (missionModal != null)
             {
-                if (missionText != null) missionText.text = "🎉 LEVEL COMPLETED!\n\nYou have successfully extinguished the fire hazard! Get ready for your assessment quiz.";
+                if (missionText != null) missionText.text = BuildDrillBreakdownText(payload);
                 missionModal.style.display = DisplayStyle.Flex;
-                if (btnStartMission != null) btnStartMission.style.display = DisplayStyle.None;
+                if (btnStartMission != null)
+                {
+                    btnStartMission.style.display = DisplayStyle.Flex;
+                    btnStartMission.text = "Go to Quiz";
+                }
             }
+            awaitingQuizConfirm = true;
+        }
 
-            yield return new WaitForSeconds(delay);
+        private string BuildDrillBreakdownText(DrillResultPayload payload)
+        {
+            if (payload == null)
+            {
+                return "🎉 LEVEL COMPLETED!\n\nYou have successfully extinguished the fire hazard! Get ready for your assessment quiz.";
+            }
+            return "🎉 LEVEL COMPLETED!\n\n"
+                + $"Drill Score: {payload.drillScorePercentage:F0}%\n"
+                + $"Mistakes: {payload.mistakesCount}   Time: {payload.completionTimeSeconds:F0}s\n\n"
+                + $"Hazard Recognition: {payload.hazardRecognitionPct}%\n"
+                + $"Extinguisher Use: {payload.extinguisherUsePct}%\n"
+                + $"Time Management: {payload.timeManagementPct}%\n"
+                + $"Evacuation: {payload.evacuationPct}%\n\n"
+                + "Get ready for your assessment quiz!";
+        }
 
+        private void NavigateToQuiz()
+        {
+            Debug.Log("[SCORING_DIAG] [ARSimulationPageController] NavigateToQuiz() — worker confirmed, navigating now.");
             if (missionModal != null) missionModal.style.display = DisplayStyle.None;
+            if (btnStartMission != null) btnStartMission.text = "Start Mission";
+            awaitingQuizConfirm = false;
 
             string targetModule = string.IsNullOrEmpty(moduleId) ? "fire_safety" : moduleId;
-            Debug.Log($"[ARSimulationPageController] LEVEL COMPLETED: Redirecting to Quiz ('UI_Assessment') for module '{targetModule}'...");
-            NavigationManager.Instance?.NavigateTo("UI_Assessment", targetModule);
+
+            // Hand off the REAL drill performance instead of just the module id — this is what
+            // stops the quiz page from falling back to its hardcoded simulationScore=80 default.
+            // See documents/technical_scoring_explained.md §4.1.
+            var payload = FireSafetyModuleManager.Instance?.LastDrillResult;
+            var navParam = new Dictionary<string, object>
+            {
+                { "moduleId", targetModule },
+                { "simulationScore", payload != null ? Mathf.RoundToInt(payload.drillScorePercentage) : 0 },
+                { "drillMistakesCount", payload?.mistakesCount ?? 0 },
+                { "drillTimeSeconds", payload?.completionTimeSeconds ?? 0f },
+                { "hazardRecognitionPct", payload?.hazardRecognitionPct ?? 0 },
+                { "extinguisherUsePct", payload?.extinguisherUsePct ?? 0 },
+                { "timeManagementPct", payload?.timeManagementPct ?? 0 },
+                { "evacuationPct", payload?.evacuationPct ?? 0 }
+            };
+
+            Debug.Log($"[ARSimulationPageController] LEVEL COMPLETED: Redirecting to Quiz ('UI_Assessment') for module '{targetModule}' with real drill score {(payload != null ? payload.drillScorePercentage.ToString("F1") : "N/A")}%...");
+            NavigationManager.Instance?.NavigateTo("UI_Assessment", navParam);
         }
 
         // ═══════════════════════════════════════════════════════
@@ -907,11 +991,10 @@ namespace MiningSafetyAR.UI.Pages
         {
             List<StepMetric> mockMetrics = new List<StepMetric>
             {
-                new StepMetric { stepName = "Sound Alarm", errorCount = 1, durationSeconds = 8f, score = 75 },
-                new StepMetric { stepName = "Select Extinguisher", errorCount = 0, durationSeconds = 4f, score = 100 },
-                new StepMetric { stepName = "Pull Pin", errorCount = 0, durationSeconds = 5f, score = 100 },
+                new StepMetric { stepName = "Pull Pin", errorCount = 1, durationSeconds = 5f, score = 75 },
                 new StepMetric { stepName = "Aim & Test Spray", errorCount = 0, durationSeconds = 6f, score = 100 },
-                new StepMetric { stepName = "Squeeze & Sweep", errorCount = 0, durationSeconds = 25f, score = 100 }
+                new StepMetric { stepName = "Squeeze & Sweep", errorCount = 0, durationSeconds = 25f, score = 100 },
+                new StepMetric { stepName = "Evacuate to Safe Distance", errorCount = 0, durationSeconds = 8f, score = 100 }
             };
             ShowScoreModal(mockMetrics);
         }

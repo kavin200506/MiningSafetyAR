@@ -59,6 +59,11 @@ namespace MiningSafetyAR.Modules
             EnsureFireCollider();
             InitializeParticleSystems();
             ApplyLowSpecOptimizations();
+
+            // This controller is spawned at runtime, after FireSafetyModuleManager's own OnEnable()
+            // already tried (and likely failed) to subscribe to OnFireExtinguished. Tell it we're
+            // ready now. See documents/technical_scoring_explained.md investigation notes.
+            FireSafetyModuleManager.Instance?.NotifyFireControllerReady();
         }
 
         private void Start()
@@ -176,6 +181,7 @@ namespace MiningSafetyAR.Modules
         [ContextMenu("Ignite Fire Test")]
         public void IgniteFire()
         {
+            Debug.Log("[SCORING_DIAG] [GroundFireController] IgniteFire() called — fire hazard is now active.");
             gameObject.SetActive(true);
 
             Ensure3DFireVisual();
@@ -260,6 +266,7 @@ namespace MiningSafetyAR.Modules
             if (currentFireHealth <= 0f)
             {
                 ExtinguishFireInstant();
+                Debug.Log("[SCORING_DIAG] [GroundFireController] Health reached 0 — invoking OnFireExtinguished.");
                 OnFireExtinguished?.Invoke();
                 Debug.Log("[FIRE_DIAG] [GroundFireController] Fire extinguished by foam suppression!");
             }

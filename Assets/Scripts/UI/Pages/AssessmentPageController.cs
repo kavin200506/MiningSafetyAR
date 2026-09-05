@@ -6,6 +6,7 @@ using MiningSafetyAR.UI;
 using MiningSafetyAR.UI.Navigation;
 using MiningSafetyAR.Data;
 using MiningSafetyAR.UI.Helpers;
+using MiningSafetyAR.Modules;
 
 namespace MiningSafetyAR.UI.Pages
 {
@@ -15,7 +16,18 @@ namespace MiningSafetyAR.UI.Pages
         List<QuizQuestionData> questions;
         int currentQ = 0;
         int correctCount = 0;
-        int simulationScore = 80;
+        int simulationScore = 80; // fallback only — overwritten by the real drill score below when reached via the normal AR drill -> quiz flow
+
+        // Real drill performance, handed off from ARSimulationPageController.RedirectToQuizAfterDelay
+        // via FireSafetyModuleManager.LastDrillResult. Defaulted to 0 (not another fake constant) so
+        // direct-testing this page in isolation is honest about having no real drill behind it.
+        // See documents/technical_scoring_explained.md §4.
+        int drillMistakesCount = 0;
+        float drillTimeSeconds = 0f;
+        int hazardRecognitionPct = 0;
+        int extinguisherUsePct = 0;
+        int timeManagementPct = 0;
+        int evacuationPct = 0;
 
         // Per-competency tracking
         Dictionary<string, int> correctByCompetency = new Dictionary<string, int>();
@@ -52,6 +64,12 @@ namespace MiningSafetyAR.UI.Pages
             {
                 if (dict.TryGetValue("moduleId", out var mid)) moduleId = mid as string;
                 if (dict.TryGetValue("simulationScore", out var sim)) simulationScore = System.Convert.ToInt32(sim);
+                if (dict.TryGetValue("drillMistakesCount", out var dmc)) drillMistakesCount = System.Convert.ToInt32(dmc);
+                if (dict.TryGetValue("drillTimeSeconds", out var dts)) drillTimeSeconds = System.Convert.ToSingle(dts);
+                if (dict.TryGetValue("hazardRecognitionPct", out var hrp)) hazardRecognitionPct = System.Convert.ToInt32(hrp);
+                if (dict.TryGetValue("extinguisherUsePct", out var eup)) extinguisherUsePct = System.Convert.ToInt32(eup);
+                if (dict.TryGetValue("timeManagementPct", out var tmp)) timeManagementPct = System.Convert.ToInt32(tmp);
+                if (dict.TryGetValue("evacuationPct", out var evp)) evacuationPct = System.Convert.ToInt32(evp);
             }
             if (string.IsNullOrEmpty(moduleId)) moduleId = "fire_safety";
         }
@@ -211,14 +229,39 @@ namespace MiningSafetyAR.UI.Pages
         {
             int total = questions.Count;
             int mcqScore = total > 0 ? (int)((float)correctCount / total * 100f) : 0;
-            int finalScore = (int)(simulationScore * 0.6f + mcqScore * 0.4f);
-            bool passed = finalScore >= 75;
+            // simulationScore is the real drill percentage when reached via the normal AR drill
+            // flow (ARSimulationPageController.RedirectToQuizAfterDelay populates it from
+            // FireSafetyModuleManager.LastDrillResult) — the 80 fallback only applies if this page
+            // is opened directly with no real drill behind it. See documents/
+            // technical_scoring_explained.md §4.1 / §5.1.
+            int finalScore = Mathf.RoundToInt(simulationScore * ScoringConstants.DrillWeight + mcqScore * ScoringConstants.QuizWeight);
+            bool passed = finalScore >= ScoringConstants.PassThresholdPercentage;
+
             if (AppDataService.Instance != null)
             {
-                AppDataService.Instance.SaveAttempt(moduleId, finalScore, passed);
-                AppDataService.Instance.UpdateModuleCompetencyScores(moduleId, correctByCompetency, totalByCompetency);
+                AppDataService.Instance.SaveAttempt(
+                    moduleId, finalScore, passed,
+                    mistakesCount: drillMistakesCount,
+                    completionTimeSeconds: drillTimeSeconds,
+                    stepMetrics: null); // real per-step metrics are already saved locally by FireSafetyModuleManager.FinishModule()
+
+                // Gameplay-derived competencies (real drill performance) are the source of truth —
+                // per-question quiz answers don't nudge them. The overall quiz percentage is
+                // still passed through as its own "Quiz Score" competency bar (decided 2026-09-05).
+                AppDataService.Instance.UpdateModuleCompetencyScoresFromDrill(
+                    moduleId, hazardRecognitionPct, extinguisherUsePct, timeManagementPct, evacuationPct, mcqScore);
             }
-            var resultsData = new Dictionary<string, object> { { "moduleId", moduleId }, { "mcqScore", mcqScore }, { "correct", correctCount }, { "total", total }, { "simulationScore", simulationScore }, { "finalScore", finalScore }, { "passed", passed } };
+            var resultsData = new Dictionary<string, object> {
+                { "moduleId", moduleId }, { "mcqScore", mcqScore }, { "correct", correctCount }, { "total", total },
+                { "simulationScore", simulationScore }, { "finalScore", finalScore }, { "passed", passed },
+                // This attempt's own competency breakdown — Results page shows these directly
+                // instead of the ratcheted personal-best values (decided 2026-09-05: a mismatch
+                // like "70% total but 100% bars" from an earlier best attempt was confusing right
+                // after finishing a worse one). Personal-best-ever tracking still happens via
+                // UpdateModuleCompetencyScoresFromDrill above for other pages (e.g. Module Detail).
+                { "hazardRecognitionPct", hazardRecognitionPct }, { "extinguisherUsePct", extinguisherUsePct },
+                { "timeManagementPct", timeManagementPct }, { "evacuationPct", evacuationPct }
+            };
             // Try UI_Results, fallback to placeholder dashboard if not yet built
             var nav = NavigationManager.Instance;
             if (nav != null)
