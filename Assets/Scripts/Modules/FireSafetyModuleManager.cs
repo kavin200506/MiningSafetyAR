@@ -241,9 +241,15 @@ namespace MiningSafetyAR.Modules
 
             RecordStepMetric(currentStepIndex);
 
-            Debug.Log($"[FireSafetyModuleManager] Step {currentStepIndex} ({StepNames[currentStepIndex]}) completed.");
-
             base.CompleteCurrentStep();
+        }
+
+        /// <summary>
+        /// Called when the 3D emergency fire alarm button is activated.
+        /// </summary>
+        public void NotifyAlarmActivated()
+        {
+            Debug.Log("[FireSafetyModuleManager] 🚨 Emergency Fire Alarm Activated!");
         }
 
         /// <summary>Standard-severity mistake (−25). Kept for BaseModuleManager compatibility.</summary>
