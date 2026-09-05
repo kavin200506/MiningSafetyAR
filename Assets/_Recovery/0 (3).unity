@@ -226,8 +226,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.AR.ARImageTrackingManager
   fireExtinguisherPrefab: {fileID: 6134629332891498935, guid: 5a826361964774ca698cdf00d54cdcae, type: 3}
   exitSignPrefab: {fileID: 5252302089801081371, guid: b98c7aa55bdbc4354b0cbb86195b7917, type: 3}
-  alarmButtonPrefab: {fileID: 2885131675495861044, guid: a740c68302d2e47b1b7a3e214fe3e42c, type: 3}
-  alarmButtonOffset: {x: 0.25, y: 0, z: 0}
   fireExtinguisherMarkerName: FireExtinguisherMarker
   exitSignMarkerName: ExitSignMarker
 --- !u!114 &1680756
@@ -262,8 +260,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.AR.ARPlacementManager
   defaultPlacementPrefab: {fileID: 8357728592244196003, guid: c368dd61c2a070e4ebe414c6a0239679, type: 3}
   wallExtinguisherPrefab: {fileID: 6134629332891498935, guid: 5a826361964774ca698cdf00d54cdcae, type: 3}
-  alarmButtonPrefab: {fileID: 2885131675495861044, guid: a740c68302d2e47b1b7a3e214fe3e42c, type: 3}
-  alarmButtonOffset: {x: 0.3, y: 0, z: 0}
   placementIndicator: {fileID: 3039026380210748228, guid: d0beacb7e91de4822a6c7b052dc13b71, type: 3}
   placementWindowDuration: 3
   showTimerUI: 0
@@ -271,8 +267,6 @@ MonoBehaviour:
   minScale: 0.02
   maxScale: 1
   placementMode: 0
-  fireHazardAllowedPlane: 0
-  extinguisherAllowedPlane: 1
 --- !u!114 &1680758
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -291,13 +285,13 @@ MonoBehaviour:
   extinguisherScale: 0.42
   grabbableLayerMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 256
   heldItemLayerMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 512
   fireLayerMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 1024
   grabDuration: 0.4
   maxGrabDistance: 2
   maxRaycastDistance: 15
@@ -310,10 +304,6 @@ MonoBehaviour:
   maxSprayRange: 3
   nozzleTip: {fileID: 0}
   maxFoamCapacity: 15
-  sweepWindowDuration: 0.6
-  idealSweepSpeed: 1
-  sweepIntensitySmoothing: 8
-  debugShowSweepIntensity: 1
   pinDragMinPixels: 6
   foamParticles: {fileID: 0}
   handleSqueezeAngle: 20
@@ -365,8 +355,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.AR.ARStepCounterTracker
   currentState: 0
-  minRequiredSteps: 10
-  maxRequiredSteps: 15
+  minRequiredSteps: 7
+  maxRequiredSteps: 13
   averageStepLengthMeters: 0.65
   showDebugUI: 0
   fireExtinguisherPrefab: {fileID: 6134629332891498935, guid: 5a826361964774ca698cdf00d54cdcae, type: 3}
@@ -470,6 +460,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.AR.ARProximitySafetyValidator
   safeDistanceThreshold: 1.0668
   hysteresisMargin: 0.15
+  penaltyPoints: 50
 --- !u!4 &113135142
 Transform:
   m_ObjectHideFlags: 0
@@ -1098,17 +1089,11 @@ MonoBehaviour:
   step4AudioEN: {fileID: 0}
   step4AudioHI: {fileID: 0}
   step4AudioSAT: {fileID: 0}
+  step5AudioEN: {fileID: 0}
+  step5AudioHI: {fileID: 0}
+  step5AudioSAT: {fileID: 0}
   pointsPerStep: 100
-  sweepQualityFloor: 30
-  evacuationSafeDistance: 5
-  evacuationArrivalRadius: 1
-  evacuationSustainDuration: 1.5
-  evacuationTimeBudgetSeconds: 15
-  evacuationLatePenaltyPerSecond: 4
-  evacuationScoreFloor: 40
-  hazardRecognitionPenaltyPerBreach: 20
-  parTimeSeconds: 40
-  timeScorePointsLostPerSecondOver: 2
+  penaltyPerError: 25
 --- !u!4 &1816745009
 Transform:
   m_ObjectHideFlags: 0

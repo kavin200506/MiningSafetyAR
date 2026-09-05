@@ -19,6 +19,13 @@ namespace MiningSafetyAR.Data
         public int ppeSelection;
         public int evacuation;
         public int emergencyResponse;
+        public int timeManagement; // Fire & Explosion "Time" competency — dedicated field so it
+                                    // doesn't collide with ppeSelection, which other modules'
+                                    // real PPE quiz questions already write into (see
+                                    // documents/technical_scoring_explained.md §2).
+        public int quizScore;      // Fire & Explosion "Quiz" competency — end-of-module MCQ
+                                    // percentage, shown as its own bar (decided 2026-09-05).
+                                    // Other modules don't populate this field.
     }
 
     [Serializable]

@@ -30,8 +30,8 @@ namespace MiningSafetyAR.AR
         [SerializeField] private StepTrackerState currentState = StepTrackerState.Idle;
         public StepTrackerState CurrentState => currentState;
 
-        [SerializeField] private int minRequiredSteps = 7;
-        [SerializeField] private int maxRequiredSteps = 13;
+        [SerializeField] private int minRequiredSteps = 10;
+        [SerializeField] private int maxRequiredSteps = 15;
         [SerializeField] private float averageStepLengthMeters = 0.65f; // ~65cm per step
         [SerializeField] private bool showDebugUI = false;
 
@@ -232,6 +232,16 @@ namespace MiningSafetyAR.AR
                 StopCoroutine(wallScanCoroutine);
                 wallScanCoroutine = null;
             }
+
+            // The fire-hazard phase may have restricted ARPlaneManager to Horizontal-only
+            // detection (ARPlacementManager.fireHazardAllowedPlane) — if that's still in effect,
+            // ARCore never even tracks vertical surfaces, so this scan could never find a wall no
+            // matter how long it runs. Widen detection to include Vertical for the scan window.
+            if (ARPlacementManager.Instance != null)
+            {
+                ARPlacementManager.Instance.ApplyPlaneDetectionMode(ARPlacementManager.AllowedPlaneType.Both);
+            }
+
             wallScanCoroutine = StartCoroutine(ScanForWallThenSpawnCoroutine(5.0f));
         }
 
