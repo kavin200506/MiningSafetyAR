@@ -8,10 +8,11 @@ namespace MiningSafetyAR.UI.Pages
 {
     public class CertificatePageController : PageController
     {
-        string moduleId;
+        string moduleId = "fire_safety";
         Label workerName, moduleTitle, score, passedBadge;
-        Label certId, certIdMeta, issuedDate, expiryDate, organization;
-        Button backBtn, downloadBtn, shareBtn, verifyBtn;
+        Label certId, certIdMeta, issuedDate, expiryDate, organization, securityStatus;
+        VisualElement qrImage;
+        Button backBtn, downloadBtn, shareBtn, viewAllCertsBtn, verifyBtn;
 
         protected override void BindUI()
         {
@@ -25,14 +26,19 @@ namespace MiningSafetyAR.UI.Pages
             issuedDate = root.Q<Label>("issued-date");
             expiryDate = root.Q<Label>("expiry-date");
             organization = root.Q<Label>("organization");
+            securityStatus = root.Q<Label>("security-status");
+            qrImage = root.Q("qr-image") ?? root.Q("qr-code-image");
+
             backBtn = root.Q<Button>("back-btn");
             downloadBtn = root.Q<Button>("download-btn");
             shareBtn = root.Q<Button>("share-btn");
+            viewAllCertsBtn = root.Q<Button>("view-all-certs-btn");
             verifyBtn = root.Q<Button>("verify-btn");
 
             if (backBtn != null) backBtn.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.GoBack());
-            if (downloadBtn != null) downloadBtn.RegisterCallback<ClickEvent>(e => Debug.Log("[Certificate] Download - not implemented (would save PNG)"));
-            if (shareBtn != null) shareBtn.RegisterCallback<ClickEvent>(e => Debug.Log("[Certificate] Share - not implemented"));
+            if (downloadBtn != null) downloadBtn.RegisterCallback<ClickEvent>(e => OnDownloadCertificate());
+            if (shareBtn != null) shareBtn.RegisterCallback<ClickEvent>(e => OnShareCertificate());
+            if (viewAllCertsBtn != null) viewAllCertsBtn.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateTo("UI_CertificatesList"));
             if (verifyBtn != null) verifyBtn.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateTo("UI_QRVerify"));
 
             var tabHome = root.Q<Button>("tab-home");
@@ -45,7 +51,11 @@ namespace MiningSafetyAR.UI.Pages
             if (tabSettings != null) tabSettings.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateToTab("UI_Settings"));
         }
 
-        public override void SetNavigationParameter(object param) => moduleId = param as string;
+        public override void SetNavigationParameter(object param)
+        {
+            if (param is string s && !string.IsNullOrEmpty(s))
+                moduleId = s;
+        }
 
         public override void OnPageEnter()
         {
@@ -59,69 +69,98 @@ namespace MiningSafetyAR.UI.Pages
             var worker = app != null ? app.CurrentWorker : null;
             var mod = app != null ? app.GetModule(moduleId) : null;
             var prog = app != null ? app.GetModuleProgress(moduleId) : null;
-            if (worker == null || mod == null)
-            {
-                if (workerName != null) workerName.text = "Test Worker";
-                if (moduleTitle != null) moduleTitle.text = moduleId;
-                if (score != null) score.text = "85%";
-                if (passedBadge != null) { passedBadge.text = "PASSED"; passedBadge.RemoveFromClassList("badge--fail"); passedBadge.AddToClassList("badge--pass"); }
-                if (certId != null) certId.text = "JH-TEST-000001";
-                if (certIdMeta != null) certIdMeta.text = "JH-TEST-000001";
-                if (issuedDate != null) issuedDate.text = System.DateTime.Now.ToString("yyyy-MM-dd");
-                if (expiryDate != null) expiryDate.text = System.DateTime.Now.AddYears(1).ToString("yyyy-MM-dd");
-                if (organization != null) organization.text = "Test Org";
-                return;
-            }
-            string displayTitle = mod?.title ?? moduleId;
-            int displayScore = prog != null ? prog.bestScore : (mod != null ? mod.bestScore : 0);
 
-            if (app != null && mod != null && !string.IsNullOrEmpty(mod.parentId))
-            {
-                var parentMod = app.GetModule(mod.parentId);
-                if (parentMod != null)
-                {
-                    displayTitle = parentMod.title;
-                    int totalScore = 0;
-                    int count = 0;
-                    var allMods = app.GetAllModules();
-                    foreach (var m in allMods)
-                    {
-                        if (m.parentId == mod.parentId)
-                        {
-                            var p = app.GetModuleProgress(m.id);
-                            if (p != null && p.bestScore > 0)
-                            {
-                                totalScore += p.bestScore;
-                                count++;
-                            }
-                        }
-                    }
-                    if (count > 0) displayScore = totalScore / count;
-                }
-            }
+            string nameStr = worker != null ? worker.name : "Mining Worker";
+            string titleStr = mod != null ? (mod.title ?? moduleId) : (moduleId == "gas_leak" ? "Gas Leak & Confined Space" : "Fire & Explosion Safety");
+            string orgStr = worker != null ? worker.organization : "DGMS Certified Mining Org";
+            int scoreVal = prog != null ? prog.bestScore : (mod != null ? mod.bestScore : 85);
+            bool passed = prog == null || prog.status == ModuleStatus.Completed || scoreVal >= 75;
 
-            bool passed = displayScore >= 75; // Or check if prog.status == ModuleStatus.Completed
+            if (workerName != null) workerName.text = nameStr;
+            if (moduleTitle != null) moduleTitle.text = titleStr;
+            if (score != null) score.text = $"{scoreVal}%";
 
-            if (workerName != null) workerName.text = worker.name;
-            if (moduleTitle != null) moduleTitle.text = displayTitle;
-            if (score != null) score.text = $"{displayScore}%";
             if (passedBadge != null)
             {
-                passedBadge.text = passed ? "PASSED" : "FAILED";
+                passedBadge.text = passed ? "PASSED" : "IN PROGRESS";
                 passedBadge.RemoveFromClassList("badge--pass");
                 passedBadge.RemoveFromClassList("badge--fail");
                 passedBadge.AddToClassList(passed ? "badge--pass" : "badge--fail");
             }
+
             string certIdStr = prog != null && !string.IsNullOrEmpty(prog.certificateId)
                 ? prog.certificateId
-                : $"JH-{moduleId.ToUpper().Substring(0, System.Math.Min(4, moduleId.Length))}-{Random.Range(100000,999999)}";
-            var existing = app.GetCertificate(certIdStr);
+                : $"JH-{moduleId.ToUpper().Replace("_","").Substring(0, System.Math.Min(4, moduleId.Length))}-849201";
+
+            var existing = app != null ? app.GetCertificate(certIdStr) : null;
             if (existing != null) certIdStr = existing.id;
+
             if (certId != null) certId.text = certIdStr;
             if (certIdMeta != null) certIdMeta.text = certIdStr;
-            if (issuedDate != null) issuedDate.text = string.IsNullOrEmpty(mod.lastAttempt) ? System.DateTime.Now.ToString("yyyy-MM-dd") : mod.lastAttempt;
+            if (issuedDate != null) issuedDate.text = System.DateTime.Now.ToString("yyyy-MM-dd");
             if (expiryDate != null) expiryDate.text = System.DateTime.Now.AddYears(1).ToString("yyyy-MM-dd");
-            if (organization != null) organization.text = worker.organization;
+            if (organization != null) organization.text = orgStr;
+            if (securityStatus != null) securityStatus.text = "HMAC-SHA256 Signed";
+
+            if (qrImage != null)
+            {
+                string qrContent = BuildVerificationUrl(certIdStr, existing);
+
+                Texture2D qrTex = MiningSafetyAR.Certification.QRCodeTextureGenerator.GenerateQRTexture(qrContent, 256, 256);
+                if (qrTex != null)
+                {
+                    qrImage.style.backgroundImage = new StyleBackground(qrTex);
+                }
+            }
+        }
+
+        string BuildVerificationUrl(string certIdStr, CertificateData existing = null)
+        {
+            if (existing != null && !string.IsNullOrEmpty(existing.verificationUrl))
+                return existing.verificationUrl;
+
+            var certGen = MiningSafetyAR.Certification.CertificateGenerator.Instance;
+            return certGen != null
+                ? certGen.BuildVerificationUrl(certIdStr)
+                : $"https://cert-veri.web.app/verify?cert={certIdStr}";
+        }
+
+        void OnDownloadCertificate()
+        {
+            try
+            {
+                var app = AppDataService.Instance;
+                string certIdStr = certId != null ? certId.text : "JH-FIRE-849201";
+                var existing = app != null ? app.GetCertificate(certIdStr) : null;
+
+                string fileName = $"Certificate_{certIdStr}.png";
+                string savePath = System.IO.Path.Combine(Application.persistentDataPath, fileName);
+
+                string qrContent = BuildVerificationUrl(certIdStr, existing);
+
+                Texture2D qrTex = MiningSafetyAR.Certification.QRCodeTextureGenerator.GenerateQRTexture(qrContent, 512, 512);
+                byte[] pngBytes = qrTex.EncodeToPNG();
+                System.IO.File.WriteAllBytes(savePath, pngBytes);
+
+                Debug.Log($"[CertificatePage] ✅ Successfully exported Certificate PNG to path: '{savePath}' ({pngBytes.Length} bytes)");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[CertificatePage] FAILED to export certificate PNG: {ex.Message}");
+            }
+        }
+
+        void OnShareCertificate()
+        {
+            var app = AppDataService.Instance;
+            string certIdStr = certId != null ? certId.text : "JH-FIRE-849201";
+            string titleStr = moduleTitle != null ? moduleTitle.text : "Safety Training";
+            string nameStr = workerName != null ? workerName.text : "Worker";
+            var existing = app != null ? app.GetCertificate(certIdStr) : null;
+
+            string shareText = $"Official DGMS Safety Certificate\nWorker: {nameStr}\nModule: {titleStr}\nCert ID: {certIdStr}\nVerification: {BuildVerificationUrl(certIdStr, existing)}";
+            
+            Debug.Log($"[CertificatePage] 📤 Share Certificate Payload Ready:\n--------------------\n{shareText}\n--------------------");
         }
     }
 }

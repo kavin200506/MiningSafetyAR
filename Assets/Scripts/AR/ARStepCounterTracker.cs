@@ -40,6 +40,20 @@ namespace MiningSafetyAR.AR
         [Tooltip("Scale applied when the extinguisher first spawns on the wall — matches FireExtinguisherGrabController's held scale so it doesn't visibly resize when grabbed.")]
         [SerializeField] private float extinguisherSpawnScale = 0.42f;
 
+        [Tooltip("Emergency alarm button prefab, spawned beside the wall fire extinguisher when discovered.")]
+        [SerializeField] private GameObject alarmButtonPrefab;
+        public GameObject AlarmButtonPrefab
+        {
+            get => alarmButtonPrefab;
+            set => alarmButtonPrefab = value;
+        }
+
+        [Tooltip("Offset (in meters) relative to the extinguisher where the alarm button is placed on the wall.")]
+        [SerializeField] private Vector3 alarmButtonOffset = new Vector3(0.35f, 0f, 0f);
+
+        private GameObject spawnedAlarmButtonInstance;
+        public GameObject SpawnedAlarmButtonInstance => spawnedAlarmButtonInstance;
+
         private int targetSteps = 10;
         private int currentStepCount = 0;
         private float totalDistanceWalkedMeters = 0f;
@@ -487,6 +501,41 @@ namespace MiningSafetyAR.AR
             // Ensure on Default layer (0) for Android mobile rendering
             SetLayerRecursively(extinguisherInstance, 0);
 
+            // Spawn Emergency Alarm Button alongside the extinguisher
+            GameObject targetAlarmPrefab = alarmButtonPrefab;
+            if (targetAlarmPrefab == null && ARPlacementManager.Instance != null)
+            {
+                targetAlarmPrefab = ARPlacementManager.Instance.AlarmButtonPrefab;
+            }
+            if (targetAlarmPrefab == null)
+            {
+                targetAlarmPrefab = Resources.Load<GameObject>("Prefabs/AlarmButtonModel");
+            }
+
+            Camera mainCam = Camera.main ?? FindFirstObjectByType<Camera>();
+
+            if (targetAlarmPrefab != null && spawnedAlarmButtonInstance == null)
+            {
+                Vector3 alarmWorldPos = spawnPos + (spawnRot * alarmButtonOffset);
+
+                // Face the alarm button toward the user's screen/camera on spawn
+                Quaternion faceScreenRot = spawnRot;
+                if (mainCam != null)
+                {
+                    Vector3 dirToCam = mainCam.transform.position - alarmWorldPos;
+                    dirToCam.y = 0f;
+                    if (dirToCam.sqrMagnitude > 0.001f)
+                    {
+                        faceScreenRot = Quaternion.LookRotation(dirToCam.normalized, Vector3.up);
+                    }
+                }
+
+                spawnedAlarmButtonInstance = Instantiate(targetAlarmPrefab, alarmWorldPos, faceScreenRot);
+                spawnedAlarmButtonInstance.name = "Discovered_3D_AlarmButton";
+                SetLayerRecursively(spawnedAlarmButtonInstance, 0);
+                Debug.Log($"[SPAWN_DIAG] 🚨 ALARM BUTTON SPAWNED facing screen at {alarmWorldPos}");
+            }
+
             spawnedExtinguisherInstance = extinguisherInstance;
             currentState = StepTrackerState.ExtinguisherDiscovered;
 
@@ -497,7 +546,6 @@ namespace MiningSafetyAR.AR
                 ARPlacementManager.Instance.ActivePlacementMode = ARPlacementManager.PlacementTargetMode.GroundFireHazard;
             }
 
-            Camera mainCam = Camera.main ?? FindFirstObjectByType<Camera>();
             float distToCam = mainCam != null ? Vector3.Distance(mainCam.transform.position, spawnPos) : -1f;
             int rendererCount = extinguisherInstance.GetComponentsInChildren<Renderer>(true).Length;
             Debug.Log($"[SPAWN_DIAG] 🧯 EXTINGUISHER SPAWNED! Name='{extinguisherInstance.name}' | WorldPos={spawnPos} | DistToCam={distToCam:F2}m | Scale={extinguisherInstance.transform.localScale} | RenderersCount={rendererCount} | State=Discovered(15-Steps+5s-Scan)");

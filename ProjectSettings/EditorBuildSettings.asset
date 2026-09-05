@@ -65,6 +65,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/UI_QRVerify.unity
     guid: ec1a34f9b31d16a459c3eb78162eed6d
+  - enabled: 1
+    path: Assets/Scenes/UI_CertificatesList.unity
+    guid: dbd3e259df2ca7a439b4b9e3fd87b297
   m_configObjects:
     UnityEditor.XR.ARCore.ARCoreSettings: {fileID: 11400000, guid: cbd3db67e59464d9585bd5c5b65740f3, type: 2}
     UnityEditor.XR.ARKit.ARKitSettings: {fileID: 11400000, guid: 17fbec4aee5fc4d89825583c1899c827, type: 2}
