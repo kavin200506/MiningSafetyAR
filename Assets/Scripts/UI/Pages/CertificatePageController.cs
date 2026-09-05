@@ -77,8 +77,22 @@ namespace MiningSafetyAR.UI.Pages
             string nameStr = worker != null ? worker.name : "Mining Worker";
             string titleStr = mod != null ? (mod.title ?? moduleId) : (moduleId == "gas_leak" ? "Gas Leak & Confined Space" : "Fire & Explosion Safety");
             string orgStr = worker != null ? worker.organization : "DGMS Certified Mining Org";
-            int scoreVal = prog != null ? prog.bestScore : (mod != null ? mod.bestScore : 85);
+
+            string certIdStr = prog != null && !string.IsNullOrEmpty(prog.certificateId)
+                ? prog.certificateId
+                : $"JH-{moduleId.ToUpper().Replace("_","").Substring(0, System.Math.Min(4, moduleId.Length))}-849201";
+
+            var existing = app != null ? app.GetCertificate(certIdStr) : null;
+            if (existing != null) certIdStr = existing.id;
+
+            // Once a certificate exists, it's a frozen credential — always show what was actually
+            // issued (existing.score/issuedDate/expiryDate/organization), never the worker's live,
+            // still-changing bestScore. Otherwise the in-app view and the hosted verify portal (which
+            // only ever sees the persisted certificate doc) would show two different scores/dates for
+            // the same cert (found 2026-09-05).
+            int scoreVal = existing != null ? existing.score : (prog != null ? prog.bestScore : (mod != null ? mod.bestScore : 85));
             bool passed = prog == null || prog.status == ModuleStatus.Completed || scoreVal >= 75;
+            if (existing != null && !string.IsNullOrEmpty(existing.organization)) orgStr = existing.organization;
 
             if (workerName != null) workerName.text = nameStr;
             if (moduleTitle != null) moduleTitle.text = titleStr;
@@ -92,17 +106,10 @@ namespace MiningSafetyAR.UI.Pages
                 passedBadge.AddToClassList(passed ? "badge--pass" : "badge--fail");
             }
 
-            string certIdStr = prog != null && !string.IsNullOrEmpty(prog.certificateId)
-                ? prog.certificateId
-                : $"JH-{moduleId.ToUpper().Replace("_","").Substring(0, System.Math.Min(4, moduleId.Length))}-849201";
-
-            var existing = app != null ? app.GetCertificate(certIdStr) : null;
-            if (existing != null) certIdStr = existing.id;
-
             if (certId != null) certId.text = certIdStr;
             if (certIdMeta != null) certIdMeta.text = certIdStr;
-            if (issuedDate != null) issuedDate.text = System.DateTime.Now.ToString("yyyy-MM-dd");
-            if (expiryDate != null) expiryDate.text = System.DateTime.Now.AddYears(1).ToString("yyyy-MM-dd");
+            if (issuedDate != null) issuedDate.text = existing != null && !string.IsNullOrEmpty(existing.issuedDate) ? existing.issuedDate : System.DateTime.Now.ToString("yyyy-MM-dd");
+            if (expiryDate != null) expiryDate.text = existing != null && !string.IsNullOrEmpty(existing.expiryDate) ? existing.expiryDate : System.DateTime.Now.AddYears(1).ToString("yyyy-MM-dd");
             if (organization != null) organization.text = orgStr;
             if (securityStatus != null) securityStatus.text = "HMAC-SHA256 Signed";
 
