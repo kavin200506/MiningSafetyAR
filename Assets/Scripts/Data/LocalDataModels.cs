@@ -95,6 +95,14 @@ namespace MiningSafetyAR.Data
     }
 
     [Serializable]
+    public class PendingSyncQueue
+    {
+        public List<string> pendingCertificateIds = new List<string>();
+        public List<string> pendingAttemptIds = new List<string>();
+        public List<string> pendingModuleIds = new List<string>();
+    }
+
+    [Serializable]
     public struct StepMetric
     {
         public string stepName;

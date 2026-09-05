@@ -75,6 +75,7 @@ namespace MiningSafetyAR.UI.Pages
 
         public override void OnPageEnter()
         {
+            AppDataService.Instance?.TriggerCloudSync();
             Refresh();
         }
 

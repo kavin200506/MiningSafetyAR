@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -60,6 +61,7 @@ namespace MiningSafetyAR.Data
             if (certificateDatabase == null) certificateDatabase = Resources.Load<CertificateDatabase>("Data/CertificateDatabase");
 
             LoadCachedWorker();
+            StartCoroutine(AutoSyncRoutine());
 
             Debug.Log($"[AppDataService] Databases: Modules={moduleDatabase?.GetAll()?.Count ?? 0}, Questions={questionDatabase?.questions?.Count ?? 0}, Certs={certificateDatabase?.certificates?.Count ?? 0}");
         }
@@ -211,7 +213,12 @@ namespace MiningSafetyAR.Data
                 LoadProgressFromSubcollection(firebaseUid);
                 // Load attempts from Firestore subcollection
                 LoadAttemptsFromFirestore(firebaseUid);
+                // Load certificates from Firestore subcollection & local
+                LoadCertificatesFromFirestore(firebaseUid);
                 CacheWorkerLocally(CurrentWorker);
+
+                // Auto-sync any offline pending data to cloud
+                SyncPendingDataToCloud();
             });
         }
 
@@ -343,6 +350,7 @@ namespace MiningSafetyAR.Data
 
         void SaveModuleProgressToFirestore(string firebaseUid, string moduleId, ModuleProgress prog)
         {
+            if (string.IsNullOrEmpty(firebaseUid) || prog == null) return;
             var data = new Dictionary<string, object>
             {
                 { "moduleId", prog.moduleId },
@@ -368,7 +376,19 @@ namespace MiningSafetyAR.Data
                 };
             }
             string flatJson = MiniJSON.Json.Serialize(data);
-            Firebase.FirestoreService.Instance.SaveModuleProgress(firebaseUid, moduleId, flatJson);
+            bool isOnline = Application.internetReachability != NetworkReachability.NotReachable;
+            if (isOnline && Firebase.FirestoreService.Instance != null)
+            {
+                Firebase.FirestoreService.Instance.SaveModuleProgress(firebaseUid, moduleId, flatJson, (ok, resp) =>
+                {
+                    if (ok) RemovePendingModule(moduleId);
+                    else QueuePendingModule(moduleId);
+                });
+            }
+            else
+            {
+                QueuePendingModule(moduleId);
+            }
         }
 
         void InitProgressMapForNewWorker()
@@ -798,13 +818,29 @@ namespace MiningSafetyAR.Data
             dynamicCertificates.Add(cert);
             SaveCertificatesLocally();
 
-            if (CurrentWorker != null && !string.IsNullOrEmpty(CurrentWorker.firebaseUid) && Firebase.FirestoreService.Instance != null)
+            bool isOnline = Application.internetReachability != NetworkReachability.NotReachable;
+            if (isOnline && CurrentWorker != null && !string.IsNullOrEmpty(CurrentWorker.firebaseUid) && Firebase.FirestoreService.Instance != null)
             {
                 string certJson = JsonUtility.ToJson(cert);
                 Firebase.FirestoreService.Instance.SaveCertificateToFirestore(CurrentWorker.firebaseUid, cert.id, certJson, (ok, resp) =>
                 {
-                    Debug.Log($"[AppDataService] Certificate Cloud Sync {(ok ? "SUCCESS" : "FAIL")}: {cert.id}");
+                    if (ok)
+                    {
+                        Debug.Log($"[AppDataService] Certificate Cloud Sync SUCCESS: {cert.id}");
+                        RemovePendingCertificate(cert.id);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[AppDataService] Certificate Cloud Sync FAIL (queued for retry): {cert.id}");
+                        QueuePendingCertificate(cert.id);
+                    }
                 });
+            }
+            else
+            {
+                // OFFLINE: Queue certificate for sync when online
+                QueuePendingCertificate(cert.id);
+                Debug.Log($"[AppDataService] Certificate saved locally (OFFLINE). Queued for sync: {cert.id}");
             }
         }
 
@@ -816,9 +852,10 @@ namespace MiningSafetyAR.Data
             PlayerPrefs.Save();
         }
 
-        void LoadCertificatesLocally(string workerId)
+        public void LoadCertificatesLocally(string workerId)
         {
             dynamicCertificates.Clear();
+            if (string.IsNullOrEmpty(workerId)) return;
             string json = PlayerPrefs.GetString("Certificates_" + workerId, "");
             if (!string.IsNullOrEmpty(json))
             {
@@ -826,6 +863,306 @@ namespace MiningSafetyAR.Data
                 if (wrapper != null && wrapper.certificates != null)
                 {
                     dynamicCertificates = wrapper.certificates;
+                }
+            }
+        }
+
+        public void LoadCertificatesFromFirestore(string firebaseUid)
+        {
+            if (string.IsNullOrEmpty(firebaseUid)) return;
+            if (CurrentWorker != null) LoadCertificatesLocally(CurrentWorker.id);
+
+            Firebase.FirestoreService.Instance.GetAllCertificates(firebaseUid, (ok, docs) =>
+            {
+                if (!ok || docs == null || docs.Count == 0) return;
+
+                bool changed = false;
+                foreach (var doc in docs)
+                {
+                    var fields = doc.ContainsKey("fields") ? doc["fields"] as Dictionary<string, object> : doc;
+                    if (fields == null) continue;
+
+                    string certId = Firebase.FirestoreService.GetstringValue(fields, "id");
+                    if (string.IsNullOrEmpty(certId))
+                    {
+                        string docName = doc.ContainsKey("name") ? doc["name"] as string : "";
+                        certId = docName.Contains("/") ? docName.Split('/')[^1] : "";
+                    }
+                    if (string.IsNullOrEmpty(certId)) continue;
+
+                    if (!dynamicCertificates.Any(c => c.id == certId))
+                    {
+                        var cert = new CertificateData
+                        {
+                            id = certId,
+                            workerName = Firebase.FirestoreService.GetstringValue(fields, "workerName"),
+                            workerId = Firebase.FirestoreService.GetstringValue(fields, "workerId"),
+                            moduleId = Firebase.FirestoreService.GetstringValue(fields, "moduleId"),
+                            moduleTitle = Firebase.FirestoreService.GetstringValue(fields, "moduleTitle"),
+                            score = Firebase.FirestoreService.GetintValue(fields, "score"),
+                            issuedDate = Firebase.FirestoreService.GetstringValue(fields, "issuedDate"),
+                            expiryDate = Firebase.FirestoreService.GetstringValue(fields, "expiryDate"),
+                            organization = Firebase.FirestoreService.GetstringValue(fields, "organization"),
+                            status = Firebase.FirestoreService.GetstringValue(fields, "status"),
+                            signatureHash = Firebase.FirestoreService.GetstringValue(fields, "signatureHash"),
+                            verificationUrl = Firebase.FirestoreService.GetstringValue(fields, "verificationUrl")
+                        };
+                        dynamicCertificates.Add(cert);
+                        changed = true;
+                    }
+                }
+
+                if (changed)
+                {
+                    SaveCertificatesLocally();
+                    Debug.Log($"[AppDataService] Merged {dynamicCertificates.Count} certificates from Firestore to local cache.");
+                }
+            });
+        }
+
+        // ================================================================
+        // OFFLINE SYNC QUEUE MANAGEMENT
+        // ================================================================
+
+        public void QueuePendingCertificate(string certId)
+        {
+            if (string.IsNullOrEmpty(certId) || CurrentWorker == null) return;
+            var queue = LoadPendingQueue(CurrentWorker.id);
+            if (!queue.pendingCertificateIds.Contains(certId))
+            {
+                queue.pendingCertificateIds.Add(certId);
+                SavePendingQueue(CurrentWorker.id, queue);
+                Debug.Log($"[AppDataService] Queued certificate for cloud sync: {certId}");
+            }
+        }
+
+        public void RemovePendingCertificate(string certId)
+        {
+            if (string.IsNullOrEmpty(certId) || CurrentWorker == null) return;
+            var queue = LoadPendingQueue(CurrentWorker.id);
+            if (queue.pendingCertificateIds.Remove(certId))
+            {
+                SavePendingQueue(CurrentWorker.id, queue);
+            }
+        }
+
+        public void QueuePendingAttempt(string resultId)
+        {
+            if (string.IsNullOrEmpty(resultId) || CurrentWorker == null) return;
+            var queue = LoadPendingQueue(CurrentWorker.id);
+            if (!queue.pendingAttemptIds.Contains(resultId))
+            {
+                queue.pendingAttemptIds.Add(resultId);
+                SavePendingQueue(CurrentWorker.id, queue);
+            }
+        }
+
+        public void RemovePendingAttempt(string resultId)
+        {
+            if (string.IsNullOrEmpty(resultId) || CurrentWorker == null) return;
+            var queue = LoadPendingQueue(CurrentWorker.id);
+            if (queue.pendingAttemptIds.Remove(resultId))
+            {
+                SavePendingQueue(CurrentWorker.id, queue);
+            }
+        }
+
+        public void QueuePendingModule(string moduleId)
+        {
+            if (string.IsNullOrEmpty(moduleId) || CurrentWorker == null) return;
+            var queue = LoadPendingQueue(CurrentWorker.id);
+            if (!queue.pendingModuleIds.Contains(moduleId))
+            {
+                queue.pendingModuleIds.Add(moduleId);
+                SavePendingQueue(CurrentWorker.id, queue);
+            }
+        }
+
+        public void RemovePendingModule(string moduleId)
+        {
+            if (string.IsNullOrEmpty(moduleId) || CurrentWorker == null) return;
+            var queue = LoadPendingQueue(CurrentWorker.id);
+            if (queue.pendingModuleIds.Remove(moduleId))
+            {
+                SavePendingQueue(CurrentWorker.id, queue);
+            }
+        }
+
+        PendingSyncQueue LoadPendingQueue(string workerId)
+        {
+            if (string.IsNullOrEmpty(workerId)) return new PendingSyncQueue();
+            string json = PlayerPrefs.GetString("PendingSyncQueue_" + workerId, "");
+            if (string.IsNullOrEmpty(json)) return new PendingSyncQueue();
+            try
+            {
+                var q = JsonUtility.FromJson<PendingSyncQueue>(json);
+                return q ?? new PendingSyncQueue();
+            }
+            catch
+            {
+                return new PendingSyncQueue();
+            }
+        }
+
+        void SavePendingQueue(string workerId, PendingSyncQueue queue)
+        {
+            if (string.IsNullOrEmpty(workerId) || queue == null) return;
+            string json = JsonUtility.ToJson(queue);
+            PlayerPrefs.SetString("PendingSyncQueue_" + workerId, json);
+            PlayerPrefs.Save();
+        }
+
+        // ================================================================
+        // CLOUD SYNC FLUSH WORKER
+        // ================================================================
+
+        private bool isSyncingPending = false;
+
+        public void TriggerCloudSync() => SyncPendingDataToCloud();
+
+        public void SyncPendingDataToCloud()
+        {
+            if (isSyncingPending) return;
+            if (Application.internetReachability == NetworkReachability.NotReachable) return;
+            if (CurrentWorker == null || string.IsNullOrEmpty(CurrentWorker.firebaseUid) || Firebase.FirestoreService.Instance == null) return;
+
+            StartCoroutine(SyncPendingCoroutine());
+        }
+
+        IEnumerator SyncPendingCoroutine()
+        {
+            isSyncingPending = true;
+            string uid = CurrentWorker.firebaseUid;
+            string workerId = CurrentWorker.id;
+            var queue = LoadPendingQueue(workerId);
+
+            // 1. Sync pending certificates
+            if (queue.pendingCertificateIds != null && queue.pendingCertificateIds.Count > 0)
+            {
+                var certIds = queue.pendingCertificateIds.ToList();
+                foreach (var certId in certIds)
+                {
+                    var cert = dynamicCertificates.Find(c => c.id == certId);
+                    if (cert != null)
+                    {
+                        string json = JsonUtility.ToJson(cert);
+                        bool done = false;
+                        bool success = false;
+                        Firebase.FirestoreService.Instance.SaveCertificateToFirestore(uid, cert.id, json, (ok, resp) =>
+                        {
+                            success = ok;
+                            done = true;
+                        });
+                        yield return new WaitUntil(() => done);
+                        if (success)
+                        {
+                            RemovePendingCertificate(certId);
+                            Debug.Log($"[AppDataService] Offline certificate synced successfully to Firestore: {certId}");
+                        }
+                    }
+                    else
+                    {
+                        RemovePendingCertificate(certId);
+                    }
+                    yield return new WaitForSeconds(0.1f);
+                }
+            }
+
+            // 2. Sync pending quiz attempts
+            var unsyncedAttempts = allAttempts.Where(a => !a.synced).ToList();
+            foreach (var attempt in unsyncedAttempts)
+            {
+                string json = JsonUtility.ToJson(attempt);
+                bool done = false;
+                bool success = false;
+                Firebase.FirestoreService.Instance.SaveTrainingResult(uid, attempt.resultId, json, (ok, resp) =>
+                {
+                    success = ok;
+                    done = true;
+                });
+                yield return new WaitUntil(() => done);
+                if (success)
+                {
+                    attempt.synced = true;
+                    SaveAttemptsLocally();
+                    RemovePendingAttempt(attempt.resultId);
+                    Debug.Log($"[AppDataService] Offline attempt synced successfully to Firestore: {attempt.resultId}");
+                }
+                yield return new WaitForSeconds(0.1f);
+            }
+
+            // 3. Sync pending module progress
+            if (queue.pendingModuleIds != null && queue.pendingModuleIds.Count > 0)
+            {
+                var moduleIds = queue.pendingModuleIds.ToList();
+                foreach (var modId in moduleIds)
+                {
+                    if (progressMap.TryGetValue(modId, out var prog))
+                    {
+                        bool done = false;
+                        bool success = false;
+                        var data = new Dictionary<string, object>
+                        {
+                            { "moduleId", prog.moduleId },
+                            { "status", (int)prog.status },
+                            { "progress", prog.progress },
+                            { "bestScore", prog.bestScore },
+                            { "attempts", prog.attempts },
+                            { "lastAttempt", prog.lastAttempt ?? "" },
+                            { "certificateId", prog.certificateId ?? "" }
+                        };
+                        if (prog.competencyScores != null)
+                        {
+                            data["competencyScores"] = new Dictionary<string, object>
+                            {
+                                { "hazardRecognition", prog.competencyScores.hazardRecognition },
+                                { "extinguisherUse", prog.competencyScores.extinguisherUse },
+                                { "ppeSelection", prog.competencyScores.ppeSelection },
+                                { "evacuation", prog.competencyScores.evacuation },
+                                { "emergencyResponse", prog.competencyScores.emergencyResponse },
+                                { "timeManagement", prog.competencyScores.timeManagement },
+                                { "quizScore", prog.competencyScores.quizScore }
+                            };
+                        }
+                        string flatJson = MiniJSON.Json.Serialize(data);
+                        Firebase.FirestoreService.Instance.SaveModuleProgress(uid, modId, flatJson, (ok, resp) =>
+                        {
+                            success = ok;
+                            done = true;
+                        });
+                        yield return new WaitUntil(() => done);
+                        if (success)
+                        {
+                            RemovePendingModule(modId);
+                        }
+                    }
+                    else
+                    {
+                        RemovePendingModule(modId);
+                    }
+                    yield return new WaitForSeconds(0.1f);
+                }
+            }
+
+            isSyncingPending = false;
+        }
+
+        IEnumerator AutoSyncRoutine()
+        {
+            while (true)
+            {
+                yield return new WaitForSeconds(20f);
+                if (Application.internetReachability != NetworkReachability.NotReachable &&
+                    CurrentWorker != null && !string.IsNullOrEmpty(CurrentWorker.firebaseUid))
+                {
+                    var queue = LoadPendingQueue(CurrentWorker.id);
+                    bool hasUnsyncedAttempts = allAttempts != null && allAttempts.Any(a => !a.synced);
+                    if ((queue.pendingCertificateIds != null && queue.pendingCertificateIds.Count > 0) ||
+                        (queue.pendingModuleIds != null && queue.pendingModuleIds.Count > 0) ||
+                        hasUnsyncedAttempts)
+                    {
+                        SyncPendingDataToCloud();
+                    }
                 }
             }
         }
@@ -871,18 +1208,32 @@ namespace MiningSafetyAR.Data
             allAttempts.Add(result);
             SaveAttemptsLocally();
 
-            // Save to Firestore under worker's subcollection — skipped when there's no signed-in
-            // worker (e.g. Playing this scene directly rather than through the Login -> Dashboard
-            // flow). The local save above already happened regardless.
-            if (CurrentWorker != null)
+            // Save to Firestore under worker's subcollection — if online, save immediately. If offline, queue for sync.
+            bool isOnline = Application.internetReachability != NetworkReachability.NotReachable;
+            if (isOnline && CurrentWorker != null && !string.IsNullOrEmpty(CurrentWorker.firebaseUid) && Firebase.FirestoreService.Instance != null)
             {
                 string json = JsonUtility.ToJson(result);
                 Firebase.FirestoreService.Instance.SaveTrainingResult(CurrentWorker.firebaseUid, result.resultId, json,
-                    (ok, resp) => Debug.Log($"[AppDataService] Attempt {(ok ? "saved" : "FAIL")} {moduleId} {score}%"));
+                    (ok, resp) =>
+                    {
+                        if (ok)
+                        {
+                            result.synced = true;
+                            SaveAttemptsLocally();
+                            RemovePendingAttempt(result.resultId);
+                            Debug.Log($"[AppDataService] Attempt saved to cloud: {moduleId} {score}%");
+                        }
+                        else
+                        {
+                            QueuePendingAttempt(result.resultId);
+                            Debug.LogWarning($"[AppDataService] Attempt cloud save failed (queued): {result.resultId}");
+                        }
+                    });
             }
             else
             {
-                Debug.LogWarning($"[AppDataService] SaveAttempt({moduleId}) — no CurrentWorker, Firestore save skipped (local save still happened).");
+                QueuePendingAttempt(result.resultId);
+                Debug.Log($"[AppDataService] Attempt saved locally (OFFLINE). Queued for sync: {result.resultId}");
             }
 
             UpdateLocalProgress(moduleId, score, passed);

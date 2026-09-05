@@ -189,6 +189,17 @@ namespace MiningSafetyAR.Firebase
             }));
         }
 
+        public void GetAllCertificates(string firebaseUid, Action<bool, List<Dictionary<string, object>>> cb)
+        {
+            if (string.IsNullOrEmpty(firebaseUid))
+            {
+                cb?.Invoke(false, new List<Dictionary<string, object>>());
+                return;
+            }
+            string url = $"{BASE_URL}/workers/{firebaseUid}/certificates?key={API_KEY}";
+            StartCoroutine(ListCollection(url, cb));
+        }
+
         // ----------------------------------------------------------------
         // JSON -> FIRESTORE FIELDS CONVERSION
         // ----------------------------------------------------------------
