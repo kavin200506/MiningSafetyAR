@@ -239,7 +239,9 @@ namespace MiningSafetyAR.Data
                             extinguisherUse = Firebase.FirestoreService.GetintValue(csFields, "extinguisherUse"),
                             ppeSelection = Firebase.FirestoreService.GetintValue(csFields, "ppeSelection"),
                             evacuation = Firebase.FirestoreService.GetintValue(csFields, "evacuation"),
-                            emergencyResponse = Firebase.FirestoreService.GetintValue(csFields, "emergencyResponse")
+                            emergencyResponse = Firebase.FirestoreService.GetintValue(csFields, "emergencyResponse"),
+                            timeManagement = Firebase.FirestoreService.GetintValue(csFields, "timeManagement"),
+                            quizScore = Firebase.FirestoreService.GetintValue(csFields, "quizScore")
                         };
                     }
 
@@ -261,6 +263,8 @@ namespace MiningSafetyAR.Data
                             prog.competencyScores.ppeSelection = Mathf.Max(prog.competencyScores.ppeSelection, localProg.competencyScores.ppeSelection);
                             prog.competencyScores.evacuation = Mathf.Max(prog.competencyScores.evacuation, localProg.competencyScores.evacuation);
                             prog.competencyScores.emergencyResponse = Mathf.Max(prog.competencyScores.emergencyResponse, localProg.competencyScores.emergencyResponse);
+                            prog.competencyScores.timeManagement = Mathf.Max(prog.competencyScores.timeManagement, localProg.competencyScores.timeManagement);
+                            prog.competencyScores.quizScore = Mathf.Max(prog.competencyScores.quizScore, localProg.competencyScores.quizScore);
                         }
                     }
 
@@ -326,7 +330,9 @@ namespace MiningSafetyAR.Data
                     { "extinguisherUse", prog.competencyScores.extinguisherUse },
                     { "ppeSelection", prog.competencyScores.ppeSelection },
                     { "evacuation", prog.competencyScores.evacuation },
-                    { "emergencyResponse", prog.competencyScores.emergencyResponse }
+                    { "emergencyResponse", prog.competencyScores.emergencyResponse },
+                    { "timeManagement", prog.competencyScores.timeManagement },
+                    { "quizScore", prog.competencyScores.quizScore }
                 };
             }
             string flatJson = MiniJSON.Json.Serialize(data);
@@ -630,6 +636,35 @@ namespace MiningSafetyAR.Data
             PlayerPrefs.Save();
         }
 
+        /// <summary>
+        /// Update competency scores for a module from real AR drill performance (not the quiz).
+        /// Each percentage is computed by FireSafetyModuleManager from actual gameplay signals —
+        /// see documents/technical_scoring_explained.md §3.9. Merges with existing scores using
+        /// best-score logic, same convention as UpdateModuleCompetencyScores above.
+        /// </summary>
+        public void UpdateModuleCompetencyScoresFromDrill(string moduleId, int hazardRecognitionPct, int extinguisherUsePct, int timeManagementPct, int evacuationPct, int quizScorePct)
+        {
+            if (string.IsNullOrEmpty(moduleId)) return;
+            if (CurrentWorker == null)
+            {
+                Debug.LogWarning($"[AppDataService] UpdateModuleCompetencyScoresFromDrill({moduleId}) — no CurrentWorker, skipped (Playing the scene directly with no signed-in worker).");
+                return;
+            }
+            var prog = GetModuleProgress(moduleId);
+            if (prog == null) return;
+            if (prog.competencyScores == null) prog.competencyScores = new CompetencyScores();
+
+            prog.competencyScores.hazardRecognition = Mathf.Max(prog.competencyScores.hazardRecognition, hazardRecognitionPct);
+            prog.competencyScores.extinguisherUse = Mathf.Max(prog.competencyScores.extinguisherUse, extinguisherUsePct);
+            prog.competencyScores.timeManagement = Mathf.Max(prog.competencyScores.timeManagement, timeManagementPct);
+            prog.competencyScores.evacuation = Mathf.Max(prog.competencyScores.evacuation, evacuationPct);
+            prog.competencyScores.quizScore = Mathf.Max(prog.competencyScores.quizScore, quizScorePct);
+
+            SaveModuleProgressToFirestore(CurrentWorker.firebaseUid, moduleId, prog);
+            PlayerPrefs.SetString("ProgressMap_" + CurrentWorker.firebaseUid, ProgressMapToJson());
+            PlayerPrefs.Save();
+        }
+
         public List<ModuleData> GetModulesByStatusDynamic(ModuleStatus status) => GetAllModulesWithProgress().FindAll(m => m.status == status && string.IsNullOrEmpty(m.parentId));
         public List<ModuleData> GetModulesByStatus(ModuleStatus status) => GetModulesByStatusDynamic(status);
 
@@ -655,6 +690,7 @@ namespace MiningSafetyAR.Data
 
         public List<QuizQuestionData> GetQuestions(string moduleId)
         {
+            if (string.IsNullOrEmpty(moduleId)) return new List<QuizQuestionData>();
             if (questionDatabase == null) questionDatabase = Resources.Load<QuestionDatabase>("Data/QuestionDatabase");
             if (questionDatabase != null)
             {
@@ -697,6 +733,14 @@ namespace MiningSafetyAR.Data
         public List<TrainingResult> GetAllAttempts() => allAttempts ?? new List<TrainingResult>();
 
         public void SaveAttempt(string moduleId, int score, bool passed)
+            => SaveAttempt(moduleId, score, passed, mistakesCount: 0, completionTimeSeconds: 0f, stepMetrics: null);
+
+        /// <summary>
+        /// Full-data overload — carries real mistake count / completion time / per-step metrics
+        /// through to the saved TrainingResult, instead of the 3-arg overload's zeros.
+        /// See documents/technical_scoring_explained.md §5.1.
+        /// </summary>
+        public void SaveAttempt(string moduleId, int score, bool passed, int mistakesCount, float completionTimeSeconds, List<StepMetric> stepMetrics)
         {
             var result = new TrainingResult
             {
@@ -707,8 +751,9 @@ namespace MiningSafetyAR.Data
                 maxScore = 100,
                 percentage = score,
                 passed = passed,
-                mistakesCount = 0,
-                completionTimeSeconds = 0,
+                mistakesCount = mistakesCount,
+                completionTimeSeconds = completionTimeSeconds,
+                stepMetrics = stepMetrics ?? new List<StepMetric>(),
                 timestamp = System.DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm"),
                 synced = false
             };
@@ -716,10 +761,19 @@ namespace MiningSafetyAR.Data
             allAttempts.Add(result);
             SaveAttemptsLocally();
 
-            // Save to Firestore under worker's subcollection
-            string json = JsonUtility.ToJson(result);
-            Firebase.FirestoreService.Instance.SaveTrainingResult(CurrentWorker.firebaseUid, result.resultId, json,
-                (ok, resp) => Debug.Log($"[AppDataService] Attempt {(ok ? "saved" : "FAIL")} {moduleId} {score}%"));
+            // Save to Firestore under worker's subcollection — skipped when there's no signed-in
+            // worker (e.g. Playing this scene directly rather than through the Login -> Dashboard
+            // flow). The local save above already happened regardless.
+            if (CurrentWorker != null)
+            {
+                string json = JsonUtility.ToJson(result);
+                Firebase.FirestoreService.Instance.SaveTrainingResult(CurrentWorker.firebaseUid, result.resultId, json,
+                    (ok, resp) => Debug.Log($"[AppDataService] Attempt {(ok ? "saved" : "FAIL")} {moduleId} {score}%"));
+            }
+            else
+            {
+                Debug.LogWarning($"[AppDataService] SaveAttempt({moduleId}) — no CurrentWorker, Firestore save skipped (local save still happened).");
+            }
 
             UpdateLocalProgress(moduleId, score, passed);
         }
@@ -767,8 +821,12 @@ namespace MiningSafetyAR.Data
                     }
                 }
 
-                // Save this module's progress to its own Firestore document
-                SaveModuleProgressToFirestore(CurrentWorker.firebaseUid, moduleId, prog);
+                // Save this module's progress to its own Firestore document — skipped when
+                // there's no signed-in worker (e.g. Playing directly rather than through Login).
+                if (CurrentWorker != null)
+                {
+                    SaveModuleProgressToFirestore(CurrentWorker.firebaseUid, moduleId, prog);
+                }
             }
 
             RecomputeWorkerStatsFromMap();

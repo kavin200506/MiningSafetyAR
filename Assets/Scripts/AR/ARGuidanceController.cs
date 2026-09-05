@@ -27,13 +27,15 @@ namespace MiningSafetyAR.AR
             "Walk around the room to find the fire extinguisher after the fire starts."
         };
 
+        // Re-indexed to match FireSafetyModuleManager's 4 real steps (Sound Alarm / Select
+        // Extinguisher are no longer separately tracked steps — see documents/
+        // technical_scoring_explained.md §3.2 and §6.2).
         private string[] contextualHints = new string[]
         {
-            "Sound the emergency alarm pull station located on the safety stand.",
-            "Select the Red CO2 Extinguisher suitable for electrical/trash fires.",
             "Pull the safety pin on the extinguisher handle to unlock mechanism.",
             "Aim the nozzle at the base of the fire and test spray.",
-            "Squeeze handle firmly and sweep nozzle side-to-side across base of flames."
+            "Squeeze handle firmly and sweep nozzle side-to-side across base of flames.",
+            "Move to the safe distance shown by the arrow to complete evacuation."
         };
 
         private int currentTipIndex = 0;

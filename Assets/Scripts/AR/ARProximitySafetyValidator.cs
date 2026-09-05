@@ -15,7 +15,10 @@ namespace MiningSafetyAR.AR
         [Header("Safety Configuration")]
         [SerializeField] private float safeDistanceThreshold = 1.0668f;
         [SerializeField] private float hysteresisMargin = 0.15f;
-        [SerializeField] private float penaltyPoints = 50f;
+        // Penalty weight now lives in ScoringConstants.ProximityBreachPenalty (via
+        // FireSafetyModuleManager.MistakeSeverity.ProximityBreach) — a duplicate local constant
+        // here would just be another number that could drift out of sync with it, same class of
+        // problem as the four disagreeing pass thresholds this whole rework started from.
 
         private Transform fireTargetTransform;
         private Camera mainCamera;
@@ -24,7 +27,6 @@ namespace MiningSafetyAR.AR
 
         public bool IsCurrentlyViolating => isCurrentlyViolating;
         public bool IsEnabled => isEnabled;
-        public float PenaltyPoints => penaltyPoints;
 
         public event Action<float> OnProximityBreached;
         public event Action OnProximityResolved;
@@ -70,7 +72,9 @@ namespace MiningSafetyAR.AR
                     
                     if (Modules.FireSafetyModuleManager.Instance != null)
                     {
-                        Modules.FireSafetyModuleManager.Instance.RegisterMistake("Step back! Don't stand within 3.5 ft. of the fire.");
+                        Modules.FireSafetyModuleManager.Instance.RegisterMistake(
+                            "Step back! Don't stand within 3.5 ft. of the fire.",
+                            Modules.FireSafetyModuleManager.MistakeSeverity.ProximityBreach);
                     }
 
                     OnProximityBreached?.Invoke(distanceToFire);
@@ -94,7 +98,9 @@ namespace MiningSafetyAR.AR
             Debug.Log("[ARProximitySafetyValidator] [TEST] Simulated Proximity Breach (< 3.5 ft)");
             if (Modules.FireSafetyModuleManager.Instance != null)
             {
-                Modules.FireSafetyModuleManager.Instance.RegisterMistake("Step back! Don't stand within 3.5 ft. of the fire.");
+                Modules.FireSafetyModuleManager.Instance.RegisterMistake(
+                    "Step back! Don't stand within 3.5 ft. of the fire.",
+                    Modules.FireSafetyModuleManager.MistakeSeverity.ProximityBreach);
             }
             OnProximityBreached?.Invoke(0.8f);
         }
