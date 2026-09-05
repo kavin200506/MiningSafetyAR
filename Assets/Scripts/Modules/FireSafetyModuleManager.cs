@@ -54,6 +54,14 @@ namespace MiningSafetyAR.Modules
         [Tooltip("Points lost per second over the par time.")]
         [SerializeField] private float timeScorePointsLostPerSecondOver = 2f;
 
+        [Header("Alarm Response (optional, feeds Hazard Recognition — decided 2026-09-05)")]
+        [Tooltip("Hazard Recognition bonus if the alarm was sounded BEFORE the extinguisher was grabbed (best case).")]
+        [SerializeField] private int alarmBonusActivatedBeforeGrab = 15;
+        [Tooltip("Smaller Hazard Recognition bonus if the alarm was sounded, but only AFTER the extinguisher was already grabbed.")]
+        [SerializeField] private int alarmBonusActivatedAfterGrab = 5;
+        [Tooltip("Hazard Recognition penalty if the alarm was never sounded at all during the drill.")]
+        [SerializeField] private int alarmPenaltyNeverActivated = 15;
+
         public enum MistakeSeverity
         {
             Standard = ScoringConstants.GenericMistakePenalty,        // 25
@@ -76,6 +84,8 @@ namespace MiningSafetyAR.Modules
         private int[] stepPenaltyPoints;    // accumulated point loss, for the score formula
         private int?[] stepScoreOverride;   // set by a step's own completion logic when it isn't the generic formula
         private int proximityBreachCount;   // whole-drill count, feeds Hazard Recognition
+        private bool alarmActivated;            // whether the alarm was ever sounded at all this drill
+        private bool alarmActivatedBeforeGrab;  // whether it was sounded before the extinguisher was grabbed specifically
         private bool failureEscalated = false;
 
         // Evacuation runtime state
@@ -197,6 +207,8 @@ namespace MiningSafetyAR.Modules
             stepPenaltyPoints = new int[totalSteps];
             stepScoreOverride = new int?[totalSteps];
             proximityBreachCount = 0;
+            alarmActivated = false;
+            alarmActivatedBeforeGrab = false;
             failureEscalated = false;
             isEvacuationActive = false;
             evacuationSustainedSince = -1f;
@@ -245,11 +257,25 @@ namespace MiningSafetyAR.Modules
         }
 
         /// <summary>
-        /// Called when the 3D emergency fire alarm button is activated.
+        /// Called when the 3D emergency fire alarm button is activated — optional, and can happen
+        /// at any point in the drill. Records not just THAT it happened but WHEN, relative to the
+        /// extinguisher grab, since that timing is what Hazard Recognition scores on (see
+        /// ComputeHazardRecognitionScore).
         /// </summary>
         public void NotifyAlarmActivated()
         {
-            Debug.Log("[FireSafetyModuleManager] 🚨 Emergency Fire Alarm Activated!");
+            alarmActivated = true;
+            bool grabbedAlready = FireExtinguisherGrabController.Instance != null && FireExtinguisherGrabController.Instance.IsGrabbed;
+
+            if (!grabbedAlready)
+            {
+                alarmActivatedBeforeGrab = true;
+                Debug.Log("[FireSafetyModuleManager] 🚨 Alarm activated BEFORE extinguisher grab — full Hazard Recognition credit earned.");
+            }
+            else
+            {
+                Debug.Log("[FireSafetyModuleManager] 🚨 Alarm activated AFTER extinguisher grab — partial Hazard Recognition credit earned.");
+            }
         }
 
         /// <summary>Standard-severity mistake (−25). Kept for BaseModuleManager compatibility.</summary>
@@ -418,6 +444,12 @@ namespace MiningSafetyAR.Modules
         private void HandleFireExtinguished()
         {
             Debug.Log($"[SCORING_DIAG] [FireSafetyModuleManager] HandleFireExtinguished() received — isModuleActive={isModuleActive}, currentStepIndex={currentStepIndex}. Starting evacuation.");
+
+            // The alarm only ever turns off automatically, right when the fire is fully out —
+            // never by tapping it again. Do this unconditionally (even if the module already
+            // isn't active) so the alert doesn't linger visually.
+            AlarmButtonInteractable.Instance?.ForceAlarmOff();
+
             if (!isModuleActive) return;
 
             // Safety net: complete anything not already marked done (shouldn't normally be needed).
@@ -549,7 +581,12 @@ namespace MiningSafetyAR.Modules
 
         private int ComputeHazardRecognitionScore()
         {
-            return Mathf.Clamp(100 - proximityBreachCount * hazardRecognitionPenaltyPerBreach, 0, 100);
+            int alarmImpact;
+            if (alarmActivatedBeforeGrab) alarmImpact = alarmBonusActivatedBeforeGrab;
+            else if (alarmActivated) alarmImpact = alarmBonusActivatedAfterGrab;
+            else alarmImpact = -alarmPenaltyNeverActivated;
+
+            return Mathf.Clamp(100 - proximityBreachCount * hazardRecognitionPenaltyPerBreach + alarmImpact, 0, 100);
         }
 
         private int ComputeExtinguisherUseScore()

@@ -12,14 +12,18 @@ namespace MiningSafetyAR.AR
     [RequireComponent(typeof(BoxCollider))]
     public class AlarmButtonInteractable : MonoBehaviour
     {
+        public static AlarmButtonInteractable Instance { get; private set; }
+
         [SerializeField] private AudioClip alarmSfx;
         private AudioSource audioSource;
         private Light statusLight;
         private Vector3 initialLocalPos;
         private bool isAlarmActive = false;
+        public bool IsAlarmActive => isAlarmActive;
 
         private void Start()
         {
+            Instance = this;
             initialLocalPos = transform.localPosition;
 
             // Ensure a BoxCollider is attached for touch raycasting
@@ -53,53 +57,90 @@ namespace MiningSafetyAR.AR
         private void OnMouseDown()
         {
             Debug.Log($"[ALARM_DIAG] 🖱️ OnMouseDown event triggered on '{gameObject.name}'");
-            ToggleAlarmState();
+            TryActivateAlarm();
         }
 
-        public void ToggleAlarmState()
+        /// <summary>
+        /// Attempts to switch the alarm ON. One-way — once active, tapping again does nothing;
+        /// it only ever turns off automatically once the fire is extinguished (see ForceAlarmOff,
+        /// called from FireSafetyModuleManager.HandleFireExtinguished). Can be activated at any
+        /// point in the drill (before or after the extinguisher is grabbed) — FireSafetyModuleManager
+        /// itself is what scores WHEN it was activated relative to the grab, not this component
+        /// (decided 2026-09-05: pressing before grab scores higher than pressing after, which in
+        /// turn scores higher than never pressing at all).
+        /// </summary>
+        public void TryActivateAlarm()
         {
-            isAlarmActive = !isAlarmActive;
+            if (isAlarmActive)
+            {
+                Debug.Log("[ALARM_DIAG] Tap ignored — alarm is already active (no manual toggle-off).");
+                return;
+            }
 
-            // 1. Toggle Fullscreen Red Edge Alert UI Overlay
+            isAlarmActive = true;
+
+            // 1. Fullscreen Red Edge Alert UI Overlay
             if (ScreenEdgeAlertUI.Instance != null)
             {
-                ScreenEdgeAlertUI.Instance.SetAlertActive(isAlarmActive);
+                ScreenEdgeAlertUI.Instance.SetAlertActive(true);
             }
             else
             {
-                Debug.LogWarning("[ALARM_DIAG] ⚠️ ScreenEdgeAlertUI.Instance is null when toggling alarm!");
+                Debug.LogWarning("[ALARM_DIAG] ⚠️ ScreenEdgeAlertUI.Instance is null when activating alarm!");
             }
 
-            // 2. Toggle 3D Red Warning Light on the button
+            // 2. 3D Red Warning Light on the button
             if (statusLight != null)
             {
-                statusLight.enabled = isAlarmActive;
+                statusLight.enabled = true;
             }
 
-            // 3. Visual button depress feedback (shift button backward when active)
-            transform.localPosition = isAlarmActive ? initialLocalPos - transform.forward * 0.02f : initialLocalPos;
+            // 3. Visual button depress feedback
+            transform.localPosition = initialLocalPos - transform.forward * 0.02f;
 
-            // 4. Notify Fire Safety Module Step 0 completion & Play SFX
-            if (isAlarmActive)
+            // 4. Notify Fire Safety Module (feeds Hazard Recognition score) & play SFX
+            if (FireSafetyModuleManager.Instance != null)
             {
-                if (FireSafetyModuleManager.Instance != null)
-                {
-                    FireSafetyModuleManager.Instance.NotifyAlarmActivated();
-                }
-
-                if (alarmSfx != null)
-                {
-                    if (audioSource == null)
-                    {
-                        audioSource = gameObject.AddComponent<AudioSource>();
-                        audioSource.playOnAwake = false;
-                        audioSource.spatialBlend = 1f;
-                    }
-                    audioSource.PlayOneShot(alarmSfx);
-                }
+                FireSafetyModuleManager.Instance.NotifyAlarmActivated();
             }
 
-            Debug.Log($"[ALARM_DIAG] 🚨 ALARM TOGGLED! Active={isAlarmActive} | 3D Red Light Enabled={(statusLight != null && statusLight.enabled)} | Color={statusLight?.color} | Intensity={statusLight?.intensity:F2} | LocalPos={transform.localPosition}");
+            if (alarmSfx != null)
+            {
+                if (audioSource == null)
+                {
+                    audioSource = gameObject.AddComponent<AudioSource>();
+                    audioSource.playOnAwake = false;
+                    audioSource.spatialBlend = 1f;
+                }
+                audioSource.PlayOneShot(alarmSfx);
+            }
+
+            Debug.Log($"[ALARM_DIAG] 🚨 ALARM ACTIVATED! 3D Red Light Enabled={(statusLight != null && statusLight.enabled)} | Color={statusLight?.color} | Intensity={statusLight?.intensity:F2} | LocalPos={transform.localPosition}");
+        }
+
+        /// <summary>
+        /// Forces the alarm off — called once the fire is fully extinguished. This is the ONLY way
+        /// the alarm turns off; the player cannot manually toggle it off by tapping again.
+        /// </summary>
+        public void ForceAlarmOff()
+        {
+            if (!isAlarmActive) return;
+
+            isAlarmActive = false;
+
+            if (ScreenEdgeAlertUI.Instance != null)
+            {
+                ScreenEdgeAlertUI.Instance.SetAlertActive(false);
+            }
+
+            if (statusLight != null)
+            {
+                statusLight.enabled = false;
+            }
+
+            transform.localPosition = initialLocalPos;
+
+            Debug.Log("[ALARM_DIAG] 🔕 ALARM FORCED OFF — fire extinguished.");
         }
 
         private int lastProcessedFrame = -1;
@@ -153,9 +194,9 @@ namespace MiningSafetyAR.AR
                         Debug.Log($"[ALARM_DIAG] 🎯 RAYCAST HIT object='{hit.transform.name}' (Root='{hit.transform.root.name}') at WorldPos={hit.point} | Dist={hit.distance:F2}m");
                         if (hit.transform == transform || hit.transform.IsChildOf(transform) || transform.IsChildOf(hit.transform))
                         {
-                            Debug.Log($"[ALARM_DIAG] ✅ RAYCAST MATCHED ALARM BUTTON! Toggling Alarm State...");
+                            Debug.Log($"[ALARM_DIAG] ✅ RAYCAST MATCHED ALARM BUTTON! Attempting activation...");
                             lastProcessedFrame = Time.frameCount;
-                            ToggleAlarmState();
+                            TryActivateAlarm();
                         }
                         else
                         {
