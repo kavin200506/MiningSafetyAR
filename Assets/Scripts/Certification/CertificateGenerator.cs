@@ -22,6 +22,14 @@ namespace MiningSafetyAR.Certification
                 return;
             }
             Instance = this;
+
+            // This component previously only existed inside the UI_CertificatesList scene with no
+            // DontDestroyOnLoad — meaning Instance was null whenever a certificate was actually
+            // earned from the AR training scene, silently skipping the whole Firestore save (see
+            // AppDataService.UpdateLocalProgress's fallback branch + warning log). Persisting here
+            // AND being auto-attached from AppDataService.Awake() (belt-and-suspenders) guarantees
+            // it exists from app boot regardless of which scene loads first.
+            DontDestroyOnLoad(gameObject);
         }
 
         public string BuildVerificationUrl(string certId)
@@ -42,8 +50,13 @@ namespace MiningSafetyAR.Certification
             if (moduleCode.Length > 4) moduleCode = moduleCode.Substring(0, 4);
 
             string certId = $"JH-{moduleCode}-{UnityEngine.Random.Range(100000, 999999)}";
-            string timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
-            string expiry = DateTime.UtcNow.AddYears(1).ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+            // Date-only, matching exactly what CertificateData.issuedDate/expiryDate actually store
+            // in Firestore — signing with any finer precision than what's persisted meant nothing
+            // could ever recompute a matching signature from the saved document alone (a verifier,
+            // including a separately hosted web app, only ever has the stored fields to work with).
+            string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd");
+            string expiry = DateTime.UtcNow.AddYears(1).ToString("yyyy-MM-dd");
 
             string workerName = worker != null && !string.IsNullOrEmpty(worker.name) ? worker.name : "Mining Worker";
             string org = worker != null && !string.IsNullOrEmpty(worker.organization) ? worker.organization : "DGMS Certified Mining Org";

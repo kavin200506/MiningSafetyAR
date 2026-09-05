@@ -59,6 +59,17 @@ namespace MiningSafetyAR.Data
             if (questionDatabase == null) questionDatabase = Resources.Load<QuestionDatabase>("Data/QuestionDatabase");
             if (certificateDatabase == null) certificateDatabase = Resources.Load<CertificateDatabase>("Data/CertificateDatabase");
 
+            // CertificateGenerator previously only lived inside the UI_CertificatesList scene, so
+            // Instance was null whenever a certificate was actually earned from the AR training
+            // scene (which most players reach without ever visiting the certificates list first) —
+            // silently skipping certificate creation entirely. Guarantee it exists from app boot,
+            // on this same persistent GameObject, regardless of scene load order.
+            if (MiningSafetyAR.Certification.CertificateGenerator.Instance == null)
+            {
+                gameObject.AddComponent<MiningSafetyAR.Certification.CertificateGenerator>();
+                Debug.Log("[AppDataService] Auto-attached CertificateGenerator so certificate issuance works from any scene.");
+            }
+
             LoadCachedWorker();
 
             Debug.Log($"[AppDataService] Databases: Modules={moduleDatabase?.GetAll()?.Count ?? 0}, Questions={questionDatabase?.questions?.Count ?? 0}, Certs={certificateDatabase?.certificates?.Count ?? 0}");
@@ -163,7 +174,6 @@ namespace MiningSafetyAR.Data
                     worker.overallProgress = Firebase.FirestoreService.GetintValue(fields, "overallProgress");
                     worker.certificatesEarned = Firebase.FirestoreService.GetintValue(fields, "certificatesEarned");
                     worker.totalAttempts = Firebase.FirestoreService.GetintValue(fields, "totalAttempts");
-                    if (worker.competencyScores == null) worker.competencyScores = new CompetencyScores();
                 }
                 else
                 {
@@ -720,6 +730,53 @@ namespace MiningSafetyAR.Data
             return certificateDatabase != null ? certificateDatabase.GetById(certId) : null;
         }
 
+        /// <summary>
+        /// Same lookup as GetCertificate, but falls back to the PUBLIC Firestore
+        /// certificates/{certId} document when nothing is found locally — this is what makes QR
+        /// verification actually work across devices/reinstalls, instead of only ever succeeding
+        /// for a certificate this exact device already has cached.
+        /// </summary>
+        public void GetCertificateAsync(string certId, System.Action<CertificateData> callback)
+        {
+            if (string.IsNullOrEmpty(certId)) { callback?.Invoke(null); return; }
+
+            var local = GetCertificate(certId);
+            if (local != null) { callback?.Invoke(local); return; }
+
+            if (Firebase.FirestoreService.Instance == null) { callback?.Invoke(null); return; }
+
+            Firebase.FirestoreService.Instance.GetCertificate(certId, (ok, json) =>
+            {
+                if (!ok || string.IsNullOrEmpty(json)) { callback?.Invoke(null); return; }
+
+                var fields = Firebase.FirestoreService.ParseFirestoreFields(json);
+                if (fields == null) { callback?.Invoke(null); return; }
+
+                var cert = new CertificateData
+                {
+                    id = Firebase.FirestoreService.GetstringValue(fields, "id"),
+                    workerName = Firebase.FirestoreService.GetstringValue(fields, "workerName"),
+                    workerId = Firebase.FirestoreService.GetstringValue(fields, "workerId"),
+                    moduleId = Firebase.FirestoreService.GetstringValue(fields, "moduleId"),
+                    moduleTitle = Firebase.FirestoreService.GetstringValue(fields, "moduleTitle"),
+                    score = Firebase.FirestoreService.GetintValue(fields, "score"),
+                    issuedDate = Firebase.FirestoreService.GetstringValue(fields, "issuedDate"),
+                    expiryDate = Firebase.FirestoreService.GetstringValue(fields, "expiryDate"),
+                    organization = Firebase.FirestoreService.GetstringValue(fields, "organization"),
+                    status = Firebase.FirestoreService.GetstringValue(fields, "status"),
+                    signatureHash = Firebase.FirestoreService.GetstringValue(fields, "signatureHash"),
+                    verificationUrl = Firebase.FirestoreService.GetstringValue(fields, "verificationUrl")
+                };
+
+                // Cache locally so a repeat lookup (or viewing the found certificate) doesn't need
+                // another round-trip.
+                dynamicCertificates.RemoveAll(c => c.id == cert.id);
+                dynamicCertificates.Add(cert);
+
+                callback?.Invoke(cert);
+            });
+        }
+
         public List<CertificateData> GetWorkerCertificates()
         {
             var result = new List<CertificateData>();
@@ -848,32 +905,54 @@ namespace MiningSafetyAR.Data
                 prog.status = passed ? ModuleStatus.Completed : ModuleStatus.InProgress;
                 prog.lastAttempt = System.DateTime.UtcNow.ToString("yyyy-MM-dd");
                 
-                // Only award the final certification when a 5th sub-module is completed
-                if (passed && string.IsNullOrEmpty(prog.certificateId) && moduleId.EndsWith("_sub5"))
+                // TEMPORARY (2026-09-05): award a certificate for EACH individual sub-module that
+                // passes at 75%+, rather than only once all 5 sub-modules of a category are done.
+                // To revert to "certificate only after the full category is complete": restore the
+                // `moduleId.EndsWith("_sub5")` gate, re-add the cross-sub-module average-score loop
+                // (git history has the previous version), and issue the cert for modDef.parentId
+                // instead of moduleId directly.
+                if (passed && string.IsNullOrEmpty(prog.certificateId) && score >= 75)
                 {
                     var modDef = GetModule(moduleId);
-                    if (modDef != null && !string.IsNullOrEmpty(modDef.parentId))
+                    if (modDef != null)
                     {
-                        int totalScore = 0;
-                        int count = 0;
-                        var allMods = GetAllModules();
-                        foreach (var m in allMods)
+                        var certResult = new TrainingResult
                         {
-                            if (m.parentId == modDef.parentId)
+                            workerId = CurrentWorker != null ? CurrentWorker.id : "unknown",
+                            moduleName = moduleId,
+                            score = score,
+                            maxScore = 100,
+                            percentage = score,
+                            passed = true
+                        };
+
+                        var cert = MiningSafetyAR.Certification.CertificateGenerator.Instance != null
+                            ? MiningSafetyAR.Certification.CertificateGenerator.Instance.CreateCertificateData(certResult, CurrentWorker)
+                            : null;
+
+                        if (cert != null)
+                        {
+                            // CreateCertificateData uses the raw moduleId ("fire_safety_sub1") for
+                            // both moduleId and moduleTitle — swap in the friendly display title if
+                            // we have one. Safe to do after the fact: the HMAC signature is computed
+                            // from moduleId, not moduleTitle, so this doesn't invalidate it.
+                            if (!string.IsNullOrEmpty(modDef.title))
                             {
-                                var subProg = GetModuleProgress(m.id);
-                                if (subProg != null && subProg.bestScore > 0)
-                                {
-                                    totalScore += subProg.bestScore;
-                                    count++;
-                                }
+                                cert.moduleTitle = modDef.title;
                             }
+
+                            prog.certificateId = cert.id;
+                            SaveCertificate(cert);
                         }
-                        
-                        int averageScore = count > 0 ? totalScore / count : 0;
-                        if (averageScore >= 75)
+                        else
                         {
-                            prog.certificateId = $"JH-{modDef.parentId.ToUpper()}-{Random.Range(100000,999999)}";
+                            // CertificateGenerator isn't in the scene — fall back to a bare ID so
+                            // progress isn't blocked, but no full CertificateData record exists,
+                            // so this certificate won't be verifiable via QR/cert-ID lookup.
+                            Debug.LogWarning("[AppDataService] CertificateGenerator.Instance not found — issued a bare certificate ID with no verifiable record.");
+                            string moduleCode = moduleId.ToUpper().Replace("_", "");
+                            if (moduleCode.Length > 4) moduleCode = moduleCode.Substring(0, 4);
+                            prog.certificateId = $"JH-{moduleCode}-{Random.Range(100000,999999)}";
                         }
                     }
                 }
@@ -1032,8 +1111,7 @@ namespace MiningSafetyAR.Data
                 firebaseUid = firebaseUid, id = "NEW", name = "New Worker",
                 organization = "", sector = "", phone = "", language = "English",
                 joinDate = System.DateTime.UtcNow.ToString("yyyy-MM-dd"),
-                overallProgress = 0, certificatesEarned = 0, totalAttempts = 0,
-                competencyScores = new CompetencyScores()
+                overallProgress = 0, certificatesEarned = 0, totalAttempts = 0
             };
         }
     }

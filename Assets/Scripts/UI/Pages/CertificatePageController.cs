@@ -12,7 +12,7 @@ namespace MiningSafetyAR.UI.Pages
         Label workerName, moduleTitle, score, passedBadge;
         Label certId, certIdMeta, issuedDate, expiryDate, organization, securityStatus;
         VisualElement qrImage;
-        Button backBtn, downloadBtn, shareBtn, viewAllCertsBtn, verifyBtn;
+        Button backBtn, downloadBtn, shareBtn, viewAllCertsBtn;
 
         protected override void BindUI()
         {
@@ -33,13 +33,17 @@ namespace MiningSafetyAR.UI.Pages
             downloadBtn = root.Q<Button>("download-btn");
             shareBtn = root.Q<Button>("share-btn");
             viewAllCertsBtn = root.Q<Button>("view-all-certs-btn");
-            verifyBtn = root.Q<Button>("verify-btn");
+
+            // No in-app certificate verification — a separately hosted web application handles
+            // verification (the QR code's verificationUrl points there). The worker app only
+            // views/downloads/shares certificates (decided 2026-09-05).
+            var verifyBtnHidden = root.Q<Button>("verify-btn");
+            if (verifyBtnHidden != null) verifyBtnHidden.style.display = DisplayStyle.None;
 
             if (backBtn != null) backBtn.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.GoBack());
             if (downloadBtn != null) downloadBtn.RegisterCallback<ClickEvent>(e => OnDownloadCertificate());
             if (shareBtn != null) shareBtn.RegisterCallback<ClickEvent>(e => OnShareCertificate());
             if (viewAllCertsBtn != null) viewAllCertsBtn.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateTo("UI_CertificatesList"));
-            if (verifyBtn != null) verifyBtn.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateTo("UI_QRVerify"));
 
             var tabHome = root.Q<Button>("tab-home");
             var tabTraining = root.Q<Button>("tab-training");
@@ -73,8 +77,22 @@ namespace MiningSafetyAR.UI.Pages
             string nameStr = worker != null ? worker.name : "Mining Worker";
             string titleStr = mod != null ? (mod.title ?? moduleId) : (moduleId == "gas_leak" ? "Gas Leak & Confined Space" : "Fire & Explosion Safety");
             string orgStr = worker != null ? worker.organization : "DGMS Certified Mining Org";
-            int scoreVal = prog != null ? prog.bestScore : (mod != null ? mod.bestScore : 85);
+
+            string certIdStr = prog != null && !string.IsNullOrEmpty(prog.certificateId)
+                ? prog.certificateId
+                : $"JH-{moduleId.ToUpper().Replace("_","").Substring(0, System.Math.Min(4, moduleId.Length))}-849201";
+
+            var existing = app != null ? app.GetCertificate(certIdStr) : null;
+            if (existing != null) certIdStr = existing.id;
+
+            // Once a certificate exists, it's a frozen credential — always show what was actually
+            // issued (existing.score/issuedDate/expiryDate/organization), never the worker's live,
+            // still-changing bestScore. Otherwise the in-app view and the hosted verify portal (which
+            // only ever sees the persisted certificate doc) would show two different scores/dates for
+            // the same cert (found 2026-09-05).
+            int scoreVal = existing != null ? existing.score : (prog != null ? prog.bestScore : (mod != null ? mod.bestScore : 85));
             bool passed = prog == null || prog.status == ModuleStatus.Completed || scoreVal >= 75;
+            if (existing != null && !string.IsNullOrEmpty(existing.organization)) orgStr = existing.organization;
 
             if (workerName != null) workerName.text = nameStr;
             if (moduleTitle != null) moduleTitle.text = titleStr;
@@ -88,17 +106,10 @@ namespace MiningSafetyAR.UI.Pages
                 passedBadge.AddToClassList(passed ? "badge--pass" : "badge--fail");
             }
 
-            string certIdStr = prog != null && !string.IsNullOrEmpty(prog.certificateId)
-                ? prog.certificateId
-                : $"JH-{moduleId.ToUpper().Replace("_","").Substring(0, System.Math.Min(4, moduleId.Length))}-849201";
-
-            var existing = app != null ? app.GetCertificate(certIdStr) : null;
-            if (existing != null) certIdStr = existing.id;
-
             if (certId != null) certId.text = certIdStr;
             if (certIdMeta != null) certIdMeta.text = certIdStr;
-            if (issuedDate != null) issuedDate.text = System.DateTime.Now.ToString("yyyy-MM-dd");
-            if (expiryDate != null) expiryDate.text = System.DateTime.Now.AddYears(1).ToString("yyyy-MM-dd");
+            if (issuedDate != null) issuedDate.text = existing != null && !string.IsNullOrEmpty(existing.issuedDate) ? existing.issuedDate : System.DateTime.Now.ToString("yyyy-MM-dd");
+            if (expiryDate != null) expiryDate.text = existing != null && !string.IsNullOrEmpty(existing.expiryDate) ? existing.expiryDate : System.DateTime.Now.AddYears(1).ToString("yyyy-MM-dd");
             if (organization != null) organization.text = orgStr;
             if (securityStatus != null) securityStatus.text = "HMAC-SHA256 Signed";
 

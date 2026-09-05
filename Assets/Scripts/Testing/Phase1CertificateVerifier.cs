@@ -189,8 +189,7 @@ namespace MiningSafetyAR.Testing
                 joinDate = System.DateTime.UtcNow.ToString("yyyy-MM-dd"),
                 overallProgress = 0,
                 certificatesEarned = 0,
-                totalAttempts = 0,
-                competencyScores = new CompetencyScores()
+                totalAttempts = 0
             };
         }
 
