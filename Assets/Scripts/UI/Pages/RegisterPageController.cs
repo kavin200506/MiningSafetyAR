@@ -158,8 +158,7 @@ namespace MiningSafetyAR.UI.Pages
                 joinDate = System.DateTime.UtcNow.ToString("yyyy-MM-dd"),
                 overallProgress = 0,
                 certificatesEarned = 0,
-                totalAttempts = 0,
-                competencyScores = new CompetencyScores()
+                totalAttempts = 0
             };
 
             // Cache worker locally FIRST so AppDataService picks it up immediately

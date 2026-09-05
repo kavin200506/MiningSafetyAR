@@ -70,7 +70,18 @@ namespace MiningSafetyAR.UI.Pages
             if (resultCard != null) resultCard.style.display = DisplayStyle.None;
             await Task.Delay(800);
             var app = AppDataService.Instance;
-            var cert = app != null ? app.GetCertificate(certId) : null;
+
+            // Falls back to the public Firestore certificates/{certId} doc when nothing is cached
+            // locally — this is what lets a certificate be verified on a different device than the
+            // one that earned it (the actual point of a QR code anyone can scan).
+            CertificateData cert = null;
+            if (app != null)
+            {
+                var tcs = new TaskCompletionSource<CertificateData>();
+                app.GetCertificateAsync(certId, c => tcs.TrySetResult(c));
+                cert = await tcs.Task;
+            }
+
             if (loadingCard != null) loadingCard.style.display = DisplayStyle.None;
             if (resultCard != null) resultCard.style.display = DisplayStyle.Flex;
             if (verifyDetails != null) verifyDetails.Clear();

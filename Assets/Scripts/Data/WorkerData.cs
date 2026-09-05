@@ -17,6 +17,5 @@ namespace MiningSafetyAR.Data
         public int overallProgress;
         public int certificatesEarned;
         public int totalAttempts;
-        public CompetencyScores competencyScores;
     }
 }
