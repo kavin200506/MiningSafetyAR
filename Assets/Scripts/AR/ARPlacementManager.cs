@@ -39,6 +39,19 @@ namespace MiningSafetyAR.AR
             set => wallExtinguisherPrefab = value;
         }
 
+        [Tooltip("Emergency alarm button model, spawned alongside the wall fire extinguisher whenever it is placed.")]
+        [SerializeField] private GameObject alarmButtonPrefab;
+        public GameObject AlarmButtonPrefab
+        {
+            get => alarmButtonPrefab;
+            set => alarmButtonPrefab = value;
+        }
+
+        [Tooltip("Local position offset (relative to the wall extinguisher) at which the alarm button is spawned beside it.")]
+        [SerializeField] private Vector3 alarmButtonOffset = new Vector3(0.3f, 0f, 0f);
+
+        private GameObject spawnedAlarmButtonObject;
+
         [Header("Placement Visual Indicator")]
         [SerializeField] private GameObject placementIndicator;
         public GameObject PlacementIndicator
@@ -520,26 +533,12 @@ namespace MiningSafetyAR.AR
                     return PerformRescale(hitPose);
                 }
 
-                // Step counter mode: if in ScanningForWall state and tapping on vertical plane, spawn extinguisher
+                // Tap-to-spawn for wall fire extinguisher is disabled.
+                // The fire extinguisher and alarm button spawn automatically via ARStepCounterTracker.
                 if (isVerticalPlane || isWallPlacement)
                 {
-                    bool alreadySpawned = (spawnedWallObject != null) || 
-                                          (AR.ARStepCounterTracker.Instance != null && AR.ARStepCounterTracker.Instance.SpawnedExtinguisherInstance != null);
-
-                    if (alreadySpawned)
-                    {
-                        Debug.LogWarning("[WARN] [ARPlacementManager] Wall Fire Extinguisher is already spawned! Blocking duplicate wall spawn.");
-                        return false;
-                    }
-
-                    if (AR.ARStepCounterTracker.Instance != null && 
-                        AR.ARStepCounterTracker.Instance.CurrentState == AR.ARStepCounterTracker.StepTrackerState.ScanningForWall)
-                    {
-                        // Same fix as the auto wall-scan path: keep world-up as up, don't inherit
-                        // the vertical plane's raw pose rotation (whose up-axis is the wall normal).
-                        AR.ARStepCounterTracker.Instance.SpawnExtinguisherOnWall(hitPose.position, Quaternion.LookRotation(hitPose.up, Vector3.up));
-                        return true;
-                    }
+                    Debug.Log("[ARPlacementManager] Tap-to-spawn for Wall Fire Extinguisher is disabled. It is automatically spawned by step counter tracking.");
+                    return false;
                 }
 
                 Camera mainCamera = Camera.main ?? FindFirstObjectByType<Camera>();
@@ -589,6 +588,26 @@ namespace MiningSafetyAR.AR
                             spawnedWallAnchor = spawnedWallObject.AddComponent<ARAnchor>();
                         }
                         Debug.Log($"[INFO] [ARPlacementManager] Successfully spawned Wall Extinguisher '{targetPrefab.name}' on vertical wall plane at {hitPose.position}");
+
+                        // Spawn the emergency alarm button at the same time as the extinguisher,
+                        // as a child so it tracks the extinguisher's position/rotation together.
+                        if (alarmButtonPrefab != null && spawnedAlarmButtonObject == null)
+                        {
+                            Vector3 alarmWorldPos = hitPose.position + (spawnRotation * alarmButtonOffset);
+                            Camera mainCam = Camera.main ?? FindFirstObjectByType<Camera>();
+                            Quaternion faceScreenRot = spawnRotation;
+                            if (mainCam != null)
+                            {
+                                Vector3 dirToCam = mainCam.transform.position - alarmWorldPos;
+                                dirToCam.y = 0f;
+                                if (dirToCam.sqrMagnitude > 0.001f)
+                                {
+                                    faceScreenRot = Quaternion.LookRotation(dirToCam.normalized, Vector3.up);
+                                }
+                            }
+                            spawnedAlarmButtonObject = Instantiate(alarmButtonPrefab, alarmWorldPos, faceScreenRot);
+                            spawnedAlarmButtonObject.name = "Discovered_3D_AlarmButton";
+                        }
                     }
                     else
                     {
