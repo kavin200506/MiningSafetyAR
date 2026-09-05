@@ -31,6 +31,16 @@ namespace MiningSafetyAR.AR
             set => exitSignPrefab = value;
         }
 
+        [SerializeField] private GameObject alarmButtonPrefab;
+        public GameObject AlarmButtonPrefab
+        {
+            get => alarmButtonPrefab;
+            set => alarmButtonPrefab = value;
+        }
+
+        [Tooltip("Local position offset (relative to the fire extinguisher marker) at which the alarm button is spawned alongside it.")]
+        [SerializeField] private Vector3 alarmButtonOffset = new Vector3(0.25f, 0f, 0f);
+
         [Header("Marker Image Reference Names")]
         [SerializeField] private string fireExtinguisherMarkerName = "FireExtinguisherMarker";
         public string FireExtinguisherMarkerName
@@ -188,6 +198,20 @@ namespace MiningSafetyAR.AR
             {
                 FireExtinguisherModelLoader loader = newObj.GetComponent<FireExtinguisherModelLoader>() ?? newObj.AddComponent<FireExtinguisherModelLoader>();
                 _ = loader.Load3DModelAsync();
+
+                // Spawn the emergency alarm button alongside the extinguisher, at the same
+                // marker event, so both appear together as soon as the marker is tracked.
+                if (alarmButtonPrefab != null)
+                {
+                    GameObject alarmButtonObj = Instantiate(alarmButtonPrefab, newObj.transform);
+                    alarmButtonObj.name = "AlarmButton_ARObject";
+                    alarmButtonObj.transform.localPosition = alarmButtonOffset;
+                    alarmButtonObj.transform.localRotation = Quaternion.identity;
+                }
+                else
+                {
+                    Debug.LogWarning("[WARN] [ARImageTrackingManager] alarmButtonPrefab is unassigned; alarm button will not spawn with the fire extinguisher.");
+                }
             }
 
             if (newObj != null)

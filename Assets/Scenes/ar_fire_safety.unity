@@ -226,6 +226,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.AR.ARImageTrackingManager
   fireExtinguisherPrefab: {fileID: 6134629332891498935, guid: 5a826361964774ca698cdf00d54cdcae, type: 3}
   exitSignPrefab: {fileID: 5252302089801081371, guid: b98c7aa55bdbc4354b0cbb86195b7917, type: 3}
+  alarmButtonPrefab: {fileID: 2885131675495861044, guid: a740c68302d2e47b1b7a3e214fe3e42c, type: 3}
+  alarmButtonOffset: {x: 0.25, y: 0, z: 0}
   fireExtinguisherMarkerName: FireExtinguisherMarker
   exitSignMarkerName: ExitSignMarker
 --- !u!114 &1680756
@@ -260,6 +262,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.AR.ARPlacementManager
   defaultPlacementPrefab: {fileID: 8357728592244196003, guid: c368dd61c2a070e4ebe414c6a0239679, type: 3}
   wallExtinguisherPrefab: {fileID: 6134629332891498935, guid: 5a826361964774ca698cdf00d54cdcae, type: 3}
+  alarmButtonPrefab: {fileID: 2885131675495861044, guid: a740c68302d2e47b1b7a3e214fe3e42c, type: 3}
+  alarmButtonOffset: {x: 0.3, y: 0, z: 0}
   placementIndicator: {fileID: 3039026380210748228, guid: d0beacb7e91de4822a6c7b052dc13b71, type: 3}
   placementWindowDuration: 3
   showTimerUI: 0
@@ -285,28 +289,39 @@ MonoBehaviour:
   extinguisherScale: 0.42
   grabbableLayerMask:
     serializedVersion: 2
-    m_Bits: 256
+    m_Bits: 0
   heldItemLayerMask:
     serializedVersion: 2
-    m_Bits: 512
+    m_Bits: 0
   fireLayerMask:
     serializedVersion: 2
-    m_Bits: 1024
+    m_Bits: 0
   grabDuration: 0.4
   maxGrabDistance: 2
   maxRaycastDistance: 15
   arrivalDistanceMeters: 1.2
   cameraOffset: {x: 0, y: -0.717, z: 0.643}
   holdingRotationOffset: {x: 0, y: 0, z: 0}
+  postPinPullRotationOffset: {x: 0, y: 90, z: 0}
   targetCenterViewportY: 0.08
   lerpSpeed: 8
   maxSprayRange: 3
   nozzleTip: {fileID: 0}
   maxFoamCapacity: 15
+  sweepWindowDuration: 0.6
+  idealSweepSpeed: 1
+  sweepIntensitySmoothing: 8
+  debugShowSweepIntensity: 1
   pinDragMinPixels: 6
   foamParticles: {fileID: 0}
   handleSqueezeAngle: 20
   handleSqueezeLerpSpeed: 10
+  hoseDeployLerpSpeed: 6
+  hoseSwayResponsiveness: 0.35
+  hoseSwayMaxAngle: 14
+  hoseSwayLerpSpeed: 6
+  pinPullTurnAngle: 90
+  pinPullTurnDuration: 0.5
 --- !u!114 &1680759
 MonoBehaviour:
   m_ObjectHideFlags: 0
