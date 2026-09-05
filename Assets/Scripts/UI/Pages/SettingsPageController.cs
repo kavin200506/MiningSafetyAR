@@ -121,6 +121,16 @@ namespace MiningSafetyAR.UI.Pages
             PlayerPrefs.SetString("SelectedLanguage", lang);
             PlayerPrefs.Save();
             SetLanguageUI(lang);
+
+            if (MiningSafetyAR.Localization.LanguageManager.Instance != null)
+            {
+                MiningSafetyAR.Localization.LanguageManager.Instance.SetLanguage(lang);
+            }
+
+            if (AppDataService.Instance != null && AppDataService.Instance.CurrentWorker != null)
+            {
+                AppDataService.Instance.CurrentWorker.language = lang;
+            }
         }
 
         void SetLanguageUI(string lang)
@@ -128,7 +138,10 @@ namespace MiningSafetyAR.UI.Pages
             if (langEn != null) { langEn.RemoveFromClassList("lang-btn--active"); langEn.style.backgroundColor = new StyleColor(new Color(0.96f,0.96f,0.96f)); langEn.style.color = new StyleColor(new Color(0.1f,0.1f,0.1f)); }
             if (langHi != null) { langHi.RemoveFromClassList("lang-btn--active"); langHi.style.backgroundColor = new StyleColor(new Color(0.96f,0.96f,0.96f)); langHi.style.color = new StyleColor(new Color(0.1f,0.1f,0.1f)); }
             if (langSat != null) { langSat.RemoveFromClassList("lang-btn--active"); langSat.style.backgroundColor = new StyleColor(new Color(0.96f,0.96f,0.96f)); langSat.style.color = new StyleColor(new Color(0.1f,0.1f,0.1f)); }
-            Button target = lang == "Hindi" ? langHi : lang == "Santali" ? langSat : langEn;
+            
+            string normalized = lang != null ? lang.Trim() : "English";
+            Button target = (normalized.Equals("Hindi", System.StringComparison.OrdinalIgnoreCase) || normalized.Equals("hi", System.StringComparison.OrdinalIgnoreCase)) ? langHi :
+                           (normalized.Equals("Santali", System.StringComparison.OrdinalIgnoreCase) || normalized.Equals("sat", System.StringComparison.OrdinalIgnoreCase)) ? langSat : langEn;
             if (target != null) { target.AddToClassList("lang-btn--active"); target.style.backgroundColor = new StyleColor(new Color(1f,0.42f,0f)); target.style.color = new StyleColor(Color.white); }
         }
     }

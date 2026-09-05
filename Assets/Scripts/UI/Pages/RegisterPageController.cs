@@ -204,6 +204,14 @@ namespace MiningSafetyAR.UI.Pages
             if (langHi != null) { langHi.RemoveFromClassList("lang-btn--active"); langHi.style.backgroundColor = new Color(0.96f, 0.96f, 0.96f); langHi.style.color = new Color(0.1f, 0.1f, 0.1f); }
             if (langSat != null) { langSat.RemoveFromClassList("lang-btn--active"); langSat.style.backgroundColor = new Color(0.96f, 0.96f, 0.96f); langSat.style.color = new Color(0.1f, 0.1f, 0.1f); }
             if (activeBtn != null) { activeBtn.AddToClassList("lang-btn--active"); activeBtn.style.backgroundColor = new Color(1f, 0.42f, 0f); activeBtn.style.color = Color.white; }
+
+            PlayerPrefs.SetString("SelectedLanguage", lang);
+            PlayerPrefs.Save();
+
+            if (MiningSafetyAR.Localization.LanguageManager.Instance != null)
+            {
+                MiningSafetyAR.Localization.LanguageManager.Instance.SetLanguage(lang);
+            }
         }
 
         void ShowError(string message)
