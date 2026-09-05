@@ -1,0 +1,73 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Styles/Theme.uss" />
+    <Style src="project://database/Assets/UI/Styles/Reset.uss" />
+    <Style src="project://database/Assets/UI/Styles/Components.uss" />
+    <Style src="project://database/Assets/UI/Styles/Header.uss" />
+    <Style src="project://database/Assets/UI/Styles/Forms.uss" />
+    <Style src="project://database/Assets/UI/Styles/BottomNav.uss" />
+    <Style src="project://database/Assets/UI/Styles/Icons.uss" />
+    <ui:VisualElement class="page-container">
+        <!-- Top Navigation Header -->
+        <ui:VisualElement class="header">
+            <ui:Button class="header__back-btn" name="back-btn">
+                <ui:VisualElement class="icon-back" style="width: 20px; height: 20px;" />
+            </ui:Button>
+            <ui:Label class="header__title" text="My Safety Certificates" />
+            <ui:VisualElement class="header__right-action" />
+        </ui:VisualElement>
+
+        <ui:ScrollView class="scroll-area">
+            <!-- Search & Filter Card -->
+            <ui:VisualElement class="card" style="padding: 12px; margin: 12px 16px 8px 16px;">
+                <!-- Search Input Field -->
+                <ui:TextField class="input-field" name="cert-search-input" placeholder-text="Search by module or Cert ID..." style="width: 100%; margin-bottom: 8px;" />
+                
+                <!-- Filter Pills Row -->
+                <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-top: 4px;">
+                    <ui:Button name="filter-all" class="quick-fill-btn" text="All" style="flex: 1; height: 28px; font-size: 10px; margin-right: 4px; background-color: #FF6D00; color: #FFFFFF;" />
+                    <ui:Button name="filter-fire" class="quick-fill-btn" text="Fire Safety" style="flex: 1; height: 28px; font-size: 10px; margin-right: 4px; background-color: #F5F5F5; color: #666666;" />
+                    <ui:Button name="filter-gas" class="quick-fill-btn" text="Gas Leak" style="flex: 1; height: 28px; font-size: 10px; margin-right: 4px; background-color: #F5F5F5; color: #666666;" />
+                    <ui:Button name="filter-valid" class="quick-fill-btn" text="Valid" style="flex: 1; height: 28px; font-size: 10px; background-color: #F5F5F5; color: #666666;" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- Certificates Counter Header -->
+            <ui:VisualElement style="flex-direction: row; justify-content: space-between; align-items: center; margin: 8px 20px 4px 20px;">
+                <ui:Label name="cert-count-label" text="2 Certificates Earned" style="font-size: 12px; font-weight: 700; color: #424242;" />
+                <ui:Label text="Tap card to view full certificate" style="font-size: 10px; color: #9E9E9E;" />
+            </ui:VisualElement>
+
+            <!-- Dynamically Populated Certificates List Container -->
+            <ui:VisualElement name="cert-list-container" style="padding: 0 16px;" />
+
+            <!-- Empty Search State -->
+            <ui:VisualElement name="empty-state" style="display: none; align-items: center; padding: 32px 16px;">
+                <ui:VisualElement class="icon-search" style="width: 32px; height: 32px; opacity: 0.4;" />
+                <ui:Label text="No matching certificates found" style="font-size: 13px; font-weight: 600; color: #9E9E9E; margin-top: 8px;" />
+            </ui:VisualElement>
+
+            <!-- Bottom Scroll Spacer -->
+            <ui:VisualElement style="height: 80px;" />
+        </ui:ScrollView>
+
+        <!-- Bottom Navigation Bar -->
+        <ui:VisualElement name="bottom-nav" class="bottom-nav">
+            <ui:Button name="tab-home" class="bottom-nav__tab">
+                <ui:VisualElement class="icon-home" style="margin-bottom: 2px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Home" />
+            </ui:Button>
+            <ui:Button name="tab-training" class="bottom-nav__tab">
+                <ui:VisualElement class="icon-training" style="margin-bottom: 2px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Training" />
+            </ui:Button>
+            <ui:Button name="tab-progress" class="bottom-nav__tab">
+                <ui:VisualElement class="icon-progress" style="margin-bottom: 2px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Progress" />
+            </ui:Button>
+            <ui:Button name="tab-settings" class="bottom-nav__tab">
+                <ui:VisualElement class="icon-settings" style="margin-bottom: 2px;" />
+                <ui:Label class="bottom-nav__tab-label" text="Settings" />
+            </ui:Button>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
