@@ -703,21 +703,78 @@ namespace MiningSafetyAR.Data
             return new List<QuizQuestionData>();
         }
 
+        List<CertificateData> dynamicCertificates = new List<CertificateData>();
+
         // ================================================================
         // CERTIFICATES
         // ================================================================
 
         public CertificateData GetCertificate(string certId)
         {
+            if (string.IsNullOrEmpty(certId)) return null;
+
+            var found = dynamicCertificates.FirstOrDefault(c => string.Equals(c.id, certId, System.StringComparison.OrdinalIgnoreCase));
+            if (found != null) return found;
+
             if (certificateDatabase == null) certificateDatabase = Resources.Load<CertificateDatabase>("Data/CertificateDatabase");
             return certificateDatabase != null ? certificateDatabase.GetById(certId) : null;
         }
 
         public List<CertificateData> GetWorkerCertificates()
         {
-            if (certificateDatabase == null) certificateDatabase = Resources.Load<CertificateDatabase>("Data/CertificateDatabase");
-            if (CurrentWorker == null || certificateDatabase == null) return new List<CertificateData>();
-            return certificateDatabase.GetByWorker(CurrentWorker.id);
+            var result = new List<CertificateData>();
+            if (CurrentWorker != null)
+            {
+                result.AddRange(dynamicCertificates.Where(c => c.workerId == CurrentWorker.id));
+                if (certificateDatabase == null) certificateDatabase = Resources.Load<CertificateDatabase>("Data/CertificateDatabase");
+                if (certificateDatabase != null)
+                {
+                    foreach (var c in certificateDatabase.GetByWorker(CurrentWorker.id))
+                    {
+                        if (!result.Any(r => r.id == c.id)) result.Add(c);
+                    }
+                }
+            }
+            return result;
+        }
+
+        public void SaveCertificate(CertificateData cert)
+        {
+            if (cert == null || string.IsNullOrEmpty(cert.id)) return;
+            dynamicCertificates.RemoveAll(c => c.id == cert.id);
+            dynamicCertificates.Add(cert);
+            SaveCertificatesLocally();
+
+            if (CurrentWorker != null && !string.IsNullOrEmpty(CurrentWorker.firebaseUid) && Firebase.FirestoreService.Instance != null)
+            {
+                string certJson = JsonUtility.ToJson(cert);
+                Firebase.FirestoreService.Instance.SaveCertificateToFirestore(CurrentWorker.firebaseUid, cert.id, certJson, (ok, resp) =>
+                {
+                    Debug.Log($"[AppDataService] Certificate Cloud Sync {(ok ? "SUCCESS" : "FAIL")}: {cert.id}");
+                });
+            }
+        }
+
+        void SaveCertificatesLocally()
+        {
+            if (CurrentWorker == null) return;
+            var wrapper = new CertificateListWrapper { certificates = dynamicCertificates };
+            PlayerPrefs.SetString("Certificates_" + CurrentWorker.id, JsonUtility.ToJson(wrapper));
+            PlayerPrefs.Save();
+        }
+
+        void LoadCertificatesLocally(string workerId)
+        {
+            dynamicCertificates.Clear();
+            string json = PlayerPrefs.GetString("Certificates_" + workerId, "");
+            if (!string.IsNullOrEmpty(json))
+            {
+                var wrapper = JsonUtility.FromJson<CertificateListWrapper>(json);
+                if (wrapper != null && wrapper.certificates != null)
+                {
+                    dynamicCertificates = wrapper.certificates;
+                }
+            }
         }
 
         // ================================================================
@@ -897,6 +954,7 @@ namespace MiningSafetyAR.Data
                 CurrentWorker = worker;
                 LoadProgressFromCache(worker.firebaseUid);
                 LoadAttemptsLocally(worker.id);
+                LoadCertificatesLocally(worker.id);
                 Debug.Log($"[AppDataService] Cached worker: {worker.name} ({worker.id}) overall={worker.overallProgress}%");
             }
             catch (System.Exception e) { Debug.LogWarning($"[AppDataService] LoadCachedWorker: {e.Message}"); }

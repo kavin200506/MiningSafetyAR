@@ -15,5 +15,7 @@ namespace MiningSafetyAR.Data
         public string expiryDate;
         public string organization;
         public string status;
+        public string signatureHash;
+        public string verificationUrl;
     }
 }
