@@ -104,12 +104,12 @@ namespace MiningSafetyAR.Testing
             {
                 Debug.Log("[Phase4E2E]   PASS: CertificateGenerator.Instance exists");
 
-                // Check PlayerPrefs for certificate data
+                // Check the offline JSON store for certificate data
                 string prefsKey = $"Certificates_{worker.id}";
-                string certJson = PlayerPrefs.GetString(prefsKey, "");
+                string certJson = MiningSafetyAR.Data.OfflineStore.GetString(prefsKey, "");
                 if (!string.IsNullOrEmpty(certJson))
                 {
-                    Debug.Log($"[Phase4E2E]   PASS: PlayerPrefs has certificate data ({certJson.Length} chars)");
+                    Debug.Log($"[Phase4E2E]   PASS: OfflineStore has certificate data ({certJson.Length} chars)");
 
                     var wrapper = JsonUtility.FromJson<CertificateListWrapper>(certJson);
                     if (wrapper != null && wrapper.certificates != null && wrapper.certificates.Count > 0)

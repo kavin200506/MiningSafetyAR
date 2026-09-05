@@ -163,16 +163,22 @@ namespace MiningSafetyAR.UI.Pages
 
             // Cache worker locally FIRST so AppDataService picks it up immediately
             string workerJson = JsonUtility.ToJson(worker);
-            PlayerPrefs.SetString("CachedWorker", workerJson);
-            PlayerPrefs.Save();
+            OfflineStore.SetString("CachedWorker", workerJson);
 
-            // Save to Firestore, wait for completion, THEN navigate
-            Firebase.FirestoreService.Instance.SaveWorker(worker.firebaseUid, workerJson, (ok, resp) =>
+            // Save to Firestore, or queue it if there's no connectivity right now — this used to call
+            // FirestoreService directly and silently drop the write forever on failure/offline (the
+            // local cache above kept the app working, but the profile would just never reach
+            // Firestore). Routing through AppDataService's offline queue instead means it retries
+            // once the device reconnects. Navigation no longer waits on the network round trip.
+            if (AppDataService.Instance != null)
             {
-                Debug.Log($"[Register] Firestore save {(ok ? "OK" : "FAIL")} for {worker.id}");
-                // Small delay to ensure Firestore consistency before AppDataService loads
-                StartCoroutine(NavigateAfterSave(worker));
-            });
+                AppDataService.Instance.PushOrQueue("worker", worker.firebaseUid, "", workerJson);
+            }
+            else
+            {
+                Debug.LogWarning("[Register] AppDataService missing — Firestore save skipped entirely (not even queued).");
+            }
+            StartCoroutine(NavigateAfterSave(worker));
         }
 
         System.Collections.IEnumerator NavigateAfterSave(WorkerData worker)

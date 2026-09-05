@@ -10,6 +10,7 @@ using Firebase.Auth;
 using UnityEngine;
 using UnityEngine.Networking;
 using MiningSafetyAR.Helpers;
+using MiningSafetyAR.Data;
 
 namespace MiningSafetyAR.Firebase
 {
@@ -22,7 +23,12 @@ namespace MiningSafetyAR.Firebase
         public string localId;
         public string email;
         public string idToken;
+        public string refreshToken;
         public string displayName;
+        /// <summary>True when this session was restored offline from a cached refresh token with no
+        /// live network confirmation — idToken may be stale/absent, so Firestore calls should queue
+        /// instead of attempting the network.</summary>
+        public bool isOffline;
 
         public string UserId => localId;
         public string Email => email;
@@ -70,6 +76,7 @@ namespace MiningSafetyAR.Firebase
         public FirebaseUser CurrentUser => _currentUser;
 #endif
         public bool IsInitialized => _initialized;
+        public bool IsOfflineSession => _restUser != null && _restUser.isOffline;
 
 #pragma warning disable CS0067
 #if !UNITY_WEBGL
@@ -145,7 +152,7 @@ namespace MiningSafetyAR.Firebase
 #endif
                )
             {
-                StartCoroutine(RegisterViaRestCoroutine(email, password, displayName));
+                StartCoroutine(RegisterViaRestCoroutine(email, password, displayName, workerId.Trim()));
             }
             else
             {
@@ -198,7 +205,7 @@ namespace MiningSafetyAR.Firebase
 #endif
                )
             {
-                StartCoroutine(LoginViaRestCoroutine(email, password));
+                StartCoroutine(LoginViaRestCoroutine(email, password, workerId.Trim()));
             }
             else
             {
@@ -257,7 +264,7 @@ namespace MiningSafetyAR.Firebase
             public string message;
         }
 
-        private IEnumerator LoginViaRestCoroutine(string email, string password)
+        private IEnumerator LoginViaRestCoroutine(string email, string password, string workerId)
         {
             string url = $"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={API_KEY}";
             string bodyJson = JsonUtility.ToJson(new AuthRestRequest { email = email, password = password });
@@ -277,8 +284,10 @@ namespace MiningSafetyAR.Firebase
                     localId = resp.localId,
                     email = resp.email,
                     idToken = resp.idToken,
+                    refreshToken = resp.refreshToken,
                     displayName = email.Split('@')[0]
                 };
+                OfflineStore.SaveSession(resp.localId, workerId, email, resp.refreshToken);
 
                 Debug.Log($"[FirebaseAuth] REST Login OK: {_restUser.localId} ({_restUser.email})");
 #if !UNITY_WEBGL
@@ -293,7 +302,7 @@ namespace MiningSafetyAR.Firebase
                 if (req.downloadHandler != null && req.downloadHandler.text.Contains("EMAIL_NOT_FOUND"))
                 {
                     Debug.Log($"[FirebaseAuth] REST Account not found, auto-creating: {email}...");
-                    yield return RegisterViaRestCoroutine(email, password, email.Split('@')[0]);
+                    yield return RegisterViaRestCoroutine(email, password, email.Split('@')[0], workerId);
                 }
                 else
                 {
@@ -304,7 +313,7 @@ namespace MiningSafetyAR.Firebase
             }
         }
 
-        private IEnumerator RegisterViaRestCoroutine(string email, string password, string displayName)
+        private IEnumerator RegisterViaRestCoroutine(string email, string password, string displayName, string workerId)
         {
             string url = $"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={API_KEY}";
             string bodyJson = JsonUtility.ToJson(new AuthRestRequest { email = email, password = password });
@@ -324,8 +333,10 @@ namespace MiningSafetyAR.Firebase
                     localId = resp.localId,
                     email = resp.email,
                     idToken = resp.idToken,
+                    refreshToken = resp.refreshToken,
                     displayName = string.IsNullOrEmpty(displayName) ? email.Split('@')[0] : displayName
                 };
+                OfflineStore.SaveSession(resp.localId, workerId, email, resp.refreshToken);
 
                 Debug.Log($"[FirebaseAuth] REST Registration OK: {_restUser.localId} ({_restUser.email})");
 #if !UNITY_WEBGL
@@ -349,8 +360,118 @@ namespace MiningSafetyAR.Firebase
             _currentUser = null;
 #endif
             _restUser = null;
-            Debug.Log("[FirebaseAuth] Logged out");
+            OfflineStore.ClearSession();
+            Debug.Log("[FirebaseAuth] Logged out — persisted session cleared, next launch requires login.");
             OnLogout?.Invoke();
+        }
+
+        // ------------------------------------------------------------------
+        // SESSION RESTORE (stay logged in across restarts, including offline)
+        // ------------------------------------------------------------------
+
+        [Serializable]
+        private class RefreshTokenResponse
+        {
+            public string access_token;
+            public string expires_in;
+            public string token_type;
+            public string refresh_token;
+            public string id_token;
+            public string user_id;
+            public string project_id;
+        }
+
+        /// <summary>
+        /// Call once at app start (before routing to Login/Dashboard). If a session was persisted
+        /// from a previous login, this either silently refreshes it online (no PIN re-entry), or —
+        /// if there's genuinely no connectivity — falls back to an OFFLINE session that trusts the
+        /// last cached worker data (AppDataService.LoadWorkerFromFirestore already falls back to its
+        /// own local cache when Firestore is unreachable, so this composes with that). A refresh
+        /// token the server explicitly rejects (revoked/expired) is treated as a real logout, not an
+        /// offline condition. `onComplete(true)` means "proceed to Dashboard", `false` means "go to
+        /// Login screen normally".
+        /// </summary>
+        public void TryRestoreSession(Action<bool> onComplete)
+        {
+            // Note: an already-offline session (IsLoggedIn true, IsOfflineSession true) is NOT
+            // short-circuited here — this lets CloudSyncManager periodically re-attempt a silent
+            // refresh once real connectivity returns mid-session, upgrading it back to a live
+            // session without waiting for an app restart.
+            if (IsLoggedIn && !IsOfflineSession) { onComplete?.Invoke(true); return; }
+
+            var session = OfflineStore.GetSession();
+            if (session == null || string.IsNullOrEmpty(session.refreshToken))
+            {
+                onComplete?.Invoke(false);
+                return;
+            }
+
+            StartCoroutine(RestoreSessionCoroutine(session, onComplete));
+        }
+
+        private IEnumerator RestoreSessionCoroutine(OfflineStore.OfflineSession session, Action<bool> onComplete)
+        {
+            string url = $"https://securetoken.googleapis.com/v1/token?key={API_KEY}";
+            string body = $"grant_type=refresh_token&refresh_token={UnityWebRequest.EscapeURL(session.refreshToken)}";
+
+            using var req = new UnityWebRequest(url, "POST");
+            req.uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(body));
+            req.downloadHandler = new DownloadHandlerBuffer();
+            req.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+            yield return req.SendWebRequest();
+
+            if (req.result == UnityWebRequest.Result.Success)
+            {
+                var resp = JsonUtility.FromJson<RefreshTokenResponse>(req.downloadHandler.text);
+                _restUser = new RestUserProxy
+                {
+                    localId = resp.user_id,
+                    email = session.email,
+                    idToken = resp.id_token,
+                    refreshToken = resp.refresh_token,
+                    displayName = !string.IsNullOrEmpty(session.email) ? session.email.Split('@')[0] : session.workerId,
+                    isOffline = false
+                };
+                OfflineStore.SaveSession(resp.user_id, session.workerId, session.email, resp.refresh_token);
+                Debug.Log($"[FirebaseAuth] Session restored online for {resp.user_id} — logged in silently.");
+#if !UNITY_WEBGL
+                OnLoginSuccess?.Invoke(_currentUser);
+#else
+                OnLoginSuccess?.Invoke(_restUser);
+#endif
+                onComplete?.Invoke(true);
+            }
+            else if (req.result == UnityWebRequest.Result.ProtocolError)
+            {
+                // Server reachable and explicitly rejected the refresh token — a real revoke/expiry,
+                // not an offline condition. Require a fresh login.
+                Debug.LogWarning($"[FirebaseAuth] Refresh token rejected by server ({req.downloadHandler?.text}) — clearing session.");
+                OfflineStore.ClearSession();
+                onComplete?.Invoke(false);
+            }
+            else
+            {
+                // No connectivity (or a transient failure) — trust the cached session and let the
+                // worker in using local data; AppDataService/Firestore writes will queue until the
+                // next successful restore.
+                Debug.LogWarning($"[FirebaseAuth] Could not reach auth server ({req.error}) — starting OFFLINE session for {session.firebaseUid}.");
+                _restUser = new RestUserProxy
+                {
+                    localId = session.firebaseUid,
+                    email = session.email,
+                    idToken = null,
+                    refreshToken = session.refreshToken,
+                    displayName = !string.IsNullOrEmpty(session.email) ? session.email.Split('@')[0] : session.workerId,
+                    isOffline = true
+                };
+#if !UNITY_WEBGL
+                OnLoginSuccess?.Invoke(_currentUser);
+#else
+                OnLoginSuccess?.Invoke(_restUser);
+#endif
+                onComplete?.Invoke(true);
+            }
         }
 
         public void GetIdToken(Action<string> callback)

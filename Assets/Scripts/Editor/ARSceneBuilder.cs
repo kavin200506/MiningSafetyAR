@@ -249,7 +249,6 @@ namespace MiningSafetyAR.Editor
             if (managersGO == null)
             {
                 managersGO = new GameObject("AppManagers");
-                managersGO.AddComponent<LocalScoreManager>();
                 managersGO.AddComponent<LanguageManager>();
                 managersGO.AddComponent<CloudSyncManager>();
                 managersGO.AddComponent<AssessmentEngine>();
