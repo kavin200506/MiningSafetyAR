@@ -58,27 +58,35 @@ namespace MiningSafetyAR.AR
                 loadedModel.transform.localRotation = Quaternion.Euler(modelRotationOffset);
                 loadedModel.transform.localScale = Vector3.one * modelScaleMultiplier;
 
-                BoxCollider col = loadedModel.GetComponent<BoxCollider>() ?? loadedModel.AddComponent<BoxCollider>();
+                BoxCollider col = loadedModel.GetComponent<BoxCollider>();
+                if (col == null)
+                {
+                    col = loadedModel.AddComponent<BoxCollider>();
+                }
+
                 Renderer[] renderers = loadedModel.GetComponentsInChildren<Renderer>(true);
-                if (renderers.Length > 0)
+                if (col != null)
                 {
-                    Bounds bounds = renderers[0].bounds;
-                    for (int i = 1; i < renderers.Length; i++)
+                    if (renderers.Length > 0)
                     {
-                        bounds.Encapsulate(renderers[i].bounds);
+                        Bounds bounds = renderers[0].bounds;
+                        for (int i = 1; i < renderers.Length; i++)
+                        {
+                            bounds.Encapsulate(renderers[i].bounds);
+                        }
+                        col.center = loadedModel.transform.InverseTransformPoint(bounds.center);
+                        Vector3 localSize = loadedModel.transform.InverseTransformVector(bounds.size);
+                        col.size = new Vector3(Mathf.Max(Mathf.Abs(localSize.x), 0.25f),
+                                              Mathf.Max(Mathf.Abs(localSize.y), 0.25f),
+                                              Mathf.Max(Mathf.Abs(localSize.z), 0.25f));
                     }
-                    col.center = loadedModel.transform.InverseTransformPoint(bounds.center);
-                    Vector3 localSize = loadedModel.transform.InverseTransformVector(bounds.size);
-                    col.size = new Vector3(Mathf.Max(Mathf.Abs(localSize.x), 0.25f),
-                                          Mathf.Max(Mathf.Abs(localSize.y), 0.25f),
-                                          Mathf.Max(Mathf.Abs(localSize.z), 0.25f));
+                    else
+                    {
+                        col.center = Vector3.zero;
+                        col.size = new Vector3(0.3f, 0.3f, 0.3f);
+                    }
+                    col.isTrigger = false;
                 }
-                else
-                {
-                    col.center = Vector3.zero;
-                    col.size = new Vector3(0.3f, 0.3f, 0.3f);
-                }
-                col.isTrigger = false;
 
                 // Attach the click handler to the same GameObject as the BoxCollider
                 if (loadedModel.GetComponent<AlarmButtonInteractable>() == null)
