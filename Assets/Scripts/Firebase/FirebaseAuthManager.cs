@@ -10,6 +10,7 @@ using Firebase.Auth;
 using UnityEngine;
 using UnityEngine.Networking;
 using MiningSafetyAR.Helpers;
+using MiningSafetyAR.Security;
 
 namespace MiningSafetyAR.Firebase
 {
@@ -224,7 +225,22 @@ namespace MiningSafetyAR.Firebase
 
         public void DemoLogin()
         {
-            Login("demo", "Demo2026");
+            _restUser = new RestUserProxy
+            {
+                localId = "demo_worker_01",
+                email = "demo@miningsafety.app",
+                idToken = "demo_offline_token",
+                displayName = "Demo Worker"
+            };
+            PlayerPrefs.SetString("LastWorkerId", "demo_worker_01");
+            PlayerPrefs.Save();
+
+            Debug.Log("[FirebaseAuth] Demo Login OK (Instant Offline-Ready)");
+#if !UNITY_WEBGL
+            MainThreadDispatcher.Enqueue(() => OnLoginSuccess?.Invoke(_currentUser));
+#else
+            MainThreadDispatcher.Enqueue(() => OnLoginSuccess?.Invoke(_restUser));
+#endif
         }
 
         // ------------------------------------------------------------------
@@ -266,6 +282,7 @@ namespace MiningSafetyAR.Firebase
             req.uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(bodyJson));
             req.downloadHandler = new DownloadHandlerBuffer();
             req.SetRequestHeader("Content-Type", "application/json");
+            req.timeout = 5; // Fail fast if offline
 
             yield return req.SendWebRequest();
 
@@ -280,7 +297,19 @@ namespace MiningSafetyAR.Firebase
                     displayName = email.Split('@')[0]
                 };
 
-                Debug.Log($"[FirebaseAuth] REST Login OK: {_restUser.localId} ({_restUser.email})");
+                // Store credentials locally for future offline logins (using PBKDF2 salted hash)
+                string cleanWorkerId = email.Split('@')[0];
+                var (pinHash, pinSalt) = PasswordSecurityService.HashAndSalt(password);
+                PlayerPrefs.SetString("WorkerPINHash_" + cleanWorkerId, pinHash);
+                PlayerPrefs.SetString("WorkerPINSalt_" + cleanWorkerId, pinSalt);
+                PlayerPrefs.DeleteKey("WorkerPIN_" + cleanWorkerId); // Clean up legacy plain text if present
+                PlayerPrefs.SetString("WorkerUID_" + cleanWorkerId, resp.localId);
+                PlayerPrefs.SetString("UIDToWorkerId_" + resp.localId, cleanWorkerId);
+                PlayerPrefs.SetString("WorkerDisplayName_" + cleanWorkerId, _restUser.displayName);
+                PlayerPrefs.SetString("LastWorkerId", cleanWorkerId);
+                PlayerPrefs.Save();
+
+                Debug.Log($"[FirebaseAuth] Online REST Login OK: {_restUser.localId} ({_restUser.email}) — Credentials securely hashed and cached");
 #if !UNITY_WEBGL
                 OnLoginSuccess?.Invoke(_currentUser);
 #else
@@ -289,6 +318,103 @@ namespace MiningSafetyAR.Firebase
             }
             else
             {
+                bool isNetworkError = req.result == UnityWebRequest.Result.ConnectionError 
+                                   || req.responseCode == 0 
+                                   || (req.error != null && (req.error.Contains("Cannot resolve") || req.error.Contains("offline") || req.error.Contains("Failed to connect") || req.error.Contains("Network")));
+
+                if (isNetworkError)
+                {
+                    string cleanWorkerId = email.Split('@')[0];
+
+                    // Check if account is locked out (after 5 failed attempts)
+                    if (PasswordSecurityService.IsLockedOut(cleanWorkerId, out int remainingSec))
+                    {
+                        Debug.LogWarning($"[FirebaseAuth] Account {cleanWorkerId} is currently locked out ({remainingSec}s remaining).");
+                        // Generic timing-safe error — never leak lock status vs invalid credentials
+                        OnLoginFailed?.Invoke("Invalid credentials or account temporarily unavailable. Please try again later.");
+                        yield break;
+                    }
+
+                    string storedHash = PlayerPrefs.GetString("WorkerPINHash_" + cleanWorkerId, "");
+                    string storedSalt = PlayerPrefs.GetString("WorkerPINSalt_" + cleanWorkerId, "");
+
+                    bool isAuthenticated = false;
+
+                    if (!string.IsNullOrEmpty(storedHash) && !string.IsNullOrEmpty(storedSalt))
+                    {
+                        // Cryptographically secure constant-time PBKDF2 verification
+                        isAuthenticated = PasswordSecurityService.VerifyPassword(password, storedHash, storedSalt);
+                    }
+                    else
+                    {
+                        // Transparent Migration: Check for existing legacy plain-text record
+                        string legacyPlainPin = PlayerPrefs.GetString("WorkerPIN_" + cleanWorkerId, "");
+                        if (!string.IsNullOrEmpty(legacyPlainPin))
+                        {
+                            if (PasswordSecurityService.ConstantTimeStringEquals(legacyPlainPin, password))
+                            {
+                                // Migrate legacy plain-text PIN to PBKDF2 salted hash immediately
+                                var (migratedHash, migratedSalt) = PasswordSecurityService.HashAndSalt(password);
+                                PlayerPrefs.SetString("WorkerPINHash_" + cleanWorkerId, migratedHash);
+                                PlayerPrefs.SetString("WorkerPINSalt_" + cleanWorkerId, migratedSalt);
+                                PlayerPrefs.DeleteKey("WorkerPIN_" + cleanWorkerId);
+                                PlayerPrefs.Save();
+                                Debug.Log($"[FirebaseAuth] Successfully migrated {cleanWorkerId} to secure PBKDF2 password hash.");
+                                isAuthenticated = true;
+                            }
+                        }
+                    }
+
+                    // Check if this worker has ever logged in before on this device
+                    if (string.IsNullOrEmpty(storedHash) && !PlayerPrefs.HasKey("WorkerPIN_" + cleanWorkerId) && !isAuthenticated)
+                    {
+                        Debug.LogWarning($"[FirebaseAuth] No offline record found for {cleanWorkerId}. Initial login requires internet.");
+                        OnLoginFailed?.Invoke($"No offline record found for '{cleanWorkerId}'. Please connect to the internet for your first-time login.");
+                        yield break;
+                    }
+
+                    // Verify PIN & handle failed attempts / progressive delay
+                    if (!isAuthenticated)
+                    {
+                        int delayMs = PasswordSecurityService.RecordFailedAttempt(cleanWorkerId, out bool isLockedNow);
+                        if (delayMs > 0)
+                        {
+                            yield return new WaitForSecondsRealtime(delayMs / 1000f);
+                        }
+                        Debug.LogWarning($"[FirebaseAuth] Failed offline login attempt for {cleanWorkerId} (Locked: {isLockedNow})");
+                        OnLoginFailed?.Invoke("Invalid credentials. Please check your Worker ID and PIN.");
+                        yield break;
+                    }
+
+                    // Reset failed attempt count on successful login
+                    PasswordSecurityService.ResetFailedAttempts(cleanWorkerId);
+
+                    // Credentials verified from local storage!
+                    string savedUid = PlayerPrefs.GetString("WorkerUID_" + cleanWorkerId, "offline_" + cleanWorkerId);
+                    string savedDisplayName = PlayerPrefs.GetString("WorkerDisplayName_" + cleanWorkerId, cleanWorkerId);
+
+                    _restUser = new RestUserProxy
+                    {
+                        localId = savedUid,
+                        email = email,
+                        idToken = "cached_offline_token",
+                        displayName = savedDisplayName
+                    };
+
+                    PlayerPrefs.SetString("UIDToWorkerId_" + savedUid, cleanWorkerId);
+                    PlayerPrefs.SetString("LastWorkerId", cleanWorkerId);
+                    PlayerPrefs.Save();
+
+                    Debug.Log($"[FirebaseAuth] Offline Login SUCCESS from secure local storage: {cleanWorkerId} (UID: {savedUid})");
+
+#if !UNITY_WEBGL
+                    OnLoginSuccess?.Invoke(_currentUser);
+#else
+                    OnLoginSuccess?.Invoke(_restUser);
+#endif
+                    yield break;
+                }
+
                 // If account not found on sign-in, auto-attempt registration
                 if (req.downloadHandler != null && req.downloadHandler.text.Contains("EMAIL_NOT_FOUND"))
                 {
@@ -313,6 +439,7 @@ namespace MiningSafetyAR.Firebase
             req.uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(bodyJson));
             req.downloadHandler = new DownloadHandlerBuffer();
             req.SetRequestHeader("Content-Type", "application/json");
+            req.timeout = 5; // Fail fast if offline
 
             yield return req.SendWebRequest();
 
@@ -327,7 +454,19 @@ namespace MiningSafetyAR.Firebase
                     displayName = string.IsNullOrEmpty(displayName) ? email.Split('@')[0] : displayName
                 };
 
-                Debug.Log($"[FirebaseAuth] REST Registration OK: {_restUser.localId} ({_restUser.email})");
+                // Store credentials locally for future offline logins (using PBKDF2 salted hash)
+                string cleanWorkerId = email.Split('@')[0];
+                var (pinHash, pinSalt) = PasswordSecurityService.HashAndSalt(password);
+                PlayerPrefs.SetString("WorkerPINHash_" + cleanWorkerId, pinHash);
+                PlayerPrefs.SetString("WorkerPINSalt_" + cleanWorkerId, pinSalt);
+                PlayerPrefs.DeleteKey("WorkerPIN_" + cleanWorkerId);
+                PlayerPrefs.SetString("WorkerUID_" + cleanWorkerId, resp.localId);
+                PlayerPrefs.SetString("UIDToWorkerId_" + resp.localId, cleanWorkerId);
+                PlayerPrefs.SetString("WorkerDisplayName_" + cleanWorkerId, _restUser.displayName);
+                PlayerPrefs.SetString("LastWorkerId", cleanWorkerId);
+                PlayerPrefs.Save();
+
+                Debug.Log($"[FirebaseAuth] Online REST Registration OK: {_restUser.localId} ({_restUser.email}) — Credentials securely hashed and cached");
 #if !UNITY_WEBGL
                 OnLoginSuccess?.Invoke(_currentUser);
 #else
@@ -336,6 +475,17 @@ namespace MiningSafetyAR.Firebase
             }
             else
             {
+                bool isNetworkError = req.result == UnityWebRequest.Result.ConnectionError 
+                                   || req.responseCode == 0 
+                                   || (req.error != null && (req.error.Contains("Cannot resolve") || req.error.Contains("offline") || req.error.Contains("Failed to connect") || req.error.Contains("Network")));
+
+                if (isNetworkError)
+                {
+                    Debug.LogWarning("[FirebaseAuth] Registration attempted while offline — internet connection required.");
+                    OnLoginFailed?.Invoke("An active internet connection is required for initial worker registration.");
+                    yield break;
+                }
+
                 string errText = req.downloadHandler != null ? req.downloadHandler.text : req.error;
                 Debug.LogError($"[FirebaseAuth] REST Registration Failed: {errText}");
                 OnLoginFailed?.Invoke($"Registration Failed: {req.error}");

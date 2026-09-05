@@ -87,6 +87,8 @@ namespace MiningSafetyAR.UI.Pages
 
             if (registerBtn != null) registerBtn.RegisterCallback<ClickEvent>(evt => OnRegister());
             if (signinBtn != null) signinBtn.RegisterCallback<ClickEvent>(evt => NavigationManager.Instance.NavigateToRoot("UI_Login"));
+            var backBtn = root.Q<Button>("back-btn");
+            if (backBtn != null) backBtn.RegisterCallback<ClickEvent>(evt => NavigationManager.Instance.NavigateToRoot("UI_Login"));
             if (langEn != null) langEn.RegisterCallback<ClickEvent>(evt => SetLanguage("English", langEn));
             if (langHi != null) langHi.RegisterCallback<ClickEvent>(evt => SetLanguage("Hindi", langHi));
             if (langSat != null) langSat.RegisterCallback<ClickEvent>(evt => SetLanguage("Santali", langSat));
@@ -165,6 +167,13 @@ namespace MiningSafetyAR.UI.Pages
             // Cache worker locally FIRST so AppDataService picks it up immediately
             string workerJson = JsonUtility.ToJson(worker);
             PlayerPrefs.SetString("CachedWorker", workerJson);
+            PlayerPrefs.SetString("CachedWorker_" + worker.firebaseUid, workerJson);
+            PlayerPrefs.SetString("CachedWorker_" + worker.id, workerJson);
+            PlayerPrefs.SetString("UIDToWorkerId_" + worker.firebaseUid, worker.id);
+            PlayerPrefs.SetString("WorkerDisplayName_" + worker.id, worker.name);
+            PlayerPrefs.SetString("WorkerOrg_" + worker.id, worker.organization);
+            PlayerPrefs.SetString("WorkerSector_" + worker.id, worker.sector);
+            PlayerPrefs.SetString("LastWorkerId", worker.id);
             PlayerPrefs.Save();
 
             // Save to Firestore, wait for completion, THEN navigate

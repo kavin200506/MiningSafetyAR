@@ -53,6 +53,9 @@ namespace MiningSafetyAR.UI.Pages
             nextBtn = root.Q<Button>("next-btn");
             resultsBtn = root.Q<Button>("results-btn");
 
+            var backBtn = root.Q<Button>("back-btn");
+            if (backBtn != null) backBtn.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.GoBack());
+
             if (nextBtn != null) nextBtn.RegisterCallback<ClickEvent>(e => NextQuestion());
             if (resultsBtn != null) resultsBtn.RegisterCallback<ClickEvent>(e => ShowResults());
         }

@@ -8,7 +8,9 @@
     <Style src="project://database/Assets/UI/Styles/Icons.uss" />
     <ui:VisualElement class="page-container">
         <ui:VisualElement class="header">
-            <ui:VisualElement style="width: 32px; height: 32px;" />
+            <ui:Button name="back-btn" class="header__back-btn" style="width: 32px; height: 32px; background-color: transparent; border-width: 0; align-items: center; justify-content: center;">
+                <ui:Label text="&lt;" style="font-size: 24px; color: #1A1A1A; font-weight: bold; margin-bottom: 2px;" />
+            </ui:Button>
             <ui:Label class="header__title" text="Assessment" />
             <ui:Label class="question-counter" name="question-counter" text="1/5" style="width: 40px; text-align: center; font-size: 12px; color: #666666;" />
         </ui:VisualElement>

@@ -7,6 +7,9 @@
     <ui:VisualElement class="page-container" style="flex-grow: 1; background-color: transparent;">
         <ui:VisualElement name="background-image-container" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; -unity-background-scale-mode: scale-and-crop; background-image: url(&quot;project://database/Assets/UI/Sprites/Login_BG.png?fileID=2800000&amp;guid=58cef1ed9c0a4f64ca6d0034e049e4e1&amp;type=3#Login_BG&quot;);"/>
         <ui:VisualElement name="bottom-graphics" style="position: absolute; left: 0; right: 0; bottom: 0; height: 300px; background-color: transparent; -unity-background-scale-mode: scale-to-fit; background-image: url(&quot;project://database/Assets/UI/Sprites/Splash_Icons%201.png?fileID=2800000&amp;guid=13546ecbe8775e542b9425e04c7da465&amp;type=3#Splash_Icons 1&quot;); opacity: 0.5;"/>
+        <ui:Button name="back-btn" class="header__back-btn" style="position: absolute; top: 16px; left: 16px; width: 40px; height: 40px; background-color: rgba(255, 255, 255, 0.9); border-radius: 20px; border-width: 0; align-items: center; justify-content: center; z-index: 10;">
+            <ui:Label text="&lt;" style="color: #1A1A1A; font-size: 22px; font-weight: 700; -unity-font-style: bold; margin-bottom: 2px;" />
+        </ui:Button>
         <ui:ScrollView style="flex: 1; width: 100%;">
             <ui:VisualElement class="register" style="flex: 1; align-items: center; justify-content: flex-start; padding: 40px 24px; min-height: 1200px; padding-top: 60px;">
                 <ui:VisualElement name="app-logo" style="width: 112px; height: 83px; border-radius: 20px; align-items: center; justify-content: center; margin-bottom: 16px; background-color: transparent; -unity-background-scale-mode: scale-to-fit; background-image: url(&quot;project://database/Assets/UI/Sprites/AR_Logo.png?fileID=2800000&amp;guid=e2e5e39cb631c0f44b6438f78142e8d0&amp;type=3#AR_Logo&quot;);"/>

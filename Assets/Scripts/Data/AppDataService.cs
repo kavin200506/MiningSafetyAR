@@ -115,34 +115,66 @@ namespace MiningSafetyAR.Data
 
         void LoadWorkerFromFirestore(string firebaseUid)
         {
+            // If already loaded in memory or cached locally, serve immediately for offline speed
+            if (CurrentWorker != null && (CurrentWorker.firebaseUid == firebaseUid || CurrentWorker.id != "NEW"))
+            {
+                Debug.Log($"[AppDataService] Serving in-memory/cached worker for {firebaseUid}: {CurrentWorker.name}");
+                LoadProgressFromCache(firebaseUid);
+                LoadAttemptsLocally(CurrentWorker.id);
+                RecomputeWorkerStatsFromMap();
+                OnWorkerLoaded?.Invoke(CurrentWorker);
+            }
+            else
+            {
+                string userCache = PlayerPrefs.GetString("CachedWorker_" + firebaseUid, "");
+                if (string.IsNullOrEmpty(userCache))
+                {
+                    string mappedId = PlayerPrefs.GetString("UIDToWorkerId_" + firebaseUid, PlayerPrefs.GetString("LastWorkerId", ""));
+                    if (!string.IsNullOrEmpty(mappedId))
+                        userCache = PlayerPrefs.GetString("CachedWorker_" + mappedId, "");
+                }
+                if (string.IsNullOrEmpty(userCache)) userCache = PlayerPrefs.GetString("CachedWorker", "");
+
+                if (!string.IsNullOrEmpty(userCache))
+                {
+                    var cached = JsonUtility.FromJson<WorkerData>(userCache);
+                    if (cached != null)
+                    {
+                        cached.firebaseUid = firebaseUid;
+                        CurrentWorker = cached;
+                        LoadProgressFromCache(firebaseUid);
+                        LoadAttemptsLocally(CurrentWorker.id);
+                        RecomputeWorkerStatsFromMap();
+                        OnWorkerLoaded?.Invoke(CurrentWorker);
+                    }
+                }
+            }
+
             Firebase.FirestoreService.Instance.GetWorker(firebaseUid, (ok, json) =>
             {
                 if (!ok || string.IsNullOrEmpty(json))
                 {
-                    Debug.LogWarning($"[AppDataService] Firestore load failed for {firebaseUid}, using cache");
+                    Debug.LogWarning($"[AppDataService] Firestore load failed for {firebaseUid} (offline or unavailable), using local cache");
                     
-                    // Try to recover from the persistent user cache
-                    string userCache = PlayerPrefs.GetString("CachedWorker_" + firebaseUid, "");
-                    if (!string.IsNullOrEmpty(userCache))
+                    if (CurrentWorker == null || CurrentWorker.id == "NEW" || CurrentWorker.id == "WORKER")
                     {
-                        Debug.Log($"[AppDataService] Recovered worker from local cache for {firebaseUid}");
-                        CurrentWorker = JsonUtility.FromJson<WorkerData>(userCache);
-                        LoadProgressFromSubcollection(firebaseUid);
-                        LoadAttemptsFromFirestore(firebaseUid);
-                        return;
+                        CurrentWorker = CreateNewWorker(firebaseUid);
+                        LoadAttemptsLocally(CurrentWorker.id);
+                        CacheWorkerLocally(CurrentWorker);
                     }
 
-                    if (CurrentWorker != null && CurrentWorker.firebaseUid == firebaseUid && CurrentWorker.id != "NEW")
+                    LoadProgressFromCache(firebaseUid);
+                    if (progressMap.Count == 0)
                     {
-                        Debug.Log($"[AppDataService] Keeping cached worker: {CurrentWorker.name}");
-                        RecomputeWorkerStatsFromMap();
-                        OnWorkerLoaded?.Invoke(CurrentWorker);
-                        return;
+                        string mappedId = PlayerPrefs.GetString("UIDToWorkerId_" + firebaseUid, PlayerPrefs.GetString("LastWorkerId", ""));
+                        if (!string.IsNullOrEmpty(mappedId)) LoadProgressFromCache(mappedId);
                     }
-                    CurrentWorker = CreateNewWorker(firebaseUid);
-                    InitProgressMapForNewWorker();
-                    LoadAttemptsLocally(CurrentWorker.id);
-                    CacheWorkerLocally(CurrentWorker);
+                    if (progressMap.Count == 0)
+                    {
+                        InitProgressMapForNewWorker();
+                    }
+
+                    RecomputeWorkerStatsFromMap();
                     OnWorkerLoaded?.Invoke(CurrentWorker);
                     return;
                 }
@@ -342,13 +374,13 @@ namespace MiningSafetyAR.Data
         void InitProgressMapForNewWorker()
         {
             progressMap.Clear();
-            var all = moduleDatabase != null ? moduleDatabase.GetAll() : new List<ModuleData>();
+            var all = GetAllModules();
             foreach (var m in all)
             {
                 progressMap[m.id] = new ModuleProgress
                 {
                     moduleId = m.id,
-                    status = m.id == "heights_safety" ? ModuleStatus.Locked : ModuleStatus.NotStarted,
+                    status = m.id == "heights_safety" || m.id.StartsWith("heights_safety_") ? ModuleStatus.Locked : ModuleStatus.NotStarted,
                     progress = 0, bestScore = 0, attempts = 0,
                     lastAttempt = "", certificateId = ""
                 };
@@ -379,19 +411,32 @@ namespace MiningSafetyAR.Data
         void RecomputeWorkerStatsFromMap()
         {
             if (CurrentWorker == null) return;
-            int total = 0;
-            int completed = 0;
-            foreach (var kv in progressMap)
+
+            var all = GetAllModules();
+            var subModules = all.FindAll(m => !string.IsNullOrEmpty(m.parentId));
+            int totalSubProgress = 0;
+            int totalSubCount = Mathf.Max(1, subModules.Count); // 25 sub-modules
+
+            foreach (var sub in subModules)
             {
-                total += kv.Value.progress;
-                if (kv.Value.status == ModuleStatus.Completed) completed++;
+                if (progressMap.TryGetValue(sub.id, out var prog))
+                {
+                    totalSubProgress += prog.progress;
+                }
             }
-            int count = Mathf.Max(1, progressMap.Count);
-            CurrentWorker.overallProgress = total / count;
+
+            // Overall progress is percentage of curriculum completed across all 25 sub-modules
+            CurrentWorker.overallProgress = Mathf.Clamp(totalSubProgress / totalSubCount, 0, 100);
+
             int certs = 0;
             foreach (var kv in progressMap)
-                if (kv.Value.status == ModuleStatus.Completed && !string.IsNullOrEmpty(kv.Value.certificateId)) certs++;
+            {
+                if (kv.Value.status == ModuleStatus.Completed && !string.IsNullOrEmpty(kv.Value.certificateId))
+                    certs++;
+            }
+
             CurrentWorker.certificatesEarned = certs;
+            CurrentWorker.totalAttempts = allAttempts != null ? allAttempts.Count : 0;
         }
 
         // ================================================================
@@ -515,26 +560,34 @@ namespace MiningSafetyAR.Data
                 var subs = result.FindAll(m => m.parentId == main.id);
                 if (subs.Count > 0)
                 {
-                    // Compute parent module status based on sub-modules
+                    // Compute parent module progress dynamically based on sub-modules
+                    int subTotal = 0;
+                    foreach (var s in subs) subTotal += s.progress;
+                    main.progress = subTotal / subs.Count;
+
                     bool allSubsCompleted = subs.TrueForAll(s => s.status == ModuleStatus.Completed);
                     if (allSubsCompleted)
                     {
                         main.status = ModuleStatus.Completed;
                         main.progress = 100;
                     }
+                    else if (subs.Exists(s => s.status == ModuleStatus.Completed || s.status == ModuleStatus.InProgress || s.progress > 0))
+                    {
+                        main.status = ModuleStatus.InProgress;
+                        main.certificateId = "";
+                        var mainProgress = GetModuleProgress(main.id);
+                        if (mainProgress != null)
+                        {
+                            mainProgress.status = ModuleStatus.InProgress;
+                            mainProgress.progress = main.progress;
+                            mainProgress.certificateId = "";
+                        }
+                    }
                     else
                     {
-                        if (main.status == ModuleStatus.Completed)
-                        {
-                            main.status = ModuleStatus.InProgress;
-                            main.certificateId = "";
-                            var mainProgress = GetModuleProgress(main.id);
-                            if (mainProgress != null)
-                            {
-                                mainProgress.status = ModuleStatus.InProgress;
-                                mainProgress.certificateId = "";
-                            }
-                        }
+                        if (main.status != ModuleStatus.Locked)
+                            main.status = ModuleStatus.NotStarted;
+                        main.progress = 0;
                     }
 
                     // Enforce Sequential Locking on sub-modules
@@ -862,6 +915,10 @@ namespace MiningSafetyAR.Data
 
             // Cache progress map locally
             PlayerPrefs.SetString("ProgressMap_" + CurrentWorker.firebaseUid, ProgressMapToJson());
+            if (!string.IsNullOrEmpty(CurrentWorker.id))
+            {
+                PlayerPrefs.SetString("ProgressMap_" + CurrentWorker.id, ProgressMapToJson());
+            }
             PlayerPrefs.Save();
         }
 
@@ -880,9 +937,13 @@ namespace MiningSafetyAR.Data
 
         void CacheWorkerLocally(WorkerData worker)
         {
+            if (worker == null) return;
             string json = JsonUtility.ToJson(worker);
             PlayerPrefs.SetString("CachedWorker", json);
-            PlayerPrefs.SetString("CachedWorker_" + worker.firebaseUid, json);
+            if (!string.IsNullOrEmpty(worker.firebaseUid))
+                PlayerPrefs.SetString("CachedWorker_" + worker.firebaseUid, json);
+            if (!string.IsNullOrEmpty(worker.id))
+                PlayerPrefs.SetString("CachedWorker_" + worker.id, json);
             PlayerPrefs.Save();
         }
 
@@ -969,12 +1030,47 @@ namespace MiningSafetyAR.Data
 
         WorkerData CreateNewWorker(string firebaseUid)
         {
+            string workerId = "WORKER";
+            string workerName = "Worker";
+            string organization = "Mining Safety Corp";
+            string sector = "Underground Operations";
+
+            if (firebaseUid == "demo_worker_01")
+            {
+                workerId = "DEMO-001";
+                workerName = "Demo Worker";
+                organization = "Dhanbad Coalfields Ltd";
+                sector = "Underground Coal Mining";
+            }
+            else if (!string.IsNullOrEmpty(firebaseUid) && firebaseUid.StartsWith("offline_"))
+            {
+                workerId = firebaseUid.Substring("offline_".Length);
+                workerName = PlayerPrefs.GetString("WorkerDisplayName_" + workerId, workerId);
+                organization = PlayerPrefs.GetString("WorkerOrg_" + workerId, "Mining Safety Corp");
+                sector = PlayerPrefs.GetString("WorkerSector_" + workerId, "Underground Operations");
+            }
+            else
+            {
+                string storedWorkerId = PlayerPrefs.GetString("UIDToWorkerId_" + firebaseUid, PlayerPrefs.GetString("LastWorkerId", "WORKER"));
+                workerId = storedWorkerId;
+                workerName = PlayerPrefs.GetString("WorkerDisplayName_" + storedWorkerId, storedWorkerId);
+                organization = PlayerPrefs.GetString("WorkerOrg_" + storedWorkerId, "Mining Safety Corp");
+                sector = PlayerPrefs.GetString("WorkerSector_" + storedWorkerId, "Underground Operations");
+            }
+
             return new WorkerData
             {
-                firebaseUid = firebaseUid, id = "NEW", name = "New Worker",
-                organization = "", sector = "", phone = "", language = "English",
+                firebaseUid = firebaseUid,
+                id = workerId,
+                name = workerName,
+                organization = organization,
+                sector = sector,
+                phone = "",
+                language = "English",
                 joinDate = System.DateTime.UtcNow.ToString("yyyy-MM-dd"),
-                overallProgress = 0, certificatesEarned = 0, totalAttempts = 0,
+                overallProgress = 0,
+                certificatesEarned = 0,
+                totalAttempts = allAttempts != null ? allAttempts.Count : 0,
                 competencyScores = new CompetencyScores()
             };
         }
