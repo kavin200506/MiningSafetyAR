@@ -10,10 +10,18 @@ namespace MiningSafetyAR.Firebase
     /// <summary>
     /// Centralized Firestore REST service. All reads/writes go through here.
     ///
-    /// Schema:
-    ///   workers/{uid}                      – profile fields only
-    ///   workers/{uid}/progress/{moduleId}  – one doc per module
-    ///   trainingResults/{resultId}         – quiz results
+    /// Schema (see documents/technical_scoring_explained.md for the full field-level breakdown):
+    ///   workers/{uid}                        – profile fields only (name, org, sector, phone,
+    ///                                          language, joinDate, overallProgress,
+    ///                                          certificatesEarned, totalAttempts)
+    ///   workers/{uid}/progress/{moduleId}    – one doc per module: status, progress, bestScore,
+    ///                                          attempts, lastAttempt, certificateId, and a nested
+    ///                                          competencyScores map (per-module, not per-worker)
+    ///   workers/{uid}/results/{resultId}     – individual training attempt results
+    ///   workers/{uid}/certificates/{certId}  – private copy of every certificate this worker earned
+    ///   certificates/{certId}                – PUBLIC top-level collection, one doc per issued
+    ///                                          certificate, used for QR-code / cert-ID
+    ///                                          verification without needing to know the worker
     ///
     /// No SDK required — uses UnityWebRequest + REST API.
     /// </summary>
@@ -187,6 +195,21 @@ namespace MiningSafetyAR.Firebase
                     cb?.Invoke(ok1 || ok2, resp1);
                 }, useAuth: false));
             }));
+        }
+
+        /// <summary>
+        /// Reads a certificate from the PUBLIC top-level certificates/{certId} collection — no auth
+        /// required, since this is what lets anyone (a different worker, a different device, an
+        /// inspector scanning a QR code) verify a certificate without being logged in as its owner.
+        /// </summary>
+        public void GetCertificate(string certId, Action<bool, string> cb)
+        {
+            if (string.IsNullOrEmpty(certId))
+            {
+                cb?.Invoke(false, "Invalid certId");
+                return;
+            }
+            StartCoroutine(GetDocument($"certificates/{certId}", cb, useAuth: false));
         }
 
         // ----------------------------------------------------------------

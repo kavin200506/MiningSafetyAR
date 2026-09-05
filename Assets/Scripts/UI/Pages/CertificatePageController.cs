@@ -12,7 +12,7 @@ namespace MiningSafetyAR.UI.Pages
         Label workerName, moduleTitle, score, passedBadge;
         Label certId, certIdMeta, issuedDate, expiryDate, organization, securityStatus;
         VisualElement qrImage;
-        Button backBtn, downloadBtn, shareBtn, viewAllCertsBtn, verifyBtn;
+        Button backBtn, downloadBtn, shareBtn, viewAllCertsBtn;
 
         protected override void BindUI()
         {
@@ -33,13 +33,17 @@ namespace MiningSafetyAR.UI.Pages
             downloadBtn = root.Q<Button>("download-btn");
             shareBtn = root.Q<Button>("share-btn");
             viewAllCertsBtn = root.Q<Button>("view-all-certs-btn");
-            verifyBtn = root.Q<Button>("verify-btn");
+
+            // No in-app certificate verification — a separately hosted web application handles
+            // verification (the QR code's verificationUrl points there). The worker app only
+            // views/downloads/shares certificates (decided 2026-09-05).
+            var verifyBtnHidden = root.Q<Button>("verify-btn");
+            if (verifyBtnHidden != null) verifyBtnHidden.style.display = DisplayStyle.None;
 
             if (backBtn != null) backBtn.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.GoBack());
             if (downloadBtn != null) downloadBtn.RegisterCallback<ClickEvent>(e => OnDownloadCertificate());
             if (shareBtn != null) shareBtn.RegisterCallback<ClickEvent>(e => OnShareCertificate());
             if (viewAllCertsBtn != null) viewAllCertsBtn.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateTo("UI_CertificatesList"));
-            if (verifyBtn != null) verifyBtn.RegisterCallback<ClickEvent>(e => NavigationManager.Instance.NavigateTo("UI_QRVerify"));
 
             var tabHome = root.Q<Button>("tab-home");
             var tabTraining = root.Q<Button>("tab-training");
