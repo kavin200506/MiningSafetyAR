@@ -139,6 +139,7 @@ namespace MiningSafetyAR.UI
             {
                 canvasGO.SetActive(active);
             }
+            Debug.Log($"[ALARM_DIAG] 🔴 ScreenEdgeAlertUI overlay SetAlertActive({active}) | CanvasActive={(canvasGO != null && canvasGO.activeSelf)} | MaterialShader={(overlayMaterial != null ? overlayMaterial.shader.name : "ProceduralSpriteFallback")}");
         }
 
         private void Update()

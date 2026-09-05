@@ -22,11 +22,20 @@ namespace MiningSafetyAR.AR
         {
             initialLocalPos = transform.localPosition;
 
+            // Ensure a BoxCollider is attached for touch raycasting
+            BoxCollider col = GetComponent<BoxCollider>();
+            if (col == null)
+            {
+                col = gameObject.AddComponent<BoxCollider>();
+                Debug.Log($"[ALARM_DIAG] ➕ Added missing BoxCollider to AlarmButton '{gameObject.name}'");
+            }
+
             // Ensure a 3D red warning light is attached
             statusLight = GetComponent<Light>();
             if (statusLight == null)
             {
                 statusLight = gameObject.AddComponent<Light>();
+                Debug.Log($"[ALARM_DIAG] 💡 Attached 3D Light component to AlarmButton '{gameObject.name}'");
             }
 
             if (statusLight != null)
@@ -37,10 +46,13 @@ namespace MiningSafetyAR.AR
                 statusLight.intensity = 3.5f;
                 statusLight.enabled = false;
             }
+
+            Debug.Log($"[ALARM_DIAG] 🚨 ALARM BUTTON INITIALIZED! Name='{name}' | WorldPos={transform.position} | Layer={gameObject.layer} | LightAttached={(statusLight != null)} | ColliderCenter={col.center} | ColliderSize={col.size}");
         }
 
         private void OnMouseDown()
         {
+            Debug.Log($"[ALARM_DIAG] 🖱️ OnMouseDown event triggered on '{gameObject.name}'");
             ToggleAlarmState();
         }
 
@@ -52,6 +64,10 @@ namespace MiningSafetyAR.AR
             if (ScreenEdgeAlertUI.Instance != null)
             {
                 ScreenEdgeAlertUI.Instance.SetAlertActive(isAlarmActive);
+            }
+            else
+            {
+                Debug.LogWarning("[ALARM_DIAG] ⚠️ ScreenEdgeAlertUI.Instance is null when toggling alarm!");
             }
 
             // 2. Toggle 3D Red Warning Light on the button
@@ -83,7 +99,7 @@ namespace MiningSafetyAR.AR
                 }
             }
 
-            Debug.Log($"[AlarmButtonInteractable] 🚨 ALARM TOGGLED! Button '{gameObject.name}' active = {isAlarmActive}");
+            Debug.Log($"[ALARM_DIAG] 🚨 ALARM TOGGLED! Active={isAlarmActive} | 3D Red Light Enabled={(statusLight != null && statusLight.enabled)} | Color={statusLight?.color} | Intensity={statusLight?.intensity:F2} | LocalPos={transform.localPosition}");
         }
 
         private int lastProcessedFrame = -1;
@@ -130,13 +146,25 @@ namespace MiningSafetyAR.AR
                 if (cam != null)
                 {
                     Ray ray = cam.ScreenPointToRay(tapPosition);
+                    Debug.Log($"[ALARM_DIAG] 👆 TAP DETECTED at ScreenPos=({tapPosition.x:F1}, {tapPosition.y:F1}) | RayOrigin={ray.origin} | RayDir={ray.direction}");
+
                     if (Physics.Raycast(ray, out RaycastHit hit, 10.0f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide))
                     {
+                        Debug.Log($"[ALARM_DIAG] 🎯 RAYCAST HIT object='{hit.transform.name}' (Root='{hit.transform.root.name}') at WorldPos={hit.point} | Dist={hit.distance:F2}m");
                         if (hit.transform == transform || hit.transform.IsChildOf(transform) || transform.IsChildOf(hit.transform))
                         {
+                            Debug.Log($"[ALARM_DIAG] ✅ RAYCAST MATCHED ALARM BUTTON! Toggling Alarm State...");
                             lastProcessedFrame = Time.frameCount;
                             ToggleAlarmState();
                         }
+                        else
+                        {
+                            Debug.Log($"[ALARM_DIAG] ❌ RAYCAST HIT OTHER OBJECT: '{hit.transform.name}', NOT Alarm Button '{name}'");
+                        }
+                    }
+                    else
+                    {
+                        Debug.Log($"[ALARM_DIAG] ⚠️ RAYCAST MISSED ALL COLLIDERS in scene from ScreenPos=({tapPosition.x:F1}, {tapPosition.y:F1})");
                     }
                 }
             }
