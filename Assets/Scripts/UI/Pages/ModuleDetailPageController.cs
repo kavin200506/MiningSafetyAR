@@ -133,8 +133,9 @@ namespace MiningSafetyAR.UI.Pages
                     scoreBars.Clear();
                     AddScoreBar("Hazard Recognition", mod.competencyScores.hazardRecognition);
                     AddScoreBar("Extinguisher Use", mod.competencyScores.extinguisherUse);
-                    AddScoreBar("Time Taken", mod.competencyScores.ppeSelection);
+                    AddScoreBar("Time Taken", mod.competencyScores.timeManagement);
                     AddScoreBar("Evacuation", mod.competencyScores.evacuation);
+                    AddScoreBar("Quiz Score", mod.competencyScores.quizScore);
                 }
                 else if (competencySection != null) competencySection.style.display = DisplayStyle.None;
             }

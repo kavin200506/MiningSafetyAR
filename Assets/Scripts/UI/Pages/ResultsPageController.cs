@@ -127,21 +127,33 @@ namespace MiningSafetyAR.UI.Pages
             if (competencyBars != null)
             {
                 competencyBars.Clear();
-                var prog = AppDataService.Instance != null ? AppDataService.Instance.GetModuleProgress(moduleId) : null;
-                var cs = prog?.competencyScores;
-                if (cs != null && (cs.hazardRecognition > 0 || cs.extinguisherUse > 0 || cs.ppeSelection > 0 || cs.evacuation > 0))
+                // This attempt's own breakdown (not the ratcheted personal-best-ever values) —
+                // matches what the worker just did, avoiding a "70% total but 100% bars" mismatch
+                // from an earlier, better attempt. See documents/technical_scoring_explained.md §6.
+                bool hasBreakdown = resultsData.ContainsKey("hazardRecognitionPct");
+                if (hasBreakdown)
                 {
-                    AddScoreBar("Hazard Recognition", cs.hazardRecognition);
-                    AddScoreBar("Extinguisher Use", cs.extinguisherUse);
-                    AddScoreBar("Time Taken", cs.ppeSelection);
-                    AddScoreBar("Evacuation", cs.evacuation);
+                    int hazardPct = System.Convert.ToInt32(resultsData["hazardRecognitionPct"]);
+                    int extPct = System.Convert.ToInt32(resultsData["extinguisherUsePct"]);
+                    int timePct = System.Convert.ToInt32(resultsData["timeManagementPct"]);
+                    int evacPct = System.Convert.ToInt32(resultsData["evacuationPct"]);
+                    AddScoreBar("Hazard Recognition", hazardPct);
+                    AddScoreBar("Extinguisher Use", extPct);
+                    AddScoreBar("Time Taken", timePct);
+                    AddScoreBar("Evacuation", evacPct);
+                    AddScoreBar("Quiz Score", mcq);
                 }
                 else
                 {
-                    AddScoreBar("Hazard Recognition", 0);
-                    AddScoreBar("Extinguisher Use", 0);
-                    AddScoreBar("Time Taken", 0);
-                    AddScoreBar("Evacuation", 0);
+                    // Direct-testing fallback (page opened without a real drill behind it) —
+                    // fall back to whatever's on record for this module, honestly zeroed if none.
+                    var prog = AppDataService.Instance != null ? AppDataService.Instance.GetModuleProgress(moduleId) : null;
+                    var cs = prog?.competencyScores;
+                    AddScoreBar("Hazard Recognition", cs?.hazardRecognition ?? 0);
+                    AddScoreBar("Extinguisher Use", cs?.extinguisherUse ?? 0);
+                    AddScoreBar("Time Taken", cs?.timeManagement ?? 0);
+                    AddScoreBar("Evacuation", cs?.evacuation ?? 0);
+                    AddScoreBar("Quiz Score", cs?.quizScore ?? 0);
                 }
             }
             if (certBtn != null)

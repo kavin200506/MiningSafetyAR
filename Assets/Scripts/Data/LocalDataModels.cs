@@ -91,4 +91,22 @@ namespace MiningSafetyAR.Data
         public float durationSeconds;
         public int score;
     }
+
+    /// <summary>
+    /// Real drill performance handed from FireSafetyModuleManager to the post-drill quiz page,
+    /// so the quiz page can compute one real blended final score instead of using a hardcoded
+    /// stand-in. See documents/technical_scoring_explained.md §3.8.
+    /// </summary>
+    [Serializable]
+    public class DrillResultPayload
+    {
+        public float drillScorePercentage;
+        public int mistakesCount;
+        public float completionTimeSeconds;
+        public List<StepMetric> stepMetrics = new List<StepMetric>();
+        public int hazardRecognitionPct;
+        public int extinguisherUsePct;
+        public int timeManagementPct;
+        public int evacuationPct;
+    }
 }
