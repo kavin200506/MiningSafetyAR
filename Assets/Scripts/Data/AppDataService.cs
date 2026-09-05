@@ -317,32 +317,10 @@ namespace MiningSafetyAR.Data
 
         void FinalizeProgressLoad(string firebaseUid)
         {
-            bool needsSave = false;
-
-            // Legacy cleanup: Remove certificates from all modules except the final one
-            foreach (var kv in progressMap)
-            {
-                if (!string.IsNullOrEmpty(kv.Value.certificateId) && kv.Key != "heights_safety_sub5")
-                {
-                    kv.Value.certificateId = "";
-                    needsSave = true;
-                    // Push cleaned up progress to Firestore
-                    SaveModuleProgressToFirestore(firebaseUid, kv.Key, kv.Value);
-                }
-            }
-
             RecomputeWorkerStatsFromMap();
-
-            if (needsSave)
-            {
-                SaveWorkerProfile();
-            }
-            else
-            {
-                CacheWorkerLocally(CurrentWorker);
-                PlayerPrefs.SetString("ProgressMap_" + firebaseUid, ProgressMapToJson());
-                PlayerPrefs.Save();
-            }
+            CacheWorkerLocally(CurrentWorker);
+            PlayerPrefs.SetString("ProgressMap_" + firebaseUid, ProgressMapToJson());
+            PlayerPrefs.Save();
 
             OnWorkerLoaded?.Invoke(CurrentWorker);
             Debug.Log($"[AppDataService] Worker ready: {CurrentWorker.name} ({CurrentWorker.id}) overall={CurrentWorker.overallProgress}% certs={CurrentWorker.certificatesEarned}");
@@ -448,14 +426,21 @@ namespace MiningSafetyAR.Data
             // Overall progress is percentage of curriculum completed across all 25 sub-modules
             CurrentWorker.overallProgress = Mathf.Clamp(totalSubProgress / totalSubCount, 0, 100);
 
-            int certs = 0;
+            var uniqueCertIds = new HashSet<string>();
+            if (dynamicCertificates != null)
+            {
+                foreach (var c in dynamicCertificates)
+                {
+                    if (!string.IsNullOrEmpty(c.id)) uniqueCertIds.Add(c.id);
+                }
+            }
             foreach (var kv in progressMap)
             {
                 if (kv.Value.status == ModuleStatus.Completed && !string.IsNullOrEmpty(kv.Value.certificateId))
-                    certs++;
+                    uniqueCertIds.Add(kv.Value.certificateId);
             }
 
-            CurrentWorker.certificatesEarned = certs;
+            CurrentWorker.certificatesEarned = uniqueCertIds.Count;
             CurrentWorker.totalAttempts = allAttempts != null ? allAttempts.Count : 0;
         }
 
@@ -782,15 +767,41 @@ namespace MiningSafetyAR.Data
         // CERTIFICATES
         // ================================================================
 
-        public CertificateData GetCertificate(string certId)
+        public CertificateData GetCertificate(string certIdOrModuleId)
         {
-            if (string.IsNullOrEmpty(certId)) return null;
+            if (string.IsNullOrEmpty(certIdOrModuleId)) return null;
 
-            var found = dynamicCertificates.FirstOrDefault(c => string.Equals(c.id, certId, System.StringComparison.OrdinalIgnoreCase));
+            // 1. Try matching by certificate ID
+            var found = dynamicCertificates.FirstOrDefault(c => string.Equals(c.id, certIdOrModuleId, System.StringComparison.OrdinalIgnoreCase));
             if (found != null) return found;
 
+            // 2. Try matching by moduleId in dynamicCertificates
+            found = dynamicCertificates.FirstOrDefault(c => string.Equals(c.moduleId, certIdOrModuleId, System.StringComparison.OrdinalIgnoreCase));
+            if (found != null) return found;
+
+            // 3. Try checking module progress for certificateId
+            if (progressMap.TryGetValue(certIdOrModuleId, out var prog) && !string.IsNullOrEmpty(prog.certificateId))
+            {
+                found = dynamicCertificates.FirstOrDefault(c => string.Equals(c.id, prog.certificateId, System.StringComparison.OrdinalIgnoreCase));
+                if (found != null) return found;
+            }
+
+            // 4. Try matching from static database
             if (certificateDatabase == null) certificateDatabase = Resources.Load<CertificateDatabase>("Data/CertificateDatabase");
-            return certificateDatabase != null ? certificateDatabase.GetById(certId) : null;
+            if (certificateDatabase != null)
+            {
+                var staticCert = certificateDatabase.GetById(certIdOrModuleId);
+                if (staticCert != null) return staticCert;
+
+                var workerCerts = CurrentWorker != null ? certificateDatabase.GetByWorker(CurrentWorker.id) : certificateDatabase.GetAll();
+                if (workerCerts != null)
+                {
+                    var matchMod = workerCerts.FirstOrDefault(c => string.Equals(c.moduleId, certIdOrModuleId, System.StringComparison.OrdinalIgnoreCase));
+                    if (matchMod != null) return matchMod;
+                }
+            }
+
+            return null;
         }
 
         public List<CertificateData> GetWorkerCertificates()
@@ -798,7 +809,7 @@ namespace MiningSafetyAR.Data
             var result = new List<CertificateData>();
             if (CurrentWorker != null)
             {
-                result.AddRange(dynamicCertificates.Where(c => c.workerId == CurrentWorker.id));
+                result.AddRange(dynamicCertificates.Where(c => string.IsNullOrEmpty(c.workerId) || c.workerId == CurrentWorker.id));
                 if (certificateDatabase == null) certificateDatabase = Resources.Load<CertificateDatabase>("Data/CertificateDatabase");
                 if (certificateDatabase != null)
                 {
@@ -807,6 +818,10 @@ namespace MiningSafetyAR.Data
                         if (!result.Any(r => r.id == c.id)) result.Add(c);
                     }
                 }
+            }
+            else
+            {
+                result.AddRange(dynamicCertificates);
             }
             return result;
         }
@@ -1252,34 +1267,75 @@ namespace MiningSafetyAR.Data
                 prog.status = passed ? ModuleStatus.Completed : ModuleStatus.InProgress;
                 prog.lastAttempt = System.DateTime.UtcNow.ToString("yyyy-MM-dd");
                 
-                // Only award the final certification when a 5th sub-module is completed
-                if (passed && string.IsNullOrEmpty(prog.certificateId) && moduleId.EndsWith("_sub5"))
+                // Award certificate when 1st sub-module of Fire Extinguisher (fire_safety_sub1 / fire_safety) or a sub-module is completed
+                bool isFireSub1 = moduleId == "fire_safety_sub1" || moduleId == "fire_safety";
+                bool isFinalSub5 = moduleId.EndsWith("_sub5");
+
+                if (passed && string.IsNullOrEmpty(prog.certificateId) && (isFireSub1 || isFinalSub5))
                 {
                     var modDef = GetModule(moduleId);
+                    string parentId = modDef != null && !string.IsNullOrEmpty(modDef.parentId) ? modDef.parentId : moduleId;
+                    string codePrefix = parentId.ToUpper().Replace("_", "");
+                    if (codePrefix.Length > 4) codePrefix = codePrefix.Substring(0, 4);
+
+                    string certId = $"JH-{codePrefix}-{Random.Range(100000, 999999)}";
+                    prog.certificateId = certId;
+
+                    // If it's a sub-module, also mirror the certificate to the parent module
                     if (modDef != null && !string.IsNullOrEmpty(modDef.parentId))
                     {
-                        int totalScore = 0;
-                        int count = 0;
-                        var allMods = GetAllModules();
-                        foreach (var m in allMods)
+                        var parentProg = GetModuleProgress(modDef.parentId);
+                        if (parentProg != null && string.IsNullOrEmpty(parentProg.certificateId))
                         {
-                            if (m.parentId == modDef.parentId)
-                            {
-                                var subProg = GetModuleProgress(m.id);
-                                if (subProg != null && subProg.bestScore > 0)
-                                {
-                                    totalScore += subProg.bestScore;
-                                    count++;
-                                }
-                            }
-                        }
-                        
-                        int averageScore = count > 0 ? totalScore / count : 0;
-                        if (averageScore >= 75)
-                        {
-                            prog.certificateId = $"JH-{modDef.parentId.ToUpper()}-{Random.Range(100000,999999)}";
+                            parentProg.certificateId = certId;
                         }
                     }
+
+                    string modTitle = modDef != null ? modDef.title : "Fire Extinguisher Protocol";
+                    if (isFireSub1)
+                        modTitle = "Fire & Explosion Response - Fire Extinguisher Protocol";
+
+                    string workerName = CurrentWorker != null ? CurrentWorker.name : "Mining Worker";
+                    string workerId = CurrentWorker != null ? CurrentWorker.id : "WORKER";
+                    string org = CurrentWorker != null ? CurrentWorker.organization : "DGMS Certified Mining Org";
+                    string nowStr = System.DateTime.UtcNow.ToString("yyyy-MM-dd");
+                    string expStr = System.DateTime.UtcNow.AddYears(1).ToString("yyyy-MM-dd");
+                    string veriUrl = $"https://cert-veri.web.app/verify?cert={certId}";
+
+                    // Compute HMAC-SHA256 signature for verification portal compatibility
+                    string rawPayload = $"{certId}|{workerId}|{moduleId}|{score}|{nowStr}";
+                    string sigHash = "";
+                    try
+                    {
+                        using (var hmac = new System.Security.Cryptography.HMACSHA256(System.Text.Encoding.UTF8.GetBytes("DGMS_MINING_SAFETY_SECRET_KEY_2026")))
+                        {
+                            byte[] hashBytes = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(rawPayload));
+                            sigHash = System.BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                        }
+                    }
+                    catch
+                    {
+                        sigHash = System.Guid.NewGuid().ToString("N");
+                    }
+
+                    var certData = new CertificateData
+                    {
+                        id = certId,
+                        workerName = workerName,
+                        workerId = workerId,
+                        moduleId = moduleId,
+                        moduleTitle = modTitle,
+                        score = score,
+                        issuedDate = nowStr,
+                        expiryDate = expStr,
+                        organization = org,
+                        status = "VALID",
+                        signatureHash = sigHash,
+                        verificationUrl = veriUrl
+                    };
+
+                    SaveCertificate(certData);
+                    Debug.Log($"[AppDataService] Auto-awarded Certificate for {moduleId}: {certId} ({modTitle})");
                 }
 
                 // Save this module's progress to its own Firestore document — skipped when

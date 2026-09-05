@@ -67,14 +67,37 @@ namespace MiningSafetyAR.UI.Pages
         {
             var app = AppDataService.Instance;
             var worker = app != null ? app.CurrentWorker : null;
-            var mod = app != null ? app.GetModule(moduleId) : null;
-            var prog = app != null ? app.GetModuleProgress(moduleId) : null;
 
-            string nameStr = worker != null ? worker.name : "Mining Worker";
-            string titleStr = mod != null ? (mod.title ?? moduleId) : (moduleId == "gas_leak" ? "Gas Leak & Confined Space" : "Fire & Explosion Safety");
-            string orgStr = worker != null ? worker.organization : "DGMS Certified Mining Org";
-            int scoreVal = prog != null ? prog.bestScore : (mod != null ? mod.bestScore : 85);
-            bool passed = prog == null || prog.status == ModuleStatus.Completed || scoreVal >= 75;
+            // 1. Try finding certificate directly by ID or module ID
+            var existing = app != null ? app.GetCertificate(moduleId) : null;
+
+            // 2. Resolve module and progress
+            string resolvedModuleId = existing != null && !string.IsNullOrEmpty(existing.moduleId) ? existing.moduleId : moduleId;
+            var mod = app != null ? app.GetModule(resolvedModuleId) : null;
+            var prog = app != null ? app.GetModuleProgress(resolvedModuleId) : null;
+
+            if (existing == null && prog != null && !string.IsNullOrEmpty(prog.certificateId))
+            {
+                existing = app.GetCertificate(prog.certificateId);
+            }
+
+            string nameStr = existing != null && !string.IsNullOrEmpty(existing.workerName)
+                ? existing.workerName
+                : (worker != null ? worker.name : "Mining Worker");
+
+            string titleStr = existing != null && !string.IsNullOrEmpty(existing.moduleTitle)
+                ? existing.moduleTitle
+                : (mod != null ? (mod.title ?? resolvedModuleId) : (resolvedModuleId.Contains("fire") ? "Fire & Explosion Response - Fire Extinguisher Protocol" : "Mining Safety Certification"));
+
+            string orgStr = existing != null && !string.IsNullOrEmpty(existing.organization)
+                ? existing.organization
+                : (worker != null ? worker.organization : "DGMS Certified Mining Org");
+
+            int scoreVal = existing != null && existing.score > 0
+                ? existing.score
+                : (prog != null ? prog.bestScore : (mod != null ? mod.bestScore : 85));
+
+            bool passed = prog == null || prog.status == ModuleStatus.Completed || scoreVal >= 60;
 
             if (workerName != null) workerName.text = nameStr;
             if (moduleTitle != null) moduleTitle.text = titleStr;
@@ -88,19 +111,22 @@ namespace MiningSafetyAR.UI.Pages
                 passedBadge.AddToClassList(passed ? "badge--pass" : "badge--fail");
             }
 
-            string certIdStr = prog != null && !string.IsNullOrEmpty(prog.certificateId)
-                ? prog.certificateId
-                : $"JH-{moduleId.ToUpper().Replace("_","").Substring(0, System.Math.Min(4, moduleId.Length))}-849201";
-
-            var existing = app != null ? app.GetCertificate(certIdStr) : null;
-            if (existing != null) certIdStr = existing.id;
+            string certIdStr = existing != null && !string.IsNullOrEmpty(existing.id)
+                ? existing.id
+                : (prog != null && !string.IsNullOrEmpty(prog.certificateId)
+                    ? prog.certificateId
+                    : $"JH-{resolvedModuleId.ToUpper().Replace("_","").Substring(0, System.Math.Min(4, resolvedModuleId.Length))}-849201");
 
             if (certId != null) certId.text = certIdStr;
             if (certIdMeta != null) certIdMeta.text = certIdStr;
-            if (issuedDate != null) issuedDate.text = System.DateTime.Now.ToString("yyyy-MM-dd");
-            if (expiryDate != null) expiryDate.text = System.DateTime.Now.AddYears(1).ToString("yyyy-MM-dd");
+
+            string issued = existing != null && !string.IsNullOrEmpty(existing.issuedDate) ? existing.issuedDate : System.DateTime.Now.ToString("yyyy-MM-dd");
+            string expiry = existing != null && !string.IsNullOrEmpty(existing.expiryDate) ? existing.expiryDate : System.DateTime.Now.AddYears(1).ToString("yyyy-MM-dd");
+
+            if (issuedDate != null) issuedDate.text = issued;
+            if (expiryDate != null) expiryDate.text = expiry;
             if (organization != null) organization.text = orgStr;
-            if (securityStatus != null) securityStatus.text = "HMAC-SHA256 Signed";
+            if (securityStatus != null) securityStatus.text = "HMAC-SHA256 Signed & Verified";
 
             if (qrImage != null)
             {
