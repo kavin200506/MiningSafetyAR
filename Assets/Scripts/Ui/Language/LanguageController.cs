@@ -83,8 +83,14 @@ namespace MiningSafetyAR.UI.Language
             }
 
             // Save the choice so we don't have to ask every time
-            PlayerPrefs.SetString("SelectedLanguage", currentSelectedLanguage.ToString());
+            string langStr = currentSelectedLanguage.ToString();
+            PlayerPrefs.SetString("SelectedLanguage", langStr);
             PlayerPrefs.Save();
+
+            if (MiningSafetyAR.Localization.LanguageManager.Instance != null)
+            {
+                MiningSafetyAR.Localization.LanguageManager.Instance.SetLanguage(langStr);
+            }
 
             Debug.Log($"Language saved: {currentSelectedLanguage}. Loading scene: {loginSceneName}");
 
