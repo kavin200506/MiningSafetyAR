@@ -696,7 +696,7 @@ namespace MiningSafetyAR.UI.Pages
         private void OnExitClicked(ClickEvent evt)
         {
             AR.ARSimulationLogger.LogButton("btn-exit", "Navigated Back");
-            NavigationManager.Instance?.GoBack();
+            NavigationManager.Instance?.NavigateToRoot("UI_Dashboard");
         }
 
         private void OnMoveClicked(ClickEvent evt)

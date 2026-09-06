@@ -308,7 +308,20 @@ namespace MiningSafetyAR.Firebase
                 {
                     string errText = req.downloadHandler != null ? req.downloadHandler.text : req.error;
                     Debug.LogError($"[FirebaseAuth] REST Login Failed: {errText}");
-                    OnLoginFailed?.Invoke($"Login Failed: {req.error}");
+                    string displayError = req.error;
+                    if (!string.IsNullOrEmpty(errText) && errText.Contains("\"error\""))
+                    {
+                        try
+                        {
+                            var parsedErr = JsonUtility.FromJson<AuthRestResponse>(errText);
+                            if (parsedErr != null && parsedErr.error != null && !string.IsNullOrEmpty(parsedErr.error.message))
+                            {
+                                displayError = parsedErr.error.message;
+                            }
+                        }
+                        catch { }
+                    }
+                    OnLoginFailed?.Invoke($"Login Failed: {displayError}");
                 }
             }
         }
@@ -349,7 +362,20 @@ namespace MiningSafetyAR.Firebase
             {
                 string errText = req.downloadHandler != null ? req.downloadHandler.text : req.error;
                 Debug.LogError($"[FirebaseAuth] REST Registration Failed: {errText}");
-                OnLoginFailed?.Invoke($"Registration Failed: {req.error}");
+                string displayError = req.error;
+                if (!string.IsNullOrEmpty(errText) && errText.Contains("\"error\""))
+                {
+                    try
+                    {
+                        var parsedErr = JsonUtility.FromJson<AuthRestResponse>(errText);
+                        if (parsedErr != null && parsedErr.error != null && !string.IsNullOrEmpty(parsedErr.error.message))
+                        {
+                            displayError = parsedErr.error.message;
+                        }
+                    }
+                    catch { }
+                }
+                OnLoginFailed?.Invoke($"Registration Failed: {displayError}");
             }
         }
 
@@ -499,6 +525,11 @@ namespace MiningSafetyAR.Firebase
         {
             if (task.Exception == null) return "Unknown error";
             return task.Exception.InnerExceptions.FirstOrDefault()?.Message ?? task.Exception.Message;
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
         }
     }
 }

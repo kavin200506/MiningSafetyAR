@@ -40,6 +40,11 @@ namespace MiningSafetyAR.Firebase
             DontDestroyOnLoad(gameObject);
         }
 
+        void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+        }
+
         // ----------------------------------------------------------------
         // GENERIC REST
         // ----------------------------------------------------------------

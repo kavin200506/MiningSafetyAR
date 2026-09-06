@@ -198,7 +198,7 @@ namespace MiningSafetyAR.UI.Pages
                 case ModuleStatus.Completed:
                     actionBtn.text = "RETAKE TRAINING";
                     actionBtn.style.display = DisplayStyle.Flex;
-                    if (certBtn != null) certBtn.style.display = string.IsNullOrEmpty(currentModule.certificateId) ? DisplayStyle.None : DisplayStyle.Flex;
+                    if (certBtn != null) certBtn.style.display = DisplayStyle.Flex;
                     if (lockedMsg != null) lockedMsg.style.display = DisplayStyle.None;
                     break;
                 case ModuleStatus.InProgress:
@@ -219,20 +219,33 @@ namespace MiningSafetyAR.UI.Pages
         void OnActionClicked()
         {
             if (string.IsNullOrEmpty(moduleId)) moduleId = "fire_safety";
-            Debug.Log($"[ModuleDetail] Starting location capture screen for module '{moduleId}'...");
 
-            TrainingLocationCapture.EnsureInstance();
-
-            if (!TrainingLocationCapture.HasConsentBeenPrompted)
+            if (AppDataService.Instance != null)
             {
-                TrainingLocationCapture.ShowConsentModal(root, (granted) =>
+                AppDataService.Instance.RecordAttemptStarted(moduleId);
+            }
+
+            if (moduleId.StartsWith("fire_safety", System.StringComparison.OrdinalIgnoreCase))
+            {
+                Debug.Log($"[ModuleDetail] Starting location capture screen for module '{moduleId}'...");
+                TrainingLocationCapture.EnsureInstance();
+
+                if (!TrainingLocationCapture.HasConsentBeenPrompted)
+                {
+                    TrainingLocationCapture.ShowConsentModal(root, (granted) =>
+                    {
+                        StartLocationCaptureAndNavigate();
+                    });
+                }
+                else
                 {
                     StartLocationCaptureAndNavigate();
-                });
+                }
             }
             else
             {
-                StartLocationCaptureAndNavigate();
+                Debug.Log($"[ModuleDetail] Skipping AR simulation for '{moduleId}', proceeding directly to Assessment...");
+                NavigationManager.Instance.NavigateTo("UI_Assessment", moduleId);
             }
         }
 
@@ -241,7 +254,7 @@ namespace MiningSafetyAR.UI.Pages
             NavigationManager.Instance.NavigateTo("UI_LocationCapture", moduleId);
         }
 
-        void OnViewCertificate() => NavigationManager.Instance.NavigateTo("UI_Certificate", currentModule.certificateId);
+        void OnViewCertificate() => NavigationManager.Instance.NavigateTo("UI_Certificate", !string.IsNullOrEmpty(currentModule.certificateId) ? currentModule.certificateId : currentModule.id);
 
         Label CreateCell(string text, string cls = null)
         {
