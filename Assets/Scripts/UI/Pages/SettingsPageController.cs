@@ -69,9 +69,9 @@ namespace MiningSafetyAR.UI.Pages
             if (certsList == null || AppDataService.Instance == null) return;
             
             certsList.Clear();
-            var completedModules = AppDataService.Instance.GetModulesByStatusDynamic(ModuleStatus.Completed);
+            var certificates = AppDataService.Instance.GetWorkerCertificates();
             
-            if (completedModules == null || completedModules.Count == 0)
+            if (certificates == null || certificates.Count == 0)
             {
                 var empty = new Label("No certifications yet.");
                 empty.style.color = new StyleColor(new Color(153f/255f, 153f/255f, 153f/255f));
@@ -80,7 +80,7 @@ namespace MiningSafetyAR.UI.Pages
                 return;
             }
             
-            foreach (var mod in completedModules)
+            foreach (var cert in certificates)
             {
                 var row = new VisualElement();
                 row.style.flexDirection = FlexDirection.Row;
@@ -97,7 +97,7 @@ namespace MiningSafetyAR.UI.Pages
                 icon.style.borderBottomLeftRadius = 5;
                 icon.style.borderBottomRightRadius = 5;
                 
-                var title = new Label(mod.title);
+                var title = new Label(!string.IsNullOrEmpty(cert.moduleTitle) ? cert.moduleTitle : "Certificate");
                 title.style.fontSize = 14;
                 title.style.color = new StyleColor(new Color(26f/255f, 26f/255f, 26f/255f));
                 title.style.unityFontStyleAndWeight = FontStyle.Bold;

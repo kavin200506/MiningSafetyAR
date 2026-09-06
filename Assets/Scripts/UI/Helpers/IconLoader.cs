@@ -77,7 +77,15 @@ namespace MiningSafetyAR.UI.Helpers
 
         public static string GetModuleName(string moduleId)
         {
-            return ModuleIcons.TryGetValue(moduleId, out var name) ? name : "module_fire";
+            if (string.IsNullOrEmpty(moduleId)) return "Module_fire";
+            if (ModuleIcons.TryGetValue(moduleId, out var name)) return name;
+            
+            foreach (var kvp in ModuleIcons)
+            {
+                if (moduleId.StartsWith(kvp.Key)) return kvp.Value;
+            }
+            
+            return "Module_fire";
         }
 
         public static string GetSlideIcon(string iconClass)

@@ -1,10 +1,15 @@
 fileFormatVersion: 2
 guid: 7c63641734e1545da9e61b3a429371c1
 PluginImporter:
-  serializedVersion: 1
+  externalObjects: {}
+  serializedVersion: 3
   iconMap: {}
   executionOrder: {}
+  defineConstraints: []
   isPreloaded: 0
+  isOverridable: 0
+  isExplicitlyReferenced: 0
+  validateReferences: 1
   platformData:
     Android:
       enabled: 0
@@ -14,7 +19,8 @@ PluginImporter:
       settings: {}
     Editor:
       enabled: 0
-      settings: {}
-  userData:
-  assetBundleName:
-  assetBundleVariant:
+      settings:
+        DefaultValueInitialized: true
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

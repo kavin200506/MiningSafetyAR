@@ -10,8 +10,9 @@ namespace MiningSafetyAR.UI.Navigation
     {
         public static NavigationManager Instance { get; private set; }
 
-        private Stack<string> backStack = new Stack<string>();
+        private Stack<(string scene, object param)> backStack = new Stack<(string, object)>();
         private string currentScene;
+        private object currentParam;
 
         private static readonly HashSet<string> bottomNavVisibleScenes = new HashSet<string>
         {
@@ -55,7 +56,7 @@ namespace MiningSafetyAR.UI.Navigation
 
             if (!string.IsNullOrEmpty(currentScene) && pushToStack)
             {
-                backStack.Push(currentScene);
+                backStack.Push((currentScene, currentParam));
             }
 
             LoadScene(sceneName, () =>
@@ -73,6 +74,7 @@ namespace MiningSafetyAR.UI.Navigation
                 }
 
                 currentScene = sceneName;
+                currentParam = param;
                 UpdateBottomNav(sceneName);
                 OnSceneNavigated?.Invoke(sceneName, param);
             });
@@ -89,8 +91,8 @@ namespace MiningSafetyAR.UI.Navigation
                 }
                 return;
             }
-            string previousScene = backStack.Pop();
-            NavigateTo(previousScene, pushToStack: false);
+            var previous = backStack.Pop();
+            NavigateTo(previous.scene, previous.param, pushToStack: false);
         }
 
         public void NavigateToRoot(string sceneName)

@@ -8,7 +8,7 @@
     <Style src="project://database/Assets/UI/Styles/Animations.uss?fileID=7433441132597879392&amp;guid=cd6e8d02f125b714cb01e3e2d0813209&amp;type=3#Animations"/>
     <ui:VisualElement class="page-container" style="background-color: rgb(245, 247, 250);">
         <ui:ScrollView class="scroll-area" style="flex: 1;">
-            <ui:VisualElement style="background-color: rgb(255, 109, 0); padding: 32px 20px 80px 20px; border-bottom-left-radius: 40px; border-bottom-right-radius: 40px; height: 217px; width: 316px;">
+            <ui:VisualElement style="background-color: rgb(255, 109, 0); padding: 32px 20px 80px 20px; border-bottom-left-radius: 40px; border-bottom-right-radius: 40px; height: 217px; width: 399px;">
                 <ui:VisualElement style="flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                     <ui:Button name="back-btn" class="header__back-btn" style="width: 32px; height: 32px; background-color: rgba(255, 255, 255, 0.2); border-radius: 16px; border-width: 0; align-items: center; justify-content: center; margin-left: -8px;">
                         <ui:Label text="&lt;" style="color: rgb(255, 255, 255); font-size: 18px; font-weight: 700; -unity-font-style: bold; margin-bottom: 2px;"/>
