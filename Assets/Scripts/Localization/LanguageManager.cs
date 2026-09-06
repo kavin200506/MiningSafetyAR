@@ -43,6 +43,15 @@ namespace MiningSafetyAR.Localization
         // English=0, Hindi=1, Santali=2, Tamil=3 — DO NOT change these mappings.
         private const string LANGUAGE_PREF_KEY = "SelectedLanguage";
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void AutoSpawn()
+        {
+            if (Instance != null) return;
+            GameObject go = new GameObject("LanguageManager");
+            DontDestroyOnLoad(go);
+            Instance = go.AddComponent<LanguageManager>();
+        }
+
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -53,24 +62,50 @@ namespace MiningSafetyAR.Localization
             Instance = this;
             DontDestroyOnLoad(gameObject);
 
-            int savedLang = PlayerPrefs.GetInt(LANGUAGE_PREF_KEY, (int)Language.English);
-            // Guard against out-of-range values from older builds (max valid = 3)
-            if (!Enum.IsDefined(typeof(Language), savedLang)) savedLang = (int)Language.English;
-            currentLanguage = (Language)savedLang;
+            LoadSavedLanguage();
+        }
 
-            Debug.Log($"[INFO] [LanguageManager] Loaded language from PlayerPrefs: {currentLanguage} (raw int={savedLang})");
+        private void LoadSavedLanguage()
+        {
+            string strLang = PlayerPrefs.GetString(LANGUAGE_PREF_KEY, string.Empty);
+            if (!string.IsNullOrEmpty(strLang))
+            {
+                currentLanguage = ParseLanguage(strLang);
+            }
+            else
+            {
+                int savedLang = PlayerPrefs.GetInt(LANGUAGE_PREF_KEY, (int)Language.English);
+                if (!Enum.IsDefined(typeof(Language), savedLang)) savedLang = (int)Language.English;
+                currentLanguage = (Language)savedLang;
+            }
+
+            Debug.Log($"[INFO] [LanguageManager] Loaded language: {currentLanguage}");
+        }
+
+        public static Language ParseLanguage(string langStr)
+        {
+            if (string.IsNullOrEmpty(langStr)) return Language.English;
+            string lower = langStr.Trim().ToLowerInvariant();
+            if (lower.StartsWith("hi")) return Language.Hindi;
+            if (lower.StartsWith("sat") || lower.StartsWith("san")) return Language.Santali;
+            if (lower.StartsWith("ta")) return Language.Tamil;
+            return Language.English;
         }
 
         public void SetLanguage(Language language)
         {
-            if (currentLanguage == language) return;
-
             currentLanguage = language;
-            PlayerPrefs.SetInt(LANGUAGE_PREF_KEY, (int)language);
+            PlayerPrefs.SetString(LANGUAGE_PREF_KEY, language.ToString());
+            PlayerPrefs.SetInt("SelectedLanguageInt", (int)language);
             PlayerPrefs.Save();
 
-            Debug.Log($"[INFO] [LanguageManager] Language switched to: {currentLanguage} (stored as int {(int)language})");
+            Debug.Log($"[INFO] [LanguageManager] Language switched to: {currentLanguage} (stored as {language})");
             OnLanguageChanged?.Invoke(currentLanguage);
+        }
+
+        public void SetLanguage(string languageName)
+        {
+            SetLanguage(ParseLanguage(languageName));
         }
 
         // -----------------------------------------------------------------------
