@@ -472,7 +472,7 @@ namespace MiningSafetyAR.Firebase
     // ----------------------------------------------------------------
     // Minimal JSON parser (uses Firebase's Google.MiniJSON if available)
     // ----------------------------------------------------------------
-    internal static class MiniJSON
+    public static class MiniJSON
     {
         public static class Json
         {
