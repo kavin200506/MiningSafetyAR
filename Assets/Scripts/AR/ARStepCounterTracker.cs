@@ -30,8 +30,8 @@ namespace MiningSafetyAR.AR
         [SerializeField] private StepTrackerState currentState = StepTrackerState.Idle;
         public StepTrackerState CurrentState => currentState;
 
-        [SerializeField] private int minRequiredSteps = 10;
-        [SerializeField] private int maxRequiredSteps = 15;
+        [SerializeField] private int minRequiredSteps = 7;
+        [SerializeField] private int maxRequiredSteps = 12;
         [SerializeField] private float averageStepLengthMeters = 0.65f; // ~65cm per step
         [SerializeField] private bool showDebugUI = false;
 

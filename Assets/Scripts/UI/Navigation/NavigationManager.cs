@@ -34,6 +34,13 @@ namespace MiningSafetyAR.UI.Navigation
         public string CurrentScene => currentScene;
         public event Action<string, object> OnSceneNavigated;
 
+        // True for the duration of a NavigateTo() call, from just before the scene load starts
+        // until this call has set the navigation parameter and invoked OnPageEnter() itself.
+        // PageController.TryAutoEnter() checks this to avoid calling OnPageEnter() a second time
+        // (with no parameter yet) the instant the new scene's UIDocument becomes ready — see the
+        // comment on TryAutoEnter() for why that race broke LocationCapturePageController.
+        public static bool IsNavigating { get; private set; }
+
         void Awake()
         {
             if (Instance != null && Instance != this)
@@ -59,6 +66,8 @@ namespace MiningSafetyAR.UI.Navigation
                 backStack.Push((currentScene, currentParam));
             }
 
+            IsNavigating = true;
+
             LoadScene(sceneName, () =>
             {
                 var page = FindFirstObjectByType<PageController>();
@@ -76,6 +85,7 @@ namespace MiningSafetyAR.UI.Navigation
                 currentScene = sceneName;
                 currentParam = param;
                 UpdateBottomNav(sceneName);
+                IsNavigating = false;
                 OnSceneNavigated?.Invoke(sceneName, param);
             });
         }

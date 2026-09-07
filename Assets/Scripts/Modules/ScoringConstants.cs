@@ -7,7 +7,7 @@ namespace MiningSafetyAR.Modules
     /// </summary>
     public static class ScoringConstants
     {
-        public const float PassThresholdPercentage = 70f;
+        public const float PassThresholdPercentage = 60f;
 
         public const int GenericMistakePenalty = 25;
         public const int ProximityBreachPenalty = 50;

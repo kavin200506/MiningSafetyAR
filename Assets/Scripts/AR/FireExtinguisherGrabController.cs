@@ -1766,51 +1766,6 @@ namespace MiningSafetyAR.AR
             hoseT.position = anchorWorld + rotDelta * nearEndOffsetWorldRest;
         }
 
-        private GameObject foamRaycastBeam;
-        private MeshRenderer beamRenderer;
-        private Material beamMaterial;
-
-        private void EnsureFoamRaycastVisualBeam()
-        {
-            if (foamRaycastBeam != null) return;
-
-            foamRaycastBeam = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            foamRaycastBeam.name = "Foam_Raycast_Visual_Beam";
-
-            Collider col = foamRaycastBeam.GetComponent<Collider>();
-            if (col != null) Destroy(col);
-
-            beamRenderer = foamRaycastBeam.GetComponent<MeshRenderer>();
-            Shader urpShader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Universal Render Pipeline/Unlit");
-
-            if (urpShader == null)
-            {
-                Renderer[] sceneRenderers = FindObjectsByType<Renderer>(FindObjectsSortMode.None);
-                foreach (Renderer r in sceneRenderers)
-                {
-                    if (r != null && r.sharedMaterial != null && r.sharedMaterial.shader != null && r.sharedMaterial.shader.name.Contains("Universal"))
-                    {
-                        urpShader = r.sharedMaterial.shader;
-                        break;
-                    }
-                }
-            }
-
-            if (urpShader != null)
-            {
-                beamMaterial = new Material(urpShader);
-                beamMaterial.SetColor("_BaseColor", new Color(0.0f, 0.9f, 1.0f, 0.75f));
-                if (beamMaterial.HasProperty("_EmissionColor"))
-                {
-                    beamMaterial.EnableKeyword("_EMISSION");
-                    beamMaterial.SetColor("_EmissionColor", new Color(0.0f, 0.9f, 1.0f) * 2.0f);
-                }
-                beamRenderer.material = beamMaterial;
-            }
-
-            foamRaycastBeam.SetActive(false);
-        }
-
         /// <summary>
         /// Phase 1 of the sweep redesign (see documents/sweep.md): measures genuine left-right
         /// motion of the held extinguisher, isolated from forward/backward approach by projecting
@@ -1852,18 +1807,12 @@ namespace MiningSafetyAR.AR
 
         private void UpdateFoamSpray()
         {
-            EnsureFoamRaycastVisualBeam();
-
             if (!isSqueezing || currentPassState < PassStepState.HandleSqueezed)
             {
-                // Ensure particles and visual beam stop when not squeezing
+                // Ensure particles stop when not squeezing
                 if (foamParticles != null && foamParticles.isPlaying)
                 {
                     foamParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-                }
-                if (foamRaycastBeam != null && foamRaycastBeam.activeSelf)
-                {
-                    foamRaycastBeam.SetActive(false);
                 }
                 currentSweepIntensity = 0f;
                 sweepSamples.Clear();
@@ -1919,7 +1868,6 @@ namespace MiningSafetyAR.AR
             {
                 currentFoamCapacity = 0f;
                 isSqueezing = false;
-                if (foamRaycastBeam != null) foamRaycastBeam.SetActive(false);
                 Debug.Log("[FireExtinguisherGrabController] FOAM DEPLETED!");
                 OnExtinguisherDepleted?.Invoke();
                 return;
@@ -1948,29 +1896,6 @@ namespace MiningSafetyAR.AR
                     fire.ApplyFoamSuppression(fire.transform.position, Time.deltaTime, currentSweepIntensity);
                     fireHit = true;
                     Debug.DrawLine(origin, fire.transform.position, Color.green);
-                }
-            }
-
-            // Update 3D Visual Raycast Laser Beam (1.5m - 3.0m)
-            if (foamRaycastBeam != null)
-            {
-                foamRaycastBeam.SetActive(true);
-
-                float beamLength = maxSprayRange + 0.5f;
-                Vector3 beamCenter = origin + (dir.normalized * (beamLength / 2f));
-
-                foamRaycastBeam.transform.position = beamCenter;
-                foamRaycastBeam.transform.rotation = Quaternion.LookRotation(dir) * Quaternion.Euler(90f, 0f, 0f);
-                foamRaycastBeam.transform.localScale = new Vector3(0.06f, beamLength / 2f, 0.06f);
-
-                if (beamMaterial != null)
-                {
-                    Color beamColor = fireHit ? new Color(0.0f, 1.0f, 0.2f, 0.85f) : new Color(0.0f, 0.9f, 1.0f, 0.75f);
-                    beamMaterial.SetColor("_BaseColor", beamColor);
-                    if (beamMaterial.HasProperty("_EmissionColor"))
-                    {
-                        beamMaterial.SetColor("_EmissionColor", beamColor * 2.5f);
-                    }
                 }
             }
 
