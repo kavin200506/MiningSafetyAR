@@ -130,50 +130,6 @@ namespace MiningSafetyAR.Modules
             }
         }
 
-        private void Ensure3DFireVisual()
-        {
-            MeshRenderer existingMR = GetComponentInChildren<MeshRenderer>(true);
-            if (existingMR == null)
-            {
-                GameObject fireVisual = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                fireVisual.name = "3D_FireHazard_MeshVisual";
-                fireVisual.transform.SetParent(transform, false);
-                fireVisual.transform.localPosition = new Vector3(0f, 0.25f, 0f);
-                fireVisual.transform.localScale = new Vector3(0.45f, 0.35f, 0.45f);
-
-                Collider c = fireVisual.GetComponent<Collider>();
-                if (c != null) Destroy(c);
-
-                MeshRenderer visMR = fireVisual.GetComponent<MeshRenderer>();
-                Shader urpShader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Universal Render Pipeline/Unlit");
-
-                if (urpShader == null)
-                {
-                    Renderer[] sceneRenderers = FindObjectsByType<Renderer>(FindObjectsSortMode.None);
-                    foreach (Renderer r in sceneRenderers)
-                    {
-                        if (r != null && r.sharedMaterial != null && r.sharedMaterial.shader != null && r.sharedMaterial.shader.name.Contains("Universal"))
-                        {
-                            urpShader = r.sharedMaterial.shader;
-                            break;
-                        }
-                    }
-                }
-
-                if (urpShader != null)
-                {
-                    Material fireMat = new Material(urpShader);
-                    fireMat.SetColor("_BaseColor", new Color(1.0f, 0.25f, 0.0f)); // Bright Fire Orange
-                    if (fireMat.HasProperty("_EmissionColor"))
-                    {
-                        fireMat.EnableKeyword("_EMISSION");
-                        fireMat.SetColor("_EmissionColor", new Color(1.0f, 0.35f, 0.0f) * 2.0f);
-                    }
-                    visMR.material = fireMat;
-                }
-            }
-        }
-
         /// <summary>
         /// Ignites the ground fire hazard across all child particle systems and sets IsFireActive to true.
         /// Also initializes fire health and captures reference values for dynamic scaling.
@@ -184,7 +140,6 @@ namespace MiningSafetyAR.Modules
             Debug.Log("[SCORING_DIAG] [GroundFireController] IgniteFire() called — fire hazard is now active.");
             gameObject.SetActive(true);
 
-            Ensure3DFireVisual();
             InitializeParticleSystems();
             ApplyLowSpecOptimizations();
 

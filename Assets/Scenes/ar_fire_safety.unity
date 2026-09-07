@@ -365,8 +365,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.AR.ARStepCounterTracker
   currentState: 0
-  minRequiredSteps: 10
-  maxRequiredSteps: 15
+  minRequiredSteps: 7
+  maxRequiredSteps: 12
   averageStepLengthMeters: 0.65
   showDebugUI: 0
   fireExtinguisherPrefab: {fileID: 6134629332891498935, guid: 5a826361964774ca698cdf00d54cdcae, type: 3}

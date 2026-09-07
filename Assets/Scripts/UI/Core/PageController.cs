@@ -56,18 +56,26 @@ namespace MiningSafetyAR.UI
 
         void TryAutoEnter()
         {
-            // If scene is directly played (not via NavigationManager), auto-call OnPageEnter once
-            if (!hasEntered)
+            // If scene is directly played (not via NavigationManager), auto-call OnPageEnter once.
+            if (hasEntered) return;
+
+            // A NavigateTo() call is currently loading this exact scene and is about to set the
+            // real navigation parameter and call OnPageEnter() itself once its coroutine resumes.
+            // That resume always happens a frame AFTER this OnEnable()/TryAutoEnter() runs (scene
+            // activation calls Awake/OnEnable before LoadSceneAsync.isDone flips), so calling
+            // OnPageEnter() here first would fire it with no parameter yet, then again moments
+            // later with the correct one. Harmless for pages that just refresh a label, but
+            // LocationCapturePageController starts a 5s coroutine from OnPageEnter() — firing
+            // twice meant two of them running concurrently, racing on the same UI and on which one
+            // actually gets to call NavigateTo("ar_fire_safety", ...) before the other's GameObject
+            // is torn down. Defer to NavigationManager's own call in that case.
+            if (Navigation.NavigationManager.Instance != null && Navigation.NavigationManager.IsNavigating)
             {
-                hasEntered = true;
-                // Let NavigationManager know current scene if it hasn't been set
-                var nav = Navigation.NavigationManager.Instance;
-                if (nav != null && string.IsNullOrEmpty(nav.CurrentScene))
-                {
-                    // NavigationManager will be set on next NavigateTo, but for direct play set via reflection
-                }
-                OnPageEnter();
+                return;
             }
+
+            hasEntered = true;
+            OnPageEnter();
         }
 
         public void MarkEntered()
