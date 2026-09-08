@@ -382,8 +382,12 @@ namespace MiningSafetyAR.UI.Pages
 
         private void ShowPassButtons()
         {
-            if (passButtonPanel != null) passButtonPanel.style.display = DisplayStyle.Flex;
-            UpdatePassButtonVisibility();
+            // P.A.S.S. HUD buttons (GRAB/PULL PIN/AIM/SQUEEZE) were a debugging affordance —
+            // real gameplay uses direct gestures instead (drag the pin out, tap the fire to aim,
+            // hold to squeeze, shake the device to sweep), which FireExtinguisherGrabController
+            // handles independently of these buttons. Keep the panel hidden per user request;
+            // the underlying P.A.S.S. state machine and its events are unaffected.
+            HidePassButtons();
         }
 
         private void HidePassButtons()
@@ -436,7 +440,9 @@ namespace MiningSafetyAR.UI.Pages
 
         private void UpdatePassStatus(string message)
         {
-            if (passStatus != null) passStatus.style.display = DisplayStyle.Flex;
+            // Kept hidden — this label narrated the now-removed HUD buttons ("tap PULL PIN...").
+            // Text is still tracked in case something reads passStatusText.text, but never shown.
+            if (passStatus != null) passStatus.style.display = DisplayStyle.None;
             if (passStatusText != null) passStatusText.text = message;
         }
 
