@@ -63,6 +63,7 @@ namespace MiningSafetyAR.AR
         private ARRaycastManager raycastManager;
         private ARPlaneManager planeManager;
         private AROcclusionManager occlusionManager;
+        private ARAnchorManager anchorManager;
         private List<ARRaycastHit> hits = new List<ARRaycastHit>();
 
         private GameObject spawnedObject;
@@ -130,6 +131,7 @@ namespace MiningSafetyAR.AR
             raycastManager = GetComponent<ARRaycastManager>();
             planeManager = GetComponent<ARPlaneManager>();
             occlusionManager = GetComponent<AROcclusionManager>() ?? FindFirstObjectByType<AROcclusionManager>();
+            anchorManager = GetComponent<ARAnchorManager>() ?? FindFirstObjectByType<ARAnchorManager>();
 
             // Start restricted to whatever plane type the fire hazard is allowed to spawn on
             // (Horizontal by default) — ARStepCounterTracker widens this to include Vertical once
@@ -726,12 +728,39 @@ namespace MiningSafetyAR.AR
                         return true;
                     }
 
-                    spawnedObject = Instantiate(targetPrefab, hitPose.position, spawnRotation);
-                    if (Application.isPlaying && !Application.isEditor)
+                    // Attach a proper ARAnchor to the exact plane that was hit, so the fire hazard's
+                    // pose is corrected together with the AR session's own tracking refinements
+                    // instead of drifting independently whenever plane detection updates. Using
+                    // AddComponent<ARAnchor>() on a plain, unparented GameObject (the old approach)
+                    // is explicitly documented by AR Foundation itself as unreliable for this — see
+                    // ARAnchor.OnEnable(), which even warns to use the manager API instead. Parenting
+                    // the visual under the manager-created anchor GameObject is the supported pattern.
+                    GameObject anchorParent = null;
+                    if (hitPlane != null && anchorManager != null && Application.isPlaying && !Application.isEditor)
                     {
-                        spawnedAnchor = spawnedObject.AddComponent<ARAnchor>();
+                        ARAnchor anchor = anchorManager.AttachAnchor(hitPlane, hitPose);
+                        if (anchor != null)
+                        {
+                            anchorParent = anchor.gameObject;
+                            spawnedAnchor = anchor;
+                        }
+                        else
+                        {
+                            Debug.LogWarning("[WARN] [ARPlacementManager] AttachAnchor failed — fire hazard will spawn without a tracked anchor (may drift on plane updates).");
+                        }
                     }
-                    Debug.Log($"[INFO] [ARPlacementManager] Successfully spawned Ground Fire Hazard '{targetPrefab.name}' via {hitTypeString} at {hitPose.position}");
+
+                    if (anchorParent != null)
+                    {
+                        spawnedObject = Instantiate(targetPrefab);
+                        spawnedObject.transform.SetParent(anchorParent.transform, false);
+                        spawnedObject.transform.SetPositionAndRotation(hitPose.position, spawnRotation);
+                    }
+                    else
+                    {
+                        spawnedObject = Instantiate(targetPrefab, hitPose.position, spawnRotation);
+                    }
+                    Debug.Log($"[INFO] [ARPlacementManager] Successfully spawned Ground Fire Hazard '{targetPrefab.name}' via {hitTypeString} at {hitPose.position}{(anchorParent != null ? " (anchored to plane)" : " (unanchored)")}");
 
                     // Ignite Fire Hazard
                     GroundFireController fireController = spawnedObject.GetComponent<GroundFireController>() ?? spawnedObject.GetComponentInChildren<GroundFireController>();
@@ -890,7 +919,14 @@ namespace MiningSafetyAR.AR
                 Debug.Log($"[INFO] [ARPlacementManager] Destroying spawned ground hazard '{spawnedObject.name}'");
                 Destroy(spawnedObject);
                 spawnedObject = null;
-                spawnedAnchor = null;
+
+                // The fire hazard was parented under its ARAnchor's GameObject rather than being
+                // the anchor itself — remove the now-empty anchor too, or it lingers untracked.
+                if (spawnedAnchor != null)
+                {
+                    if (anchorManager != null) anchorManager.TryRemoveAnchor(spawnedAnchor);
+                    spawnedAnchor = null;
+                }
             }
             if (spawnedWallObject != null)
             {

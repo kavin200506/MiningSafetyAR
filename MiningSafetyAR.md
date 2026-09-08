@@ -136,6 +136,3 @@ Before each drill, `TrainingLocationCapture` acquires the device's GPS coordinat
 - All of the above continues to work **with the phone in airplane mode**, syncing automatically the moment connectivity returns.
 
 ---
-
-Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
-Claude-Session: https://claude.ai/code/session_0122MYSzwZGoQSr5K7bNkkiS
