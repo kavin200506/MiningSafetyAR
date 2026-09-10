@@ -1,0 +1,27 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Styles/Theme.uss?fileID=7433441132597879392&amp;guid=9c058c37ebd69534dae984e55ac8de84&amp;type=3#Theme"/>
+    <Style src="project://database/Assets/UI/Styles/Reset.uss?fileID=7433441132597879392&amp;guid=2221f5ca94566ea48871403dc278208b&amp;type=3#Reset"/>
+    <Style src="project://database/Assets/UI/Styles/Components.uss?fileID=7433441132597879392&amp;guid=95ed0fa63ed8f1b40bbf80091559f46b&amp;type=3#Components"/>
+    <Style src="project://database/Assets/UI/Styles/Forms.uss?fileID=7433441132597879392&amp;guid=573fb74b49821d54f8f03d56111b380e&amp;type=3#Forms"/>
+    <ui:VisualElement class="page-container" style="background-color: #F5F7FA; justify-content: center;">
+        <ui:ScrollView class="scroll-area" style="flex: 1;">
+            <ui:VisualElement style="padding: 40px 24px;">
+                <ui:VisualElement class="card" style="background-color: #FFFFFF; border-radius: 24px; padding: 28px; border-width: 1px; border-color: #E0E0E0; box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);">
+                    <ui:Label name="consent-title" text="Face Verification Consent" style="font-size: 22px; font-weight: 700; color: #1A1A1A; -unity-font-style: bold; white-space: normal; margin-bottom: 16px;"/>
+                    <ui:Label name="consent-body" text="This app captures a mathematical face embedding (not a photo) to confirm you are the one completing training. No image ever leaves your device." style="font-size: 15px; color: #333333; white-space: normal; margin-bottom: 20px; -unity-text-align: upper-left;"/>
+                    <ui:VisualElement style="background-color: #FFF3E0; border-radius: 14px; padding: 14px; margin-bottom: 24px;">
+                        <ui:Label name="consent-withdraw-note" text="You can withdraw this consent anytime from Settings." style="font-size: 13px; color: rgb(230, 81, 0); white-space: normal;"/>
+                    </ui:VisualElement>
+                    <ui:Label name="capture-status" text="" style="font-size: 14px; color: #333333; white-space: normal; margin-bottom: 16px; -unity-text-align: middle-center; display: none;"/>
+                    <ui:VisualElement class="feedback-banner" name="feedback-banner" style="flex-direction: row; align-items: center; border-radius: 10px; padding: 12px; margin-bottom: 16px; display: none;">
+                        <ui:Label class="feedback-banner__icon" name="feedback-icon" text="" style="font-size: 16px; margin-right: 8px;" />
+                        <ui:Label class="feedback-banner__text" name="feedback-text" text="" style="font-size: 13px; font-weight: 500; white-space: normal; flex-shrink: 1;" />
+                    </ui:VisualElement>
+                    <ui:Button name="consent-accept-btn" text="I UNDERSTAND, CONTINUE" style="background-color: rgb(255, 109, 0); color: #FFFFFF; font-size: 15px; font-weight: 700; -unity-font-style: bold; padding: 16px; border-radius: 16px; border-width: 0; margin-bottom: 12px;"/>
+                    <ui:Button name="consent-retry-btn" text="TRY AGAIN" style="background-color: rgb(255, 109, 0); color: #FFFFFF; font-size: 15px; font-weight: 700; -unity-font-style: bold; padding: 16px; border-radius: 16px; border-width: 0; margin-bottom: 12px; display: none;"/>
+                    <ui:Button name="consent-decline-btn" text="NOT NOW" class="btn-danger" style="background-color: #F5F5F5; color: #666666; font-size: 15px; font-weight: 700; -unity-font-style: bold; padding: 16px; border-radius: 16px; border-width: 0;"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:ScrollView>
+    </ui:VisualElement>
+</ui:UXML>

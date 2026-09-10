@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -5,6 +7,7 @@ using MiningSafetyAR.UI;
 using MiningSafetyAR.UI.Navigation;
 using MiningSafetyAR.Data;
 using MiningSafetyAR.UI.Helpers;
+using MiningSafetyAR.Localization;
 
 namespace MiningSafetyAR.UI.Pages
 {
@@ -22,6 +25,8 @@ namespace MiningSafetyAR.UI.Pages
         VisualElement objectivesList, scoreBars;
         VisualElement tableBody;
         Button actionBtn, certBtn, backBtn;
+        VisualElement feedbackBanner;
+        Label feedbackIcon, feedbackText;
 
         protected override void BindUI()
         {
@@ -40,6 +45,9 @@ namespace MiningSafetyAR.UI.Pages
             actionBtn = root.Q<Button>("action-btn");
             certBtn = root.Q<Button>("cert-btn");
             backBtn = root.Q<Button>("back-btn");
+            feedbackBanner = root.Q("feedback-banner");
+            feedbackIcon = root.Q<Label>("feedback-icon");
+            feedbackText = root.Q<Label>("feedback-text");
 
             if (scoreBarTemplate == null)
             {
@@ -68,6 +76,7 @@ namespace MiningSafetyAR.UI.Pages
 
         public override void OnPageEnter()
         {
+            HideFeedback();
             if (string.IsNullOrEmpty(moduleId)) moduleId = "fire_safety";
             var app = AppDataService.Instance;
             if (app != null)
@@ -219,7 +228,69 @@ namespace MiningSafetyAR.UI.Pages
         void OnActionClicked()
         {
             if (string.IsNullOrEmpty(moduleId)) moduleId = "fire_safety";
+            HideFeedback();
 
+            var worker = AppDataService.Instance != null ? AppDataService.Instance.CurrentWorker : null;
+            string uid = worker != null ? worker.firebaseUid : null;
+
+            if (string.IsNullOrEmpty(uid) || FaceVerificationService.Instance == null)
+            {
+                // No session/service to verify against — this mirrors the app's general
+                // offline/degraded-tolerant posture rather than hard-blocking training entirely.
+                Debug.LogWarning("[WARN] ModuleDetailPageController Face verification unavailable (no worker/service) — proceeding without it.");
+                ProceedToTraining();
+                return;
+            }
+
+            StartCoroutine(VerifyThenProceed(uid));
+        }
+
+        IEnumerator VerifyThenProceed(string uid)
+        {
+            bool enrollmentChecked = false;
+            bool hasEnrollment = false;
+            FaceVerificationService.Instance.HasActiveEnrollment(uid, ok => { hasEnrollment = ok; enrollmentChecked = true; });
+            yield return new WaitUntil(() => enrollmentChecked);
+
+            if (!hasEnrollment)
+            {
+                Debug.Log($"[INFO] ModuleDetailPageController No active face enrollment for worker {uid} — routing to consent screen before training.");
+                (string, object) dest = ("UI_ModuleDetail", moduleId);
+                NavigationManager.Instance.NavigateTo("UI_FaceConsent", dest);
+                yield break;
+            }
+
+            if (actionBtn != null) { actionBtn.SetEnabled(false); actionBtn.text = "VERIFYING FACE..."; }
+
+            bool verifyDone = false;
+            FaceVerificationService.FaceVerificationResult result = null;
+            FaceVerificationService.Instance.VerifyFace(uid, r => { result = r; verifyDone = true; });
+            yield return new WaitUntil(() => verifyDone);
+
+            if (actionBtn != null) actionBtn.SetEnabled(true);
+            ConfigureActionButton(); // restore correct label (START/CONTINUE/RETAKE)
+
+            if (result != null && result.failureReason == "model_version_mismatch_reenrollment_required")
+            {
+                Debug.Log($"[INFO] ModuleDetailPageController Embedding model version mismatch for worker {uid} — routing to re-enrollment.");
+                (string, object) dest = ("UI_ModuleDetail", moduleId);
+                NavigationManager.Instance.NavigateTo("UI_FaceConsent", dest);
+                yield break;
+            }
+
+            if (result != null && result.passed)
+            {
+                ProceedToTraining();
+            }
+            else
+            {
+                Debug.LogWarning($"[WARN] ModuleDetailPageController Face verification failed for worker {uid}: reason={result?.failureReason}, similarity={result?.similarityScore:F3}");
+                ShowFailure(result?.failureReason);
+            }
+        }
+
+        void ProceedToTraining()
+        {
             if (AppDataService.Instance != null)
             {
                 AppDataService.Instance.RecordAttemptStarted(moduleId);
@@ -247,6 +318,59 @@ namespace MiningSafetyAR.UI.Pages
                 Debug.Log($"[ModuleDetail] Skipping AR simulation for '{moduleId}', proceeding directly to Assessment...");
                 NavigationManager.Instance.NavigateTo("UI_Assessment", moduleId);
             }
+        }
+
+        void HideFeedback()
+        {
+            if (feedbackBanner != null) feedbackBanner.style.display = DisplayStyle.None;
+        }
+
+        void ShowFailure(string reasonCode)
+        {
+            if (feedbackBanner == null || feedbackText == null) return;
+
+            var lang = LanguageManager.Instance;
+            string Localized(string en, string hi, string sat, string ta) => lang != null ? lang.GetLocalizedText(en, hi, sat, ta) : en;
+
+            string message = reasonCode switch
+            {
+                "similarity_below_threshold" => Localized(
+                    "Face did not match your enrolled profile. Please try again.",
+                    "चेहरा आपकी दर्ज प्रोफ़ाइल से मेल नहीं खाया। कृपया फिर से प्रयास करें।",
+                    "ᱚᱛᱚᱨ ᱟᱢᱟᱜ ᱚᱞ ᱟᱠᱟᱱ ᱯᱨᱚᱯᱷᱟᱭᱤᱞ ᱥᱟᱶ ᱵᱟᱭ ᱢᱤᱞᱟᱣᱮᱱᱟ। ᱫᱩᱦᱲᱟᱹ ᱪᱮᱥᱴᱟ ᱢᱮ।",
+                    "முகம் உங்கள் பதிவு செய்யப்பட்ட சுயவிவரத்துடன் பொருந்தவில்லை. மீண்டும் முயற்சிக்கவும்."),
+                "no_face_detected" => Localized(
+                    "No face was detected. Make sure your face is clearly visible and try again.",
+                    "कोई चेहरा नहीं मिला। सुनिश्चित करें कि आपका चेहरा स्पष्ट रूप से दिख रहा है और फिर से प्रयास करें।",
+                    "ᱚᱛᱚᱨ ᱵᱟᱭ ᱮᱛᱟᱠᱟᱱᱟ। ᱟᱢᱟᱜ ᱚᱛᱚᱨ ᱯᱟᱨᱚᱢ ᱧᱮᱞᱚᱜ ᱠᱟᱱᱟ ᱠᱚ ᱡᱟᱶᱤ ᱠᱮᱡᱮ ᱟᱨ ᱫᱩᱦᱲᱟᱹ ᱪᱮᱥᱴᱟ ᱢᱮ।",
+                    "முகம் கண்டறியப்படவில்லை. உங்கள் முகம் தெளிவாகத் தெரிகிறதா என்பதை உறுதிசெய்து மீண்டும் முயற்சிக்கவும்."),
+                "multiple_faces_detected" => Localized(
+                    "More than one face was detected. Make sure you are alone in the frame and try again.",
+                    "एक से अधिक चेहरे मिले। सुनिश्चित करें कि फ्रेम में केवल आप हैं और फिर से प्रयास करें।",
+                    "ᱢᱤᱫ ᱠᱷᱚᱱ ᱲᱮᱨ ᱚᱛᱚᱨ ᱮᱛᱟᱠᱟᱱᱟ। ᱟᱢ ᱡᱚᱛᱚ ᱢᱤᱫᱴᱟᱹᱺ ᱢᱮᱱᱟᱢᱟ ᱡᱟᱶᱤ ᱠᱮᱡᱮ ᱟᱨ ᱫᱩᱦᱲᱟᱹ ᱪᱮᱥᱴᱟ ᱢᱮ।",
+                    "ஒன்றுக்கு மேற்பட்ட முகங்கள் கண்டறியப்பட்டன. நீங்கள் மட்டும் தனியாக இருப்பதை உறுதிசெய்து மீண்டும் முயற்சிக்கவும்."),
+                "camera_unavailable" => Localized(
+                    "Could not access the camera. Check camera permissions and try again.",
+                    "कैमरे तक नहीं पहुंच सका। कैमरा अनुमतियां जांचें और फिर से प्रयास करें।",
+                    "ᱠᱮᱢᱨᱟ ᱵᱟᱭ ᱧᱟᱢ ᱞᱮᱱᱟ। ᱠᱮᱢᱨᱟ ᱟᱹᱡᱩᱨ ᱠᱚ ᱦᱮᱨᱮᱡ ᱢᱮ ᱟᱨ ᱫᱩᱦᱲᱟᱹ ᱪᱮᱥᱴᱟ ᱢᱮ।",
+                    "கேமராவை அணுக முடியவில்லை. கேமரா அனுமதிகளை சரிபார்த்து மீண்டும் முயற்சிக்கவும்."),
+                "not_enrolled" or "models_not_configured" or "anchors_not_configured" => Localized(
+                    "Face verification isn't ready yet. Please contact your training administrator.",
+                    "चेहरा सत्यापन अभी तैयार नहीं है। कृपया अपने प्रशिक्षण व्यवस्थापक से संपर्क करें।",
+                    "ᱚᱛᱚᱨ ᱥᱟᱠᱷᱭᱦᱮᱛ ᱱᱚᱶᱟ ᱛᱟᱦᱮᱸ ᱵᱟᱭ ᱛᱮᱭᱟᱨ ᱦᱩᱭᱮᱱᱟ। ᱟᱢᱟᱜ ᱛᱨᱮᱱᱤᱝ ᱮᱰᱢᱤᱱᱤᱥᱴᱨᱮᱴᱚᱨ ᱥᱟᱶ ᱛᱟᱞᱟᱠᱟᱛᱮ ᱢᱮ।",
+                    "முக சரிபார்ப்பு இன்னும் தயாராக இல்லை. உங்கள் பயிற்சி நிர்வாகியை தொடர்பு கொள்ளவும்."),
+                _ => Localized(
+                    "Face verification failed. Please try again.",
+                    "चेहरा सत्यापन विफल रहा। कृपया फिर से प्रयास करें।",
+                    "ᱚᱛᱚᱨ ᱥᱟᱠᱷᱭᱦᱮᱛ ᱵᱟᱹᱰᱨᱟᱹᱭ ᱦᱩᱭ ᱮᱱᱟ। ᱫᱩᱦᱲᱟᱹ ᱪᱮᱥᱴᱟ ᱢᱮ।",
+                    "முக சரிபார்ப்பு தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும்."),
+            };
+
+            feedbackText.text = message;
+            if (feedbackIcon != null) { feedbackIcon.text = "✗"; feedbackIcon.style.color = new StyleColor(new Color(0.77f, 0.15f, 0.15f)); }
+            feedbackText.style.color = new StyleColor(new Color(0.77f, 0.15f, 0.15f));
+            feedbackBanner.style.backgroundColor = new StyleColor(new Color(0.98f, 0.85f, 0.85f));
+            feedbackBanner.style.display = DisplayStyle.Flex;
         }
 
         void StartLocationCaptureAndNavigate()

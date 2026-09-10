@@ -48,6 +48,10 @@
                 
                 <!-- Action Buttons -->
                 <ui:VisualElement name="action-section" style="margin-bottom: 32px;">
+                    <ui:VisualElement class="feedback-banner" name="feedback-banner" style="flex-direction: row; align-items: center; border-radius: 10px; padding: 12px; margin-bottom: 12px; display: none;">
+                        <ui:Label class="feedback-banner__icon" name="feedback-icon" text="" style="font-size: 16px; margin-right: 8px;" />
+                        <ui:Label class="feedback-banner__text" name="feedback-text" text="" style="font-size: 13px; font-weight: 500; white-space: normal; flex-shrink: 1;" />
+                    </ui:VisualElement>
                     <ui:Button class="btn-primary" name="action-btn" text="START TRAINING" style="background-color: rgb(255, 109, 0); color: #FFFFFF; font-size: 16px; font-weight: 700; -unity-font-style: bold; padding: 16px; border-radius: 20px; border-width: 0; box-shadow: 0px 8px 16px rgba(255, 109, 0, 0.3);" />
                     <ui:Button class="btn-secondary" name="cert-btn" text="VIEW CERTIFICATE" style="display: none; background-color: #FFFFFF; color: rgb(255, 109, 0); font-size: 14px; font-weight: 700; -unity-font-style: bold; padding: 16px; border-radius: 20px; border-width: 2px; border-color: rgb(255, 109, 0); margin-top: 12px;" />
                     <ui:VisualElement name="locked-message" style="display: none; align-items: center; margin-top: 16px; background-color: #F5F5F5; padding: 16px; border-radius: 20px;">

@@ -13,6 +13,7 @@ namespace MiningSafetyAR.UI.Pages
         ToggleSwitchController soundToggle, voiceToggle;
         Button logoutBtn;
         Button langEn, langHi, langSat;
+        Button withdrawFaceConsentBtn;
 
         protected override void BindUI()
         {
@@ -23,6 +24,7 @@ namespace MiningSafetyAR.UI.Pages
             langEn = root.Q<Button>("lang-en");
             langHi = root.Q<Button>("lang-hi");
             langSat = root.Q<Button>("lang-sat");
+            withdrawFaceConsentBtn = root.Q<Button>("withdraw-face-consent-btn");
 
             var soundEl = root.Q("toggle-sound");
             var voiceEl = root.Q("toggle-voice");
@@ -33,6 +35,7 @@ namespace MiningSafetyAR.UI.Pages
             if (langEn != null) langEn.RegisterCallback<ClickEvent>(e => SetLanguage("English", langEn));
             if (langHi != null) langHi.RegisterCallback<ClickEvent>(e => SetLanguage("Hindi", langHi));
             if (langSat != null) langSat.RegisterCallback<ClickEvent>(e => SetLanguage("Santali", langSat));
+            if (withdrawFaceConsentBtn != null) withdrawFaceConsentBtn.RegisterCallback<ClickEvent>(e => OnWithdrawFaceConsent());
 
             var tabHome = root.Q<Button>("tab-home");
             var tabTraining = root.Q<Button>("tab-training");
@@ -106,6 +109,33 @@ namespace MiningSafetyAR.UI.Pages
                 row.Add(title);
                 certsList.Add(row);
             }
+        }
+
+        void OnWithdrawFaceConsent()
+        {
+            var worker = AppDataService.Instance != null ? AppDataService.Instance.CurrentWorker : null;
+            string uid = worker != null ? worker.firebaseUid : null;
+            if (string.IsNullOrEmpty(uid) || FaceVerificationService.Instance == null)
+            {
+                Debug.LogWarning("[WARN] SettingsPageController Withdraw-face-consent pressed but no worker/service is available.");
+                return;
+            }
+
+            if (withdrawFaceConsentBtn != null)
+            {
+                withdrawFaceConsentBtn.SetEnabled(false);
+                withdrawFaceConsentBtn.text = "WITHDRAWING...";
+            }
+
+            FaceVerificationService.Instance.WithdrawConsent(uid, (ok, resp) =>
+            {
+                if (withdrawFaceConsentBtn != null)
+                {
+                    withdrawFaceConsentBtn.SetEnabled(true);
+                    withdrawFaceConsentBtn.text = ok ? "FACE DATA CONSENT WITHDRAWN" : "WITHDRAW FACE DATA CONSENT";
+                }
+                if (!ok) Debug.LogWarning($"[WARN] SettingsPageController Withdraw face consent failed: {resp}");
+            });
         }
 
         void OnLogout()

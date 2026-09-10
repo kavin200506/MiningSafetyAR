@@ -184,6 +184,22 @@ namespace MiningSafetyAR.UI.Pages
         System.Collections.IEnumerator NavigateAfterSave(WorkerData worker)
         {
             yield return new WaitForSeconds(0.5f);
+
+            if (FaceVerificationService.Instance != null && !string.IsNullOrEmpty(worker.firebaseUid))
+            {
+                bool checkedEnrollment = false;
+                bool hasEnrollment = false;
+                FaceVerificationService.Instance.HasActiveEnrollment(worker.firebaseUid, ok => { hasEnrollment = ok; checkedEnrollment = true; });
+                yield return new WaitUntil(() => checkedEnrollment);
+
+                if (!hasEnrollment)
+                {
+                    Debug.Log("[INFO] RegisterPageController New worker has no active face enrollment — routing to consent screen.");
+                    NavigationManager.Instance.NavigateTo("UI_FaceConsent", "UI_Dashboard", pushToStack: false);
+                    yield break;
+                }
+            }
+
             NavigationManager.Instance.NavigateToRoot("UI_Dashboard");
         }
 

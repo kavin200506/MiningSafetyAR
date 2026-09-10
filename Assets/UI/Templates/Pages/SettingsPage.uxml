@@ -60,6 +60,10 @@
                         <ui:Label text="Synced Today" style="font-size: 14px; font-weight: 700; color: rgb(76, 175, 80); -unity-font-style: bold;"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
+                <ui:Label text="Privacy" style="font-size: 16px; font-weight: 700; color: #1A1A1A; -unity-font-style: bold; margin-bottom: 12px; padding-left: 4px;"/>
+                <ui:VisualElement class="card" style="background-color: #FFFFFF; border-radius: 20px; padding: 16px; margin-bottom: 24px; border-width: 1px; border-color: #E0E0E0;">
+                    <ui:Button name="withdraw-face-consent-btn" text="WITHDRAW FACE DATA CONSENT" style="background-color: #FFF3E0; color: rgb(230, 81, 0); font-size: 14px; font-weight: 700; -unity-font-style: bold; padding: 14px; border-radius: 14px; border-width: 0;"/>
+                </ui:VisualElement>
                 <ui:Label text="Certifications" style="font-size: 16px; font-weight: 700; color: #1A1A1A; -unity-font-style: bold; margin-bottom: 12px; padding-left: 4px;"/>
                 <ui:VisualElement name="certifications-list" class="card" style="background-color: #FFFFFF; border-radius: 20px; padding: 16px; margin-bottom: 32px; border-width: 1px; border-color: #E0E0E0; flex-direction: column;"/>
                 <ui:Button name="logout-btn" text="LOG OUT" class="btn-danger" style="background-color: rgb(255, 235, 238); color: rgb(244, 67, 54); font-size: 15px; font-weight: 700; -unity-font-style: bold; padding: 16px; border-radius: 16px; border-width: 0;"/>

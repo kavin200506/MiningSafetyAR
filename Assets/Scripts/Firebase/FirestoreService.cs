@@ -19,6 +19,8 @@ namespace MiningSafetyAR.Firebase
     ///                                          competencyScores map (per-module, not per-worker)
     ///   workers/{uid}/results/{resultId}     – individual training attempt results
     ///   workers/{uid}/certificates/{certId}  – private copy of every certificate this worker earned
+    ///   workers/{uid}/private/faceData       – face-verification consent + MobileFaceNet embedding
+    ///                                          vector (never a raw image — see FaceVerificationService)
     ///   certificates/{certId}                – PUBLIC top-level collection, one doc per issued
     ///                                          certificate, used for QR-code / cert-ID
     ///                                          verification without needing to know the worker
@@ -437,6 +439,21 @@ namespace MiningSafetyAR.Firebase
                 Debug.LogWarning($"[Firestore] LIST FAIL: {req.error}");
                 cb?.Invoke(false, results);
             }
+        }
+
+        // ----------------------------------------------------------------
+        // FACE VERIFICATION DATA (private sub-document: workers/{uid}/private/faceData)
+        // See FaceVerificationService — only ever holds an embedding vector, never a raw image.
+        // ----------------------------------------------------------------
+
+        public void SaveFaceData(string firebaseUid, string flatJson, Action<bool, string> cb = null)
+        {
+            StartCoroutine(PatchDocument($"workers/{firebaseUid}/private/faceData", flatJson, cb));
+        }
+
+        public void GetFaceData(string firebaseUid, Action<bool, string> cb)
+        {
+            StartCoroutine(GetDocument($"workers/{firebaseUid}/private/faceData", cb));
         }
 
         // ----------------------------------------------------------------
