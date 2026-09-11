@@ -77,6 +77,12 @@ namespace MiningSafetyAR.AR
                             Modules.FireSafetyModuleManager.MistakeSeverity.ProximityBreach);
                     }
 
+                    if (Firebase.FirestoreService.Instance != null)
+                    {
+                        Firebase.FirestoreService.Instance.LogMistakeEvent(
+                            "fire_safety", "main", Data.MistakeTags.UnsafeProximityToFire, Data.MistakeTags.UnsafeProximityToFireSeverity);
+                    }
+
                     OnProximityBreached?.Invoke(distanceToFire);
                 }
             }
@@ -101,6 +107,11 @@ namespace MiningSafetyAR.AR
                 Modules.FireSafetyModuleManager.Instance.RegisterMistake(
                     "Step back! Don't stand within 3.5 ft. of the fire.",
                     Modules.FireSafetyModuleManager.MistakeSeverity.ProximityBreach);
+            }
+            if (Firebase.FirestoreService.Instance != null)
+            {
+                Firebase.FirestoreService.Instance.LogMistakeEvent(
+                    "fire_safety", "main", Data.MistakeTags.UnsafeProximityToFire, Data.MistakeTags.UnsafeProximityToFireSeverity);
             }
             OnProximityBreached?.Invoke(0.8f);
         }

@@ -74,6 +74,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/UI_FaceConsent.unity
     guid: 3f7d948351ce443bbca5d0a703cc83f4
+  - enabled: 1
+    path: Assets/Scenes/UI_AdaptiveQuiz.unity
+    guid: 175f206d599b46a39806e9855a2a5006
   m_configObjects:
     UnityEditor.XR.ARCore.ARCoreSettings: {fileID: 11400000, guid: cbd3db67e59464d9585bd5c5b65740f3, type: 2}
     UnityEditor.XR.ARKit.ARKitSettings: {fileID: 11400000, guid: 17fbec4aee5fc4d89825583c1899c827, type: 2}

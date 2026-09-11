@@ -56,7 +56,13 @@ namespace MiningSafetyAR.UI.Core
             if (embedModel == null) Debug.LogWarning("[UIBootstrap] mobile_facenet.onnx not found at expected path — FaceVerificationService will not embed faces.");
 #endif
 
-            Debug.Log("[UIBootstrap] Spawned NavigationManager + AppDataService + FaceVerificationService");
+            // QuizSelectionService persistent — no asset references to auto-assign, its
+            // feedbackEndpointUrl default already points at the deployed Cloudflare Worker.
+            var quizGo = new GameObject("QuizSelectionService");
+            Object.DontDestroyOnLoad(quizGo);
+            quizGo.AddComponent<Data.QuizSelectionService>();
+
+            Debug.Log("[UIBootstrap] Spawned NavigationManager + AppDataService + FaceVerificationService + QuizSelectionService");
         }
     }
 }

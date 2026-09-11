@@ -59,6 +59,8 @@ namespace MiningSafetyAR.Modules
             else
             {
                 RegisterMistake("Selected incorrect location! Monitor the gas detector reading for methane/CO buildup.");
+                Firebase.FirestoreService.Instance?.LogMistakeEvent(
+                    "gas_safety", "main", MistakeTags.WrongHazardLocalization, MistakeTags.WrongHazardLocalizationSeverity);
             }
         }
 
@@ -73,6 +75,8 @@ namespace MiningSafetyAR.Modules
             else
             {
                 RegisterMistake("Standard dust mask is insufficient for toxic/oxygen-deficient confined space! Use SCBA.");
+                Firebase.FirestoreService.Instance?.LogMistakeEvent(
+                    "gas_safety", "main", MistakeTags.MissedPpeCheck, MistakeTags.MissedPpeCheckSeverity);
             }
         }
 
@@ -87,6 +91,8 @@ namespace MiningSafetyAR.Modules
             else
             {
                 RegisterMistake("Never enter a confined space without verifying communications with your standby buddy!");
+                Firebase.FirestoreService.Instance?.LogMistakeEvent(
+                    "gas_safety", "main", MistakeTags.UnsafeZoneEntry, MistakeTags.UnsafeZoneEntrySeverity);
             }
         }
 

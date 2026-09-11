@@ -21,6 +21,32 @@ namespace MiningSafetyAR.Firebase
     ///   workers/{uid}/certificates/{certId}  – private copy of every certificate this worker earned
     ///   workers/{uid}/private/faceData       – face-verification consent + MobileFaceNet embedding
     ///                                          vector (never a raw image — see FaceVerificationService)
+    ///   workers/{uid}/progress/{moduleId}/submodules/{submoduleId}
+    ///                                        – per-submodule adaptive-quiz state: difficultyLevel
+    ///                                          (easy/medium/hard), lastScorePercent, lastAttemptAt.
+    ///                                          NOTE: the originally-sketched path
+    ///                                          ".../{moduleId}/{submoduleId}/mistakes/{eventId}" has
+    ///                                          an odd segment count and isn't a legal Firestore
+    ///                                          document path (Firestore requires strict
+    ///                                          collection/document alternation) — the literal
+    ///                                          "submodules" segment here is what makes {submoduleId}
+    ///                                          a real document that can host the two subcollections
+    ///                                          below, functionally identical to what was asked.
+    ///     .../submodules/{submoduleId}/mistakes/{eventId}
+    ///                                        – one doc per detected trainee mistake: tag (from the
+    ///                                          mistake-tag taxonomy — see LogMistakeEvent), severity
+    ///                                          (int 1-3), timestamp. Feeds QuizSelectionService's
+    ///                                          adaptive question selection ONLY — not used for
+    ///                                          drill scoring (that stays in
+    ///                                          FireSafetyModuleManager/ScoringConstants).
+    ///     .../submodules/{submoduleId}/askedQuestions/{questionId}
+    ///                                        – one doc per question ID previously served to this
+    ///                                          worker for this submodule (lastAskedAt timestamp),
+    ///                                          so QuizSelectionService can avoid immediate repeats.
+    ///   questionBank/{moduleId}/submodules/{submoduleId}/questions/{questionId}
+    ///                                        – PUBLIC top-level collection (same odd-segment fix as
+    ///                                          above): the adaptive quiz's question bank. See
+    ///                                          QuestionBankItem.cs for the field schema.
     ///   certificates/{certId}                – PUBLIC top-level collection, one doc per issued
     ///                                          certificate, used for QR-code / cert-ID
     ///                                          verification without needing to know the worker
@@ -454,6 +480,102 @@ namespace MiningSafetyAR.Firebase
         public void GetFaceData(string firebaseUid, Action<bool, string> cb)
         {
             StartCoroutine(GetDocument($"workers/{firebaseUid}/private/faceData", cb));
+        }
+
+        // ----------------------------------------------------------------
+        // ADAPTIVE QUIZ — MISTAKE LOGGING
+        // Path: workers/{uid}/progress/{moduleId}/submodules/{submoduleId}/mistakes/{eventId}
+        // Called by AR simulation scripts the moment they detect a specific, tagged trainee error.
+        // Feeds QuizSelectionService's weakness-vector computation ONLY — never drill scoring.
+        // ----------------------------------------------------------------
+
+        /// <summary>
+        /// Logs one tagged mistake event for the CURRENTLY LOGGED-IN worker (resolved internally via
+        /// FirebaseAuthManager, not passed in) — deliberately uid-less so any AR script can call this
+        /// inline at the moment it detects a mistake without needing to plumb a uid through first.
+        /// No-ops with a warning if nobody is logged in.
+        /// </summary>
+        public void LogMistakeEvent(string moduleId, string submoduleId, string tag, int severity)
+        {
+            string uid = FirebaseAuthManager.Instance != null ? FirebaseAuthManager.Instance.CurrentUserId : null;
+            if (string.IsNullOrEmpty(uid))
+            {
+                Debug.LogWarning($"[Firestore] LogMistakeEvent('{tag}') skipped — no logged-in worker.");
+                return;
+            }
+
+            string eventId = Guid.NewGuid().ToString("N");
+            var fields = new Dictionary<string, object>
+            {
+                { "tag", tag },
+                { "severity", severity },
+                { "timestamp", DateTime.UtcNow.ToString("o") },
+            };
+            string flatJson = MiniJSON.Json.Serialize(fields);
+            StartCoroutine(PatchDocument($"workers/{uid}/progress/{moduleId}/submodules/{submoduleId}/mistakes/{eventId}", flatJson, null));
+        }
+
+        public void GetMistakeHistory(string uid, string moduleId, string submoduleId, Action<bool, List<Dictionary<string, object>>> cb)
+        {
+            string url = $"{BASE_URL}/workers/{uid}/progress/{moduleId}/submodules/{submoduleId}/mistakes?key={API_KEY}";
+            StartCoroutine(ListCollection(url, cb));
+        }
+
+        // ----------------------------------------------------------------
+        // ADAPTIVE QUIZ — ASKED-QUESTION TRACKING
+        // Path: workers/{uid}/progress/{moduleId}/submodules/{submoduleId}/askedQuestions/{questionId}
+        // ----------------------------------------------------------------
+
+        public void MarkQuestionAsked(string uid, string moduleId, string submoduleId, string questionId)
+        {
+            var fields = new Dictionary<string, object> { { "lastAskedAt", DateTime.UtcNow.ToString("o") } };
+            string flatJson = MiniJSON.Json.Serialize(fields);
+            StartCoroutine(PatchDocument($"workers/{uid}/progress/{moduleId}/submodules/{submoduleId}/askedQuestions/{questionId}", flatJson, null));
+        }
+
+        public void GetAskedQuestionIds(string uid, string moduleId, string submoduleId, Action<bool, List<Dictionary<string, object>>> cb)
+        {
+            string url = $"{BASE_URL}/workers/{uid}/progress/{moduleId}/submodules/{submoduleId}/askedQuestions?key={API_KEY}";
+            StartCoroutine(ListCollection(url, cb));
+        }
+
+        // ----------------------------------------------------------------
+        // ADAPTIVE QUIZ — PER-SUBMODULE STATE (difficulty weighting)
+        // Path: workers/{uid}/progress/{moduleId}/submodules/{submoduleId}
+        // ----------------------------------------------------------------
+
+        public void SaveSubmoduleQuizState(string uid, string moduleId, string submoduleId, string flatJson, Action<bool, string> cb = null)
+        {
+            StartCoroutine(PatchDocument($"workers/{uid}/progress/{moduleId}/submodules/{submoduleId}", flatJson, cb));
+        }
+
+        public void GetSubmoduleQuizState(string uid, string moduleId, string submoduleId, Action<bool, string> cb)
+        {
+            StartCoroutine(GetDocument($"workers/{uid}/progress/{moduleId}/submodules/{submoduleId}", cb));
+        }
+
+        // ----------------------------------------------------------------
+        // ADAPTIVE QUIZ — QUESTION BANK (PUBLIC, no auth required to read)
+        // Path: questionBank/{moduleId}/submodules/{submoduleId}/questions/{questionId}
+        // ----------------------------------------------------------------
+
+        public void GetQuestionBank(string moduleId, string submoduleId, Action<bool, List<Dictionary<string, object>>> cb)
+        {
+            string url = $"{BASE_URL}/questionBank/{moduleId}/submodules/{submoduleId}/questions?key={API_KEY}";
+            StartCoroutine(ListCollection(url, cb, useAuth: false));
+        }
+
+        /// <summary>
+        /// Writes one question bank doc. SECURITY NOTE: this project has no firestore.rules file in
+        /// the repo (see known tech-debt), so nothing server-side currently distinguishes "a real
+        /// admin seeding content" from "any authenticated client" — this uses useAuth:true (a login
+        /// is required) as the least-bad default available right now, but that is NOT a real access
+        /// control. Before shipping, add rules restricting questionBank writes to a trusted
+        /// admin/service context (ideally only the Cloud Function's Admin SDK, never a client at all).
+        /// </summary>
+        public void SaveQuestionBankItem(string moduleId, string submoduleId, string questionId, string flatJson, Action<bool, string> cb = null)
+        {
+            StartCoroutine(PatchDocument($"questionBank/{moduleId}/submodules/{submoduleId}/questions/{questionId}", flatJson, cb));
         }
 
         // ----------------------------------------------------------------

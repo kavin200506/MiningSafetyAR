@@ -31,6 +31,8 @@ namespace MiningSafetyAR.Modules
         [Header("Squeeze & Sweep Quality (see documents/technical_scoring_explained.md §3.5)")]
         [Tooltip("Minimum Squeeze & Sweep score even at zero measured sweep technique — distinguishes 'put it out standing still' from 'never put it out' rather than flooring both at zero.")]
         [SerializeField] private int sweepQualityFloor = 30;
+        [Tooltip("Below this average sweep intensity (0-1), logs a poor_sweep_technique mistake event for the adaptive quiz (see MistakeTags).")]
+        [SerializeField] private float poorSweepIntensityThreshold = 0.5f;
 
         [Header("Evacuation (see documents/technical_scoring_explained.md §3.7)")]
         [Tooltip("Distance from the fire hazard's position the safe assembly point is placed at.")]
@@ -334,6 +336,12 @@ namespace MiningSafetyAR.Modules
             int drillMaxScore = GetMaxPossibleScore();
             float drillPercentage = drillMaxScore > 0 ? (float)drillScore / drillMaxScore * 100f : 0f;
 
+            if (!alarmActivated)
+            {
+                Firebase.FirestoreService.Instance?.LogMistakeEvent(
+                    "fire_safety", "main", MistakeTags.AlarmNotActivated, MistakeTags.AlarmNotActivatedSeverity);
+            }
+
             int hazardRecognitionPct = ComputeHazardRecognitionScore();
             int extinguisherUsePct = ComputeExtinguisherUseScore();
             int timeManagementPct = ComputeTimeScore(timeTaken);
@@ -448,11 +456,19 @@ namespace MiningSafetyAR.Modules
             int penalty = stepPenaltyPoints[SqueezeSweepStepIndex];
             stepScoreOverride[SqueezeSweepStepIndex] = Mathf.Clamp(qualityScore - penalty, sweepQualityFloor, pointsPerStep);
 
+            if (avgIntensity < poorSweepIntensityThreshold)
+            {
+                Firebase.FirestoreService.Instance?.LogMistakeEvent(
+                    "fire_safety", "main", MistakeTags.PoorSweepTechnique, MistakeTags.PoorSweepTechniqueSeverity);
+            }
+
             CompleteCurrentStep(); // records Squeeze & Sweep, advances into Evacuation via OnStepStart
         }
 
         private void HandleExtinguisherDepleted()
         {
+            Firebase.FirestoreService.Instance?.LogMistakeEvent(
+                "fire_safety", "main", MistakeTags.ExtinguisherDepletedBeforeOut, MistakeTags.ExtinguisherDepletedBeforeOutSeverity);
             TriggerFailureEscalation("Extinguisher foam depleted before fire was extinguished!");
         }
 
@@ -558,6 +574,12 @@ namespace MiningSafetyAR.Modules
             int penalty = stepPenaltyPoints[EvacuationStepIndex];
 
             stepScoreOverride[EvacuationStepIndex] = Mathf.Clamp(pointsPerStep - penalty - latenessDeduction, evacuationScoreFloor, pointsPerStep);
+
+            if (lateSeconds > 0f)
+            {
+                Firebase.FirestoreService.Instance?.LogMistakeEvent(
+                    "fire_safety", "main", MistakeTags.SlowEvacuation, MistakeTags.SlowEvacuationSeverity);
+            }
 
             CompleteCurrentStep(); // last step — triggers FinishModule()
         }
