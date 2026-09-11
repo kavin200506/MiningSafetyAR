@@ -914,13 +914,28 @@ namespace MiningSafetyAR.UI.Pages
 
             string targetModule = string.IsNullOrEmpty(moduleId) ? "fire_safety" : moduleId;
 
+            // AppDataService.EnsureSubModulesLoaded() synthesizes 5 cosmetic sub-entries per category
+            // at runtime (fire_safety_sub1..sub5 — "Fire Extinguisher Protocol", "High-Voltage Panel
+            // Arc Flash", etc.) that ALL currently route to this exact same single AR drill. targetModule
+            // here is whichever specific sub-label the worker clicked through (e.g. "fire_safety_sub1"),
+            // but the mistake tags (MistakeTags.cs) and the adaptive question bank are keyed to the
+            // shared PARENT category ("fire_safety") — that's genuinely where the one real drill's
+            // content lives, and fragmenting mistake history/question banks across 5 cosmetic labels
+            // for what's mechanically the same experience would make the adaptive selection pointless.
+            // progressModuleId keeps the exact specific id for certificate/progress tracking, which
+            // already correctly depends on it (see AppDataService.cs's own comment referencing
+            // "fire_safety_sub1") — only the quiz/mistake lookup needs the parent category.
+            string quizCategoryId = targetModule.Contains("_sub") ? targetModule.Substring(0, targetModule.IndexOf("_sub")) : targetModule;
+
             // Hand off the REAL drill performance instead of just the module id — this is what
             // stops the quiz page from falling back to its hardcoded simulationScore=80 default.
             // See documents/technical_scoring_explained.md §4.1.
             var payload = FireSafetyModuleManager.Instance?.LastDrillResult;
             var navParam = new Dictionary<string, object>
             {
-                { "moduleId", targetModule },
+                { "moduleId", quizCategoryId },       // used for QuizSelectionService (mistakes + question bank)
+                { "progressModuleId", targetModule },  // used for AppDataService.SaveAttempt / certificates
+                { "submoduleId", "main" }, // fire_safety has no real AR-content submodule split yet — see MistakeTags.cs
                 { "simulationScore", payload != null ? Mathf.RoundToInt(payload.drillScorePercentage) : 0 },
                 { "drillMistakesCount", payload?.mistakesCount ?? 0 },
                 { "drillTimeSeconds", payload?.completionTimeSeconds ?? 0f },
@@ -930,8 +945,11 @@ namespace MiningSafetyAR.UI.Pages
                 { "evacuationPct", payload?.evacuationPct ?? 0 }
             };
 
-            Debug.Log($"[ARSimulationPageController] LEVEL COMPLETED: Redirecting to Quiz ('UI_Assessment') for module '{targetModule}' with real drill score {(payload != null ? payload.drillScorePercentage.ToString("F1") : "N/A")}%...");
-            NavigationManager.Instance?.NavigateTo("UI_Assessment", navParam);
+            // Routes to the new adaptive quiz (AdaptiveQuizPageController) instead of the original
+            // static-question UI_Assessment flow — AssessmentPageController itself is untouched and
+            // still used by ModuleDetailPageController for non-fire modules that have no AR drill.
+            Debug.Log($"[ARSimulationPageController] LEVEL COMPLETED: Redirecting to adaptive quiz ('UI_AdaptiveQuiz') for module '{targetModule}' with real drill score {(payload != null ? payload.drillScorePercentage.ToString("F1") : "N/A")}%...");
+            NavigationManager.Instance?.NavigateTo("UI_AdaptiveQuiz", navParam);
         }
 
         // ═══════════════════════════════════════════════════════

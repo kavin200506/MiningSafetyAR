@@ -1,0 +1,47 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Styles/Theme.uss" />
+    <Style src="project://database/Assets/UI/Styles/Reset.uss" />
+    <Style src="project://database/Assets/UI/Styles/Components.uss" />
+    <Style src="project://database/Assets/UI/Styles/Header.uss" />
+    <Style src="project://database/Assets/UI/Styles/Forms.uss" />
+    <Style src="project://database/Assets/UI/Styles/Icons.uss" />
+    <ui:VisualElement class="page-container">
+        <ui:VisualElement class="header">
+            <ui:VisualElement style="width: 32px; height: 32px;" />
+            <ui:Label class="header__title" name="page-title" text="Quiz" />
+            <ui:Label class="question-counter" name="question-counter" text="1/5" style="width: 48px; text-align: center; font-size: 12px; color: #666666;" />
+        </ui:VisualElement>
+        <ui:VisualElement class="quiz__progress-track" name="quiz-track" style="height: 3px; background-color: #FFE0B2;">
+            <ui:VisualElement class="progress-fill" name="quiz-fill" style="height: 100%; background-color: #FF6D00; width: 0%;" />
+        </ui:VisualElement>
+        <ui:ScrollView class="scroll-area">
+            <ui:VisualElement name="loading-view" style="padding: 60px 24px; align-items: center; display: flex;">
+                <ui:Label name="loading-text" text="Loading quiz..." style="font-size: 15px; color: #666666; white-space: normal; -unity-text-align: middle-center;" />
+            </ui:VisualElement>
+
+            <ui:VisualElement name="quiz-view" style="display: none;">
+                <ui:VisualElement class="card quiz-card" name="quiz-card" style="margin: 16px;">
+                    <ui:Label text="Question" name="question-label" class="quiz-card__label" style="font-size: 11px; color: #FF6D00; font-weight: 600;" />
+                    <ui:Label class="quiz-card__question" name="question-text" text="" style="font-size: 15px; color: #1A1A1A; margin-top: 4px; white-space: normal;" />
+                </ui:VisualElement>
+                <ui:VisualElement class="options-list" name="options-list" style="margin: 0 16px;" />
+            </ui:VisualElement>
+
+            <ui:VisualElement name="results-view" style="padding: 24px 16px; display: none;">
+                <ui:VisualElement class="card" style="background-color: #FFFFFF; border-radius: 24px; padding: 28px; border-width: 1px; border-color: #E0E0E0; align-items: center;">
+                    <ui:Label name="results-icon" text="🎉" style="font-size: 40px; margin-bottom: 12px;" />
+                    <ui:Label name="results-score" text="0%" style="font-size: 32px; font-weight: 800; color: #FF6D00; -unity-font-style: bold; margin-bottom: 4px;" />
+                    <ui:Label name="results-subtext" text="" style="font-size: 14px; color: #666666; margin-bottom: 20px; -unity-text-align: middle-center; white-space: normal;" />
+                    <ui:VisualElement name="feedback-banner" style="background-color: #FFF3E0; border-radius: 14px; padding: 14px; width: 100%;">
+                        <ui:Label name="feedback-text" text="Generating personalized feedback..." style="font-size: 13px; color: #333333; white-space: normal;" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Button name="continue-btn" text="CONTINUE" style="background-color: rgb(255, 109, 0); color: #FFFFFF; font-size: 15px; font-weight: 700; -unity-font-style: bold; padding: 16px; border-radius: 16px; border-width: 0; margin-top: 20px;" />
+            </ui:VisualElement>
+        </ui:ScrollView>
+        <ui:VisualElement name="quiz-nav" class="quiz__nav" style="display: none; flex-direction: row; padding: 12px 16px; border-top-color: #FFE0B2; border-top-width: 1px; background-color: #FFFFFF;">
+            <ui:Button class="btn-primary" name="next-btn" text="Next Question" style="flex: 1;" />
+            <ui:Button class="btn-primary" name="submit-btn" text="Submit Quiz" style="flex: 1; display: none; background-color: #4CAF50;" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
