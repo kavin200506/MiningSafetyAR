@@ -35,26 +35,12 @@ namespace MiningSafetyAR.UI.Core
             if (f3 != null && certDb != null) f3.SetValue(svc, certDb);
 #endif
 
-            // FaceVerificationService persistent
+            // FaceVerificationService persistent — it loads its BlazeFace/MobileFaceNet models itself
+            // via Resources.Load (see FaceVerificationService.EnsureWorkers/LoadAnchorsIfNeeded), since
+            // this AddComponent path (not a prefab) has no Inspector to assign SerializeFields from.
             var faceGo = new GameObject("FaceVerificationService");
             Object.DontDestroyOnLoad(faceGo);
-            var faceSvc = faceGo.AddComponent<Data.FaceVerificationService>();
-#if UNITY_EDITOR
-            // Auto-assign the BlazeFace detector + its anchors.csv, and the MobileFaceNet embedder.
-            var faceModel = UnityEditor.AssetDatabase.LoadAssetAtPath<Unity.InferenceEngine.ModelAsset>("Assets/Models/FaceDetection/blaze_face_short_range.onnx");
-            var faceAnchors = UnityEditor.AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Models/FaceDetection/anchors.csv");
-            var embedModel = UnityEditor.AssetDatabase.LoadAssetAtPath<Unity.InferenceEngine.ModelAsset>("Assets/Models/FaceEmbedding/mobile_facenet.onnx");
-            var faceT = typeof(Data.FaceVerificationService);
-            var ff1 = faceT.GetField("faceDetectionModel", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            if (ff1 != null && faceModel != null) ff1.SetValue(faceSvc, faceModel);
-            var ff2 = faceT.GetField("detectionAnchorsCsv", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            if (ff2 != null && faceAnchors != null) ff2.SetValue(faceSvc, faceAnchors);
-            var ff3 = faceT.GetField("faceEmbeddingModel", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            if (ff3 != null && embedModel != null) ff3.SetValue(faceSvc, embedModel);
-            if (faceModel == null) Debug.LogWarning("[UIBootstrap] blaze_face_short_range.onnx not found at expected path — FaceVerificationService will not detect faces.");
-            if (faceAnchors == null) Debug.LogWarning("[UIBootstrap] anchors.csv not found at expected path — FaceVerificationService will not detect faces.");
-            if (embedModel == null) Debug.LogWarning("[UIBootstrap] mobile_facenet.onnx not found at expected path — FaceVerificationService will not embed faces.");
-#endif
+            faceGo.AddComponent<Data.FaceVerificationService>();
 
             // QuizSelectionService persistent — no asset references to auto-assign, its
             // feedbackEndpointUrl default already points at the deployed Cloudflare Worker.

@@ -190,6 +190,16 @@ namespace MiningSafetyAR.Data
 
         void EnsureWorkers()
         {
+            // FaceVerificationService is spawned at runtime by UIBootstrap via AddComponent (not
+            // instantiated from a pre-configured prefab), so Inspector-assigned SerializeFields never
+            // get set outside the Editor. Resources.Load is the fallback that actually works in device
+            // builds — mirrors AppDataService's moduleDatabase/questionDatabase/certificateDatabase
+            // Resources.Load fallback (see AppDataService.cs).
+            if (faceDetectionModel == null)
+                faceDetectionModel = Resources.Load<Unity.InferenceEngine.ModelAsset>("Models/FaceDetection/blaze_face_short_range");
+            if (faceEmbeddingModel == null)
+                faceEmbeddingModel = Resources.Load<Unity.InferenceEngine.ModelAsset>("Models/FaceEmbedding/mobile_facenet");
+
             if (detectionWorker == null && faceDetectionModel != null)
             {
                 var model = Unity.InferenceEngine.ModelLoader.Load(faceDetectionModel);
@@ -622,6 +632,8 @@ namespace MiningSafetyAR.Data
         void LoadAnchorsIfNeeded()
         {
             if (anchorsCache != null) return;
+            if (detectionAnchorsCsv == null)
+                detectionAnchorsCsv = Resources.Load<TextAsset>("Models/FaceDetection/anchors");
             if (detectionAnchorsCsv == null) return;
 
             var lines = detectionAnchorsCsv.text.Split('\n');
