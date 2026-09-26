@@ -32,6 +32,7 @@ namespace MiningSafetyAR.AR
         private string lastVoidInfo = "(none yet)";
         private string lastDivergenceInfo = "(none yet)";
         private float nextVoidCheckTime;
+        private float nextDivergenceLogTime;
         private float spawnY;
 
         private void Awake()
@@ -93,7 +94,15 @@ namespace MiningSafetyAR.AR
             if (horizontalGap > rigCameraDivergenceThreshold)
             {
                 lastDivergenceInfo = $"rig={rigPos} cam={camPos} horizontalGap={horizontalGap:F2}m";
-                LogDiag($"RIG_CAMERA_DIVERGENCE {lastDivergenceInfo}");
+                // Throttled like the void check below — while diverged this previously logged every
+                // single LateUpdate (no gate at all), which at 60-100+ fps flooded the console fast
+                // enough to push out and hide every other diagnostic message (including ones from
+                // manual investigation), making the real cause much harder to find than it needed to be.
+                if (Time.time >= nextDivergenceLogTime)
+                {
+                    nextDivergenceLogTime = Time.time + 1.5f;
+                    LogDiag($"RIG_CAMERA_DIVERGENCE {lastDivergenceInfo}");
+                }
             }
 
             if (rigPos.y < spawnY - 0.1f)
@@ -107,9 +116,10 @@ namespace MiningSafetyAR.AR
             if (Time.time >= nextVoidCheckTime)
             {
                 nextVoidCheckTime = Time.time + 1.5f;
+                Vector3 rayOrigin = transform.position + Vector3.up * 0.5f;
                 bool nearby = Physics.CheckSphere(transform.position, probeRadius);
-                bool floor = Physics.Raycast(transform.position, Vector3.down, 6f);
-                bool ceiling = Physics.Raycast(transform.position, Vector3.up, 6f);
+                bool floor = Physics.Raycast(rayOrigin, Vector3.down, 6f);
+                bool ceiling = Physics.Raycast(rayOrigin, Vector3.up, 6f);
                 if (!nearby || !floor)
                 {
                     lastVoidInfo = $"pos={transform.position} nearbyAnyCollider={nearby} floorBelow={floor} ceilingAbove={ceiling}";

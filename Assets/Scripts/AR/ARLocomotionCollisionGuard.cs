@@ -32,8 +32,6 @@ namespace MiningSafetyAR.AR
 
         private CharacterController controller;
         private ARWalkDiagnostics diagnostics;
-        private Vector3 lastCameraWorldPos;
-        private bool initialized;
 
         private void Awake()
         {
@@ -47,35 +45,20 @@ namespace MiningSafetyAR.AR
         {
             if (trackedCamera == null || cameraOffset == null) return;
 
-            if (!initialized)
-            {
-                // Bootstrap baseline is the RIG's own starting position, not wherever the camera
-                // already happens to be — Unity's Editor XR Device Simulator persists its last pose
-                // across Play sessions and can restore the camera to an arbitrary distant point
-                // before this very first frame runs. Falling through to the normal path below (not
-                // blind-trusting camera.position as free) means that initial jump gets the exact
-                // same collision-checked treatment as any other frame's movement, instead of being
-                // silently accepted as free teleportation.
-                lastCameraWorldPos = transform.position;
-                initialized = true;
-            }
+            // Vector pointing from current Rig position to target camera position (horizontal X/Z)
+            Vector3 rigPos = transform.position;
+            Vector3 camLocalPos = trackedCamera.localPosition;
 
-            Vector3 rawDelta = trackedCamera.position - lastCameraWorldPos;
-            Vector3 horizontalDelta = new Vector3(rawDelta.x, 0f, rawDelta.z);
+            Vector3 targetWorldPos = trackedCamera.position;
+            Vector3 desiredHorizontalDelta = new Vector3(targetWorldPos.x - rigPos.x, 0f, targetWorldPos.z - rigPos.z);
 
-            // What we actually feed the CharacterController this frame — clamped to a sane maximum
-            // human walking speed. A real device/simulator pose glitch (stuck input, a teleporting
-            // re-lock) shows up as one huge delta in a single frame; clamping it here means the rig
-            // itself can never lurch/teleport, regardless of what's injecting the bad delta upstream.
-            // `horizontalDelta` (the UNCLAMPED raw value) is kept as-is below — it's still needed to
-            // size the Camera Offset correction, so the glitch-excess doesn't just get silently
-            // dropped and left to visually diverge the camera from the rig it was clamped away from.
-            Vector3 moveDelta = horizontalDelta;
+            // Clamp max speed per frame to handle single-frame tracking jumps or simulator resets
             float maxDeltaThisFrame = maxWalkSpeedMetersPerSecond * Time.deltaTime;
+            Vector3 moveDelta = desiredHorizontalDelta;
             if (moveDelta.magnitude > maxDeltaThisFrame)
             {
                 moveDelta = moveDelta.normalized * maxDeltaThisFrame;
-                Debug.LogWarning($"[LOCOMOTION_GUARD] Clamped runaway delta: raw={horizontalDelta} (|{horizontalDelta.magnitude:F2}|) -> clamped={moveDelta} (|{maxDeltaThisFrame:F3}|)");
+                Debug.LogWarning($"[LOCOMOTION_GUARD] Clamped runaway delta: raw={desiredHorizontalDelta} (|{desiredHorizontalDelta.magnitude:F2}|) -> clamped={moveDelta} (|{maxDeltaThisFrame:F3}|)");
             }
 
             Vector3 rigPosBefore = transform.position;
@@ -85,20 +68,11 @@ namespace MiningSafetyAR.AR
                 flags = controller.Move(moveDelta);
             }
             Vector3 actualDelta = transform.position - rigPosBefore;
-            // Against the FULL raw delta, not the clamped one — this way the correction covers both
-            // wall-blocking AND the glitch-clamp excess in one term, so Camera Offset always pulls
-            // the camera back to sit right where the rig actually ended up.
-            Vector3 blockedExcess = horizontalDelta - actualDelta;
 
-            // Cancel whatever portion of the raw movement didn't actually happen (wall block and/or
-            // glitch clamp), via Camera Offset — this is the correction that actually sticks (see
-            // class doc comment for why).
-            if (blockedExcess.sqrMagnitude > 1e-10f)
-            {
-                cameraOffset.position -= blockedExcess;
-            }
-
-            lastCameraWorldPos = trackedCamera.position;
+            // Lock Camera Offset's local horizontal position to (-camLocalPos.x, -camLocalPos.z).
+            // This ensures Main Camera's world X/Z matches the Rig's collision-checked X/Z 1:1,
+            // preventing double-movement and stopping infinite negative position drift when blocked.
+            cameraOffset.localPosition = new Vector3(-camLocalPos.x, cameraOffset.localPosition.y, -camLocalPos.z);
 
             if (diagnostics != null) diagnostics.ReportMove(moveDelta, actualDelta, flags);
         }

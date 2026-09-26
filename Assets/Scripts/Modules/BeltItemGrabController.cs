@@ -21,6 +21,7 @@ namespace MiningSafetyAR.Modules
         [SerializeField] private Transform scsr;
         [SerializeField] private Transform readingDisplay;
         [SerializeField] private MultiGasDetectorController detectorController;
+        [SerializeField] private GasDetectorReadingOverlay readingOverlay;
 
         [Header("Detector Inspection Pose (Live Tunable)")]
         [SerializeField] private Vector3 heldLocalPosition = new Vector3(0f, -0.04f, 0.35f);
@@ -90,6 +91,14 @@ namespace MiningSafetyAR.Modules
             box.size = new Vector3(3f, 3f, 3f);
             box.center = Vector3.zero;
             box.enabled = true;
+            // This collider only exists so tap-to-grab (Physics.SphereCast/Raycast in Update()) can
+            // register a hit on the belt item from anywhere on screen — it was never meant to be solid.
+            // Left as a normal (non-trigger) collider, this 3x3x3 box follows the player at waist
+            // height every frame (UpdateBeltFollow) and physically fights the player's own
+            // CharacterController, wedging against it and blocking movement. Raycast/SphereCast still
+            // hit trigger colliders by default, so marking it a trigger keeps grab detection working
+            // while removing the unintended physical collision with the player who's carrying it.
+            box.isTrigger = true;
         }
 
         private void Update()
@@ -260,6 +269,7 @@ namespace MiningSafetyAR.Modules
                 activeAnimCoroutine = StartCoroutine(AnimateReparent(detector, heldItemSlot, heldLocalPosition, heldDetectorLocalEuler, heldLocalScale, animationDuration));
                 if (detectorController != null) detectorController.SetHeld(true);
                 if (readingDisplay != null) readingDisplay.gameObject.SetActive(true);
+                if (readingOverlay != null) readingOverlay.ShowNextReading(animationDuration);
                 Debug.Log($"[BELT_GRAB] Grabbed MultiGasDetector -> pos={heldLocalPosition}, rot={heldDetectorLocalEuler}");
             }
             else if (item == HeldItem.Scsr && scsr != null)
@@ -277,6 +287,7 @@ namespace MiningSafetyAR.Modules
             {
                 activeAnimCoroutine = StartCoroutine(AnimateReparent(detector, beltSlot, detectorBeltPos, detectorBeltEuler, detectorBeltScale, animationDuration));
                 if (detectorController != null) detectorController.SetHeld(false);
+                if (readingOverlay != null) readingOverlay.Hide();
                 Debug.Log("[BELT_GRAB] Returned multi-gas detector to belt");
             }
             else if (currentlyHeld == HeldItem.Scsr && scsr != null)
