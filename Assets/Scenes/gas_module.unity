@@ -298,6 +298,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MiningSafetyAR.AR.ARLocomotionCollisionGuard
   trackedCamera: {fileID: 1944206582}
+  cameraOffset: {fileID: 0}
 --- !u!143 &1680760
 CharacterController:
   m_ObjectHideFlags: 0
