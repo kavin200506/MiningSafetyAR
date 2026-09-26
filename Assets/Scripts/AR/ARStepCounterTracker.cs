@@ -254,9 +254,6 @@ namespace MiningSafetyAR.AR
             }
 
             float startTime = Time.time;
-            ARPlaneManager planeMgr = FindFirstObjectByType<ARPlaneManager>();
-            ARRaycastManager raycastMgr = ARRaycastManagerReference;
-            var hits = new List<ARRaycastHit>();
             bool wallFound = false;
             Vector3 spawnPos = Vector3.zero;
             Quaternion spawnRot = Quaternion.identity;
@@ -274,26 +271,21 @@ namespace MiningSafetyAR.AR
                 }
                 Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
 
-                if (raycastMgr != null && raycastMgr.Raycast(screenCenter, hits, UnityEngine.XR.ARSubsystems.TrackableType.PlaneWithinPolygon | UnityEngine.XR.ARSubsystems.TrackableType.Planes))
+                // Shared raycast (ARPlacementManager.TryRaycastSurface) — real AR plane raycast
+                // normally, or a Physics raycast against the virtual Mine environment's colliders
+                // while SimulationMode is on, so the wall-scan finds the visible virtual wall
+                // instead of a real wall it can no longer see behind the hidden camera feed.
+                if (ARPlacementManager.Instance != null &&
+                    ARPlacementManager.Instance.TryRaycastSurface(screenCenter, out Pose surfacePose, out _, out bool isVerticalHit, out _) &&
+                    isVerticalHit)
                 {
-                    foreach (var hit in hits)
-                    {
-                        if (planeMgr != null && hit.trackableId != UnityEngine.XR.ARSubsystems.TrackableId.invalidId)
-                        {
-                            ARPlane hitPlane = planeMgr.GetPlane(hit.trackableId);
-                            if (hitPlane != null && hitPlane.alignment == UnityEngine.XR.ARSubsystems.PlaneAlignment.Vertical)
-                            {
-                                spawnPos = hit.pose.position;
-                                // hit.pose.up is the wall's outward normal (horizontal) for a vertical
-                                // plane, not world-up — using it directly would lay the extinguisher on
-                                // its side. Keep world-up as up, face outward along the wall's normal.
-                                spawnRot = Quaternion.LookRotation(hit.pose.up, Vector3.up);
-                                wallFound = true;
-                                Debug.Log($"[WALL_SCAN_DIAG] 🧯 VERTICAL WALL DETECTED during 5s scan! Target position={spawnPos}");
-                                break;
-                            }
-                        }
-                    }
+                    spawnPos = surfacePose.position;
+                    // surfacePose.up is the wall's outward normal (horizontal) for a vertical
+                    // plane, not world-up — using it directly would lay the extinguisher on
+                    // its side. Keep world-up as up, face outward along the wall's normal.
+                    spawnRot = Quaternion.LookRotation(surfacePose.up, Vector3.up);
+                    wallFound = true;
+                    Debug.Log($"[WALL_SCAN_DIAG] 🧯 VERTICAL WALL DETECTED during 5s scan! Target position={spawnPos}");
                 }
 
                 if (wallFound) break;
@@ -342,16 +334,15 @@ namespace MiningSafetyAR.AR
                     spawnRot = Quaternion.identity;
                 }
 
-                if (raycastMgr != null)
+                if (ARPlacementManager.Instance != null)
                 {
-                    hits.Clear();
                     Vector2 centerScreen = new Vector2(Screen.width / 2f, Screen.height / 2f);
-                    if (raycastMgr.Raycast(centerScreen, hits, UnityEngine.XR.ARSubsystems.TrackableType.PlaneWithinPolygon | UnityEngine.XR.ARSubsystems.TrackableType.Planes))
+                    if (ARPlacementManager.Instance.TryRaycastSurface(centerScreen, out Pose fallbackPose, out _, out _, out _))
                     {
-                        float dist = Vector3.Distance(mainCam != null ? mainCam.transform.position : Vector3.zero, hits[0].pose.position);
+                        float dist = Vector3.Distance(mainCam != null ? mainCam.transform.position : Vector3.zero, fallbackPose.position);
                         if (dist <= 2.0f)
                         {
-                            spawnPos = hits[0].pose.position;
+                            spawnPos = fallbackPose.position;
                         }
                     }
                 }

@@ -225,6 +225,78 @@ namespace MiningSafetyAR.AR
         [SerializeField] private AllowedPlaneType extinguisherAllowedPlane = AllowedPlaneType.Vertical;
         public AllowedPlaneType ExtinguisherAllowedPlane => extinguisherAllowedPlane;
 
+        [Header("Simulation Mode (Virtual Mine Environment)")]
+        [Tooltip("Layer(s) the simulated Mine environment's floor/wall colliders live on. Used ONLY while SimulationMode is true, to raycast against the virtual environment instead of real AR-detected planes.")]
+        [SerializeField] private LayerMask simulationEnvironmentLayerMask;
+
+        private bool simulationMode = false;
+        /// <summary>
+        /// When true, placement/reticle/wall-scan raycasts hit the virtual Mine environment's
+        /// colliders (simulationEnvironmentLayerMask) instead of real AR-detected planes, and
+        /// real plane detection is stopped since it can't see the hidden real room anyway.
+        /// When false (default), behavior is byte-for-byte the original real-AR path.
+        /// </summary>
+        public bool SimulationMode
+        {
+            get => simulationMode;
+            set
+            {
+                if (simulationMode == value) return;
+                simulationMode = value;
+                if (planeManager != null) planeManager.enabled = !simulationMode;
+                SetPlanesVisible(!simulationMode);
+                Debug.Log($"[ARPlacementManager] SimulationMode set to {simulationMode}. Real ARPlaneManager enabled={!simulationMode}.");
+            }
+        }
+
+        /// <summary>
+        /// Single raycast entry point shared by PerformPlacementRaycast, UpdatePlacementIndicator,
+        /// and ARStepCounterTracker's wall-scan — so simulation mode only needs to be taught to one
+        /// method instead of three. In SimulationMode, raycasts Physics colliders on the virtual
+        /// Mine environment and classifies the hit as horizontal/vertical from its surface normal
+        /// (simulated geometry has no ARPlane.alignment to read). Otherwise raycasts real AR planes
+        /// exactly as before.
+        /// </summary>
+        public bool TryRaycastSurface(Vector2 screenPosition, out Pose hitPose, out bool isHorizontal, out bool isVertical, out ARPlane hitPlane)
+        {
+            hitPose = default;
+            isHorizontal = false;
+            isVertical = false;
+            hitPlane = null;
+
+            if (simulationMode)
+            {
+                Camera cam = Camera.main ?? FindFirstObjectByType<Camera>();
+                if (cam == null) return false;
+
+                Ray ray = cam.ScreenPointToRay(screenPosition);
+                if (Physics.Raycast(ray, out RaycastHit simHit, 50f, simulationEnvironmentLayerMask))
+                {
+                    hitPose = new Pose(simHit.point, Quaternion.FromToRotation(Vector3.up, simHit.normal));
+                    float upDot = Vector3.Dot(simHit.normal, Vector3.up);
+                    isHorizontal = upDot > 0.5f;
+                    isVertical = Mathf.Abs(upDot) <= 0.5f;
+                    return true;
+                }
+                return false;
+            }
+
+            TrackableType planeTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds | TrackableType.Planes;
+            if (raycastManager != null && raycastManager.Raycast(screenPosition, hits, planeTypes) && hits.Count > 0)
+            {
+                hitPose = hits[0].pose;
+                if (planeManager != null && hits[0].trackableId != TrackableId.invalidId)
+                {
+                    hitPlane = planeManager.GetPlane(hits[0].trackableId);
+                }
+                PlaneAlignment alignment = hitPlane != null ? hitPlane.alignment : PlaneAlignment.None;
+                isHorizontal = alignment == PlaneAlignment.HorizontalUp || alignment == PlaneAlignment.HorizontalDown;
+                isVertical = alignment == PlaneAlignment.Vertical;
+                return true;
+            }
+            return false;
+        }
+
         private static bool IsAlignmentAllowed(PlaneAlignment alignment, AllowedPlaneType allowed)
         {
             bool isHorizontal = alignment == PlaneAlignment.HorizontalUp || alignment == PlaneAlignment.HorizontalDown;
@@ -478,11 +550,9 @@ namespace MiningSafetyAR.AR
                 }
 
                 Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
-                TrackableType surfaceTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds | TrackableType.Planes;
-                
-                if (raycastManager != null && raycastManager.Raycast(screenCenter, hits, surfaceTypes) && hits.Count > 0)
+
+                if (TryRaycastSurface(screenCenter, out Pose hitPose, out _, out _, out _))
                 {
-                    Pose hitPose = hits[0].pose;
                     placementIndicator.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
                     if (placementIndicator.activeSelf) placementIndicator.SetActive(false);
                 }
@@ -504,28 +574,25 @@ namespace MiningSafetyAR.AR
                 Pose hitPose = default;
                 bool hitSuccess = false;
                 string hitTypeString = "";
-                TrackableId hitTrackableId = TrackableId.invalidId;
+                bool isHorizontalPlane = false;
+                bool isVerticalPlane = false;
+                ARPlane hitPlane = null;
 
-                // Tier 1: Real AR Plane Surface only. Deliberately NOT TrackableType.AllTypes — that
-                // flag alone already has every trackable kind set (feature points, estimated planes,
-                // faces, images, depth), so OR-ing specific plane flags into it was a no-op. It made
-                // this raycast accept any textured surface or noisy feature point as a "plane" hit,
-                // which is what was causing the fire hazard to spawn floating in mid-air instead of
-                // exactly on the plane, contradicting the "fire ONLY spawns on a real detected plane"
-                // contract below. Restricting to just the plane-specific flags is what enforces that.
-                TrackableType planeTypes = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds | TrackableType.Planes;
-                if (raycastManager != null && raycastManager.Raycast(touchPosition, hits, planeTypes) && hits.Count > 0)
+                // Tier 1: Real AR Plane Surface (or, in SimulationMode, the virtual Mine environment's
+                // colliders — see TryRaycastSurface). Deliberately not the AllTypes trackable flag —
+                // see historical note: that accepted any textured surface/feature point as a "plane"
+                // hit, causing the fire hazard to spawn floating in mid-air instead of on the plane.
+                if (TryRaycastSurface(touchPosition, out hitPose, out isHorizontalPlane, out isVerticalPlane, out hitPlane))
                 {
-                    hitPose = hits[0].pose;
-                    hitTrackableId = hits[0].trackableId;
                     hitSuccess = true;
-                    hitTypeString = "Plane Surface";
-                    Debug.Log($"[DIAG] [ARPlacementManager] Tier 1 Hit: Plane Surface at pose {hitPose.position}, trackableId={hitTrackableId}, hitDistance={hits[0].distance:F2}m");
+                    hitTypeString = simulationMode ? "Simulation Environment" : "Plane Surface";
+                    Debug.Log($"[DIAG] [ARPlacementManager] Tier 1 Hit: {hitTypeString} at pose {hitPose.position}, isHorizontal={isHorizontalPlane}, isVertical={isVerticalPlane}");
                 }
-                // Tier 2: Environment Depth Map
-                else if (occlusionManager != null && 
-                         occlusionManager.enabled && 
-                         occlusionManager.descriptor != null && 
+                // Tier 2: Environment Depth Map (real AR only — meaningless against a hidden real room)
+                else if (!simulationMode &&
+                         occlusionManager != null &&
+                         occlusionManager.enabled &&
+                         occlusionManager.descriptor != null &&
                          occlusionManager.descriptor.environmentDepthImageSupported == Supported.Supported)
                 {
                     if (raycastManager.Raycast(touchPosition, hits, TrackableType.Depth) && hits.Count > 0)
@@ -537,60 +604,45 @@ namespace MiningSafetyAR.AR
                     }
                 }
                 // NO auto-placement fallbacks — fire ONLY spawns when user taps on a real detected plane
+                // (or, in SimulationMode, the virtual environment's surface)
 
                 if (!hitSuccess)
                 {
                     int planesCount = planeManager != null ? planeManager.trackables.count : 0;
-                    lastPlacementErrorLog = $"Raycast tap missed plane surface! Active planes count: {planesCount}";
+                    lastPlacementErrorLog = simulationMode
+                        ? "Raycast tap missed the simulation environment's surface!"
+                        : $"Raycast tap missed plane surface! Active planes count: {planesCount}";
                     Debug.LogWarning($"[FAIL_DIAG] [ARPlacementManager] {lastPlacementErrorLog}");
                     return false;
                 }
 
                 // --- 2. Surface Alignment & Mode Determination (Requirements 2 & 3) ---
-                ARPlane hitPlane = null;
-                if (planeManager != null)
-                {
-                    if (hitTrackableId != TrackableId.invalidId)
-                    {
-                        hitPlane = planeManager.GetPlane(hitTrackableId);
-                        if (hitPlane == null)
-                        {
-                            Debug.LogWarning($"[WARN] [ARPlacementManager] Raycast hit trackable ID '{hitTrackableId}' but GetPlane() returned null.");
-                        }
-                    }
-                    else if (hitTypeString == "Plane Surface")
-                    {
-                        Debug.LogWarning("[WARN] [ARPlacementManager] Raycast hit plane surface but trackableId is invalid.");
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning("[WARN] [ARPlacementManager] ARPlaneManager is not assigned or unavailable.");
-                }
+                bool alignmentKnown = isHorizontalPlane || isVerticalPlane;
+                PlaneAlignment alignment = isHorizontalPlane ? PlaneAlignment.HorizontalUp
+                    : (isVerticalPlane ? PlaneAlignment.Vertical : PlaneAlignment.None);
 
-                PlaneAlignment alignment = hitPlane != null ? hitPlane.alignment : PlaneAlignment.None;
-                bool isHorizontalPlane = (alignment == PlaneAlignment.HorizontalUp || alignment == PlaneAlignment.HorizontalDown);
-                bool isVerticalPlane = (alignment == PlaneAlignment.Vertical);
-
-                if (hitPlane != null && !isHorizontalPlane && !isVerticalPlane)
+                if (hitPlane != null && !alignmentKnown)
                 {
                     Debug.LogWarning($"[WARN] [ARPlacementManager] Hit plane '{hitPlane.trackableId}' has unsupported alignment '{alignment}'.");
                 }
 
-                // Determine whether target is Wall Extinguisher vs Ground Hazard
-                bool isWallPlacement = (hitPlane != null && isVerticalPlane) || (hitPlane == null && placementMode == PlacementTargetMode.WallFireExtinguisher);
+                // Determine whether target is Wall Extinguisher vs Ground Hazard. Trust a known
+                // alignment (real ARPlane OR a classified simulation-surface normal) over the
+                // placementMode fallback, which only applies when alignment genuinely can't be
+                // determined (e.g. a Tier 2 depth-map hit with no plane).
+                bool isWallPlacement = isVerticalPlane || (!alignmentKnown && placementMode == PlacementTargetMode.WallFireExtinguisher);
 
-                // Reject a plane hit that the determined target isn't configured to spawn on. With
-                // the default Horizontal-only fire hazard / Vertical-only extinguisher, this is
-                // normally unreachable because ApplyPlaneDetectionMode already stops the disallowed
+                // Reject a hit that the determined target isn't configured to spawn on. With the
+                // default Horizontal-only fire hazard / Vertical-only extinguisher, this is normally
+                // unreachable for real AR because ApplyPlaneDetectionMode already stops the disallowed
                 // plane type from being detected in the first place — this is a defense-in-depth
-                // check that also makes a custom "Both" configuration behave correctly.
-                if (hitPlane != null)
+                // check that also makes a custom "Both" configuration (and SimulationMode) behave correctly.
+                if (alignmentKnown)
                 {
                     AllowedPlaneType allowedFor = isWallPlacement ? extinguisherAllowedPlane : fireHazardAllowedPlane;
                     if (!IsAlignmentAllowed(alignment, allowedFor))
                     {
-                        Debug.LogWarning($"[WARN] [ARPlacementManager] Rejected tap: plane alignment '{alignment}' is not allowed for the {(isWallPlacement ? "fire extinguisher" : "fire hazard")} (configured: {allowedFor}).");
+                        Debug.LogWarning($"[WARN] [ARPlacementManager] Rejected tap: surface alignment '{alignment}' is not allowed for the {(isWallPlacement ? "fire extinguisher" : "fire hazard")} (configured: {allowedFor}).");
                         return false;
                     }
                 }
