@@ -27,6 +27,9 @@ namespace MiningSafetyAR.AR
         [Tooltip("The camera's parent (NOT touched by TrackedPoseDriver). Auto-resolved from trackedCamera.parent if left unassigned.")]
         [SerializeField] private Transform cameraOffset;
 
+        [Tooltip("Sane maximum human walking speed (m/s). Any single-frame tracked delta implying a faster speed than this is treated as sensor/simulator glitch (a 'stuck' or teleporting pose), not real movement, and is clamped down to this speed before it ever reaches the CharacterController or Camera Offset. This is what actually stops the rig/camera divergence from ever growing large, regardless of what's injecting the bad delta.")]
+        [SerializeField] private float maxWalkSpeedMetersPerSecond = 2.5f;
+
         private CharacterController controller;
         private ARWalkDiagnostics diagnostics;
         private Vector3 lastCameraWorldPos;
@@ -60,17 +63,36 @@ namespace MiningSafetyAR.AR
             Vector3 rawDelta = trackedCamera.position - lastCameraWorldPos;
             Vector3 horizontalDelta = new Vector3(rawDelta.x, 0f, rawDelta.z);
 
+            // What we actually feed the CharacterController this frame — clamped to a sane maximum
+            // human walking speed. A real device/simulator pose glitch (stuck input, a teleporting
+            // re-lock) shows up as one huge delta in a single frame; clamping it here means the rig
+            // itself can never lurch/teleport, regardless of what's injecting the bad delta upstream.
+            // `horizontalDelta` (the UNCLAMPED raw value) is kept as-is below — it's still needed to
+            // size the Camera Offset correction, so the glitch-excess doesn't just get silently
+            // dropped and left to visually diverge the camera from the rig it was clamped away from.
+            Vector3 moveDelta = horizontalDelta;
+            float maxDeltaThisFrame = maxWalkSpeedMetersPerSecond * Time.deltaTime;
+            if (moveDelta.magnitude > maxDeltaThisFrame)
+            {
+                moveDelta = moveDelta.normalized * maxDeltaThisFrame;
+                Debug.LogWarning($"[LOCOMOTION_GUARD] Clamped runaway delta: raw={horizontalDelta} (|{horizontalDelta.magnitude:F2}|) -> clamped={moveDelta} (|{maxDeltaThisFrame:F3}|)");
+            }
+
             Vector3 rigPosBefore = transform.position;
             CollisionFlags flags = CollisionFlags.None;
-            if (horizontalDelta.sqrMagnitude > 1e-8f)
+            if (moveDelta.sqrMagnitude > 1e-8f)
             {
-                flags = controller.Move(horizontalDelta);
+                flags = controller.Move(moveDelta);
             }
             Vector3 actualDelta = transform.position - rigPosBefore;
+            // Against the FULL raw delta, not the clamped one — this way the correction covers both
+            // wall-blocking AND the glitch-clamp excess in one term, so Camera Offset always pulls
+            // the camera back to sit right where the rig actually ended up.
             Vector3 blockedExcess = horizontalDelta - actualDelta;
 
-            // Cancel whatever portion of the raw movement the wall blocked, via Camera Offset —
-            // this is the correction that actually sticks (see class doc comment for why).
+            // Cancel whatever portion of the raw movement didn't actually happen (wall block and/or
+            // glitch clamp), via Camera Offset — this is the correction that actually sticks (see
+            // class doc comment for why).
             if (blockedExcess.sqrMagnitude > 1e-10f)
             {
                 cameraOffset.position -= blockedExcess;
@@ -78,7 +100,7 @@ namespace MiningSafetyAR.AR
 
             lastCameraWorldPos = trackedCamera.position;
 
-            if (diagnostics != null) diagnostics.ReportMove(horizontalDelta, actualDelta, flags);
+            if (diagnostics != null) diagnostics.ReportMove(moveDelta, actualDelta, flags);
         }
     }
 }
