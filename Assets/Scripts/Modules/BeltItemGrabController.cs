@@ -29,9 +29,9 @@ namespace MiningSafetyAR.Modules
         [SerializeField] private Vector3 heldLocalScale = new Vector3(0.078f, 0.078f, 0.078f);
 
         [Header("SCSR Inspection Pose (Live Tunable)")]
-        [SerializeField] private Vector3 heldScsrLocalPosition = new Vector3(0f, -0.05f, 0.35f);
+        [SerializeField] private Vector3 heldScsrLocalPosition = new Vector3(0f, -0.10f, 0.52f);
         [SerializeField] private Vector3 heldScsrLocalEuler = new Vector3(0f, 0f, 0f);
-        [SerializeField] private Vector3 heldScsrLocalScale = new Vector3(1.2f, 1.2f, 1.2f);
+        [SerializeField] private Vector3 heldScsrLocalScale = new Vector3(0.85f, 0.85f, 0.85f);
 
         [Header("Animation Settings")]
         [SerializeField] private float animationDuration = 0.35f;
@@ -71,8 +71,8 @@ namespace MiningSafetyAR.Modules
 
         private void Start()
         {
-            EnsureCollider(detector);
-            EnsureCollider(scsr);
+            EnsureCollidersOnHierarchy(detector);
+            EnsureCollidersOnHierarchy(scsr);
 
             if (heldItemSlot != null)
             {
@@ -88,22 +88,87 @@ namespace MiningSafetyAR.Modules
             }
         }
 
-        private void EnsureCollider(Transform t)
+        private void EnsureCollidersOnHierarchy(Transform root)
         {
-            if (t == null) return;
-            BoxCollider box = t.GetComponent<BoxCollider>();
-            if (box == null) box = t.gameObject.AddComponent<BoxCollider>();
-            box.size = new Vector3(3f, 3f, 3f);
-            box.center = Vector3.zero;
-            box.enabled = true;
-            // This collider only exists so tap-to-grab (Physics.SphereCast/Raycast in Update()) can
-            // register a hit on the belt item from anywhere on screen — it was never meant to be solid.
-            // Left as a normal (non-trigger) collider, this 3x3x3 box follows the player at waist
-            // height every frame (UpdateBeltFollow) and physically fights the player's own
-            // CharacterController, wedging against it and blocking movement. Raycast/SphereCast still
-            // hit trigger colliders by default, so marking it a trigger keeps grab detection working
-            // while removing the unintended physical collision with the player who's carrying it.
+            if (root == null) return;
+
+            // Remove any failed/invalid MeshColliders on complex sub-meshes
+            MeshCollider[] oldMeshColliders = root.GetComponentsInChildren<MeshCollider>(true);
+            foreach (var mc in oldMeshColliders)
+            {
+                Destroy(mc);
+            }
+
+            // Create a guaranteed, clean BoxCollider on root
+            BoxCollider box = root.GetComponent<BoxCollider>();
+            if (box == null) box = root.gameObject.AddComponent<BoxCollider>();
+
+            Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
+            if (renderers != null && renderers.Length > 0)
+            {
+                Bounds localBounds = new Bounds();
+                bool init = false;
+
+                foreach (Renderer r in renderers)
+                {
+                    if (r == null) continue;
+                    Bounds b = r.bounds;
+                    Vector3 min = b.min;
+                    Vector3 max = b.max;
+                    Vector3[] corners = new Vector3[8]
+                    {
+                        new Vector3(min.x, min.y, min.z),
+                        new Vector3(min.x, min.y, max.z),
+                        new Vector3(min.x, max.y, min.z),
+                        new Vector3(min.x, max.y, max.z),
+                        new Vector3(max.x, min.y, min.z),
+                        new Vector3(max.x, min.y, max.z),
+                        new Vector3(max.x, max.y, min.z),
+                        new Vector3(max.x, max.y, max.z),
+                    };
+
+                    foreach (Vector3 worldC in corners)
+                    {
+                        Vector3 localC = root.InverseTransformPoint(worldC);
+                        if (!init)
+                        {
+                            localBounds = new Bounds(localC, Vector3.zero);
+                            init = true;
+                        }
+                        else
+                        {
+                            localBounds.Encapsulate(localC);
+                        }
+                    }
+                }
+
+                if (init)
+                {
+                    Vector3 lossy = root.lossyScale;
+                    float minWorldSize = 0.35f;
+                    float szX = lossy.x > 0.0001f ? Mathf.Max(localBounds.size.x, minWorldSize / lossy.x) : 0.35f;
+                    float szY = lossy.y > 0.0001f ? Mathf.Max(localBounds.size.y, minWorldSize / lossy.y) : 0.35f;
+                    float szZ = lossy.z > 0.0001f ? Mathf.Max(localBounds.size.z, minWorldSize / lossy.z) : 0.35f;
+
+                    box.center = localBounds.center;
+                    box.size = new Vector3(szX, szY, szZ) * 1.3f; // 30% padding for easy tap targeting
+                }
+            }
+            else
+            {
+                box.center = Vector3.zero;
+                box.size = new Vector3(3f, 3f, 3f);
+            }
+
             box.isTrigger = true;
+            box.enabled = true;
+        }
+
+        private Vector3 GetItemWorldCenter(Transform t)
+        {
+            if (t == null) return Vector3.zero;
+            Renderer r = t.GetComponentInChildren<Renderer>();
+            return r != null ? r.bounds.center : t.position;
         }
 
         private void Update()
@@ -135,59 +200,98 @@ namespace MiningSafetyAR.Modules
                 return;
             }
 
-            // --- Method 1: 3D SphereCast & Raycast ---
+            // --- Method 1: Precise 3D Physics Raycast & SphereCast ---
             Ray ray = trackedCamera.ScreenPointToRay(screenPos);
-            if (Physics.SphereCast(ray, 0.25f, out RaycastHit hit, 50f) || Physics.Raycast(ray, out hit, 50f))
-            {
-                Debug.Log($"[BELT_GRAB] Tap at {screenPos} -> Hit '{hit.transform.name}' (Root: '{hit.transform.root.name}')");
+            
+            // Check direct raycast hits first
+            RaycastHit[] rayHits = Physics.RaycastAll(ray, 50f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide);
+            float detHitDist = float.MaxValue;
+            float scsrHitDist = float.MaxValue;
 
-                if (IsTargetOrChild(hit.transform, detector) || IsTargetOrChild(hit.transform, readingDisplay))
+            ProcessHits(rayHits, ref detHitDist, ref scsrHitDist);
+
+            if (detHitDist < float.MaxValue || scsrHitDist < float.MaxValue)
+            {
+                if (scsrHitDist < detHitDist)
                 {
-                    Grab(HeldItem.Detector);
+                    Debug.Log($"[BELT_GRAB] Direct Raycast hit SCSR Mask (dist={scsrHitDist:F2}m)");
+                    Grab(HeldItem.Scsr);
                     return;
                 }
-                else if (IsTargetOrChild(hit.transform, scsr))
+                else
                 {
-                    Grab(HeldItem.Scsr);
+                    Debug.Log($"[BELT_GRAB] Direct Raycast hit MultiGasDetector (dist={detHitDist:F2}m)");
+                    Grab(HeldItem.Detector);
                     return;
                 }
             }
 
-            // --- Method 2: Viewport Proximity Detection ---
-            if (detector != null)
+            // Check spherecast beam (15cm beam width) for near-miss taps near item edges
+            RaycastHit[] sphereHits = Physics.SphereCastAll(ray, 0.15f, 50f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide);
+            ProcessHits(sphereHits, ref detHitDist, ref scsrHitDist);
+
+            if (detHitDist < float.MaxValue || scsrHitDist < float.MaxValue)
             {
-                Vector3 detScreenPos = trackedCamera.WorldToScreenPoint(detector.position);
-                if (detScreenPos.z > 0 && Vector2.Distance(screenPos, (Vector2)detScreenPos) < 250f)
+                if (scsrHitDist < detHitDist)
                 {
+                    Debug.Log($"[BELT_GRAB] SphereCast hit SCSR Mask (dist={scsrHitDist:F2}m)");
+                    Grab(HeldItem.Scsr);
+                    return;
+                }
+                else
+                {
+                    Debug.Log($"[BELT_GRAB] SphereCast hit MultiGasDetector (dist={detHitDist:F2}m)");
                     Grab(HeldItem.Detector);
                     return;
                 }
+            }
+
+            // --- Method 2: Viewport Distance Proximity Fallback ---
+            float detScreenDist = float.MaxValue;
+            float scsrScreenDist = float.MaxValue;
+
+            if (detector != null)
+            {
+                Vector3 detScreenPos = trackedCamera.WorldToScreenPoint(GetItemWorldCenter(detector));
+                if (detScreenPos.z > 0) detScreenDist = Vector2.Distance(screenPos, (Vector2)detScreenPos);
             }
             if (scsr != null)
             {
-                Vector3 scsrScreenPos = trackedCamera.WorldToScreenPoint(scsr.position);
-                if (scsrScreenPos.z > 0 && Vector2.Distance(screenPos, (Vector2)scsrScreenPos) < 250f)
+                Vector3 scsrScreenPos = trackedCamera.WorldToScreenPoint(GetItemWorldCenter(scsr));
+                if (scsrScreenPos.z > 0) scsrScreenDist = Vector2.Distance(screenPos, (Vector2)scsrScreenPos);
+            }
+
+            float maxScreenRadius = 300f; // 300 pixels search radius on screen
+            if (detScreenDist < maxScreenRadius || scsrScreenDist < maxScreenRadius)
+            {
+                if (scsrScreenDist < detScreenDist)
                 {
+                    Debug.Log($"[BELT_GRAB] Viewport proximity hit SCSR Mask (dist={scsrScreenDist:F1}px vs det={detScreenDist:F1}px)");
                     Grab(HeldItem.Scsr);
                     return;
                 }
+                else
+                {
+                    Debug.Log($"[BELT_GRAB] Viewport proximity hit MultiGasDetector (dist={detScreenDist:F1}px vs scsr={scsrScreenDist:F1}px)");
+                    Grab(HeldItem.Detector);
+                    return;
+                }
             }
+        }
 
-            // --- Method 3: Looking-Down Tilt Tap ---
-            if (detectorController != null && detectorController.IsCheckingDetector)
+        private void ProcessHits(RaycastHit[] hits, ref float detHitDist, ref float scsrHitDist)
+        {
+            if (hits == null) return;
+            foreach (var hit in hits)
             {
-                // If tapping right side of screen -> grab detector; left side -> grab SCSR
-                if (screenPos.x > Screen.width * 0.5f) Grab(HeldItem.Detector);
-                else Grab(HeldItem.Scsr);
-                return;
-            }
-
-            // --- Method 4: Tap Lower Screen Region ---
-            if (screenPos.y < Screen.height * 0.4f)
-            {
-                if (screenPos.x > Screen.width * 0.5f) Grab(HeldItem.Detector);
-                else Grab(HeldItem.Scsr);
-                return;
+                if (IsTargetOrChild(hit.transform, detector) || IsTargetOrChild(hit.transform, readingDisplay))
+                {
+                    if (hit.distance < detHitDist) detHitDist = hit.distance;
+                }
+                else if (IsTargetOrChild(hit.transform, scsr))
+                {
+                    if (hit.distance < scsrHitDist) scsrHitDist = hit.distance;
+                }
             }
         }
 
