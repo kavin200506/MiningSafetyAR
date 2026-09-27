@@ -54,30 +54,44 @@ namespace MiningSafetyAR.AR
 
             if (simulationEnvironmentRoot != null)
             {
-                // Spawn the environment centered on wherever the player actually is and facing
-                // right now, instead of a fixed world position — the AR session's world origin is
-                // wherever tracking started, not a known/fixed point, so a hardcoded position would
-                // only line up with the player by coincidence.
+                // Spawn the environment centered on wherever the player actually is, instead of a
+                // fixed world position — the AR session's world origin is wherever tracking
+                // started, not a known/fixed point, so a hardcoded position would only line up
+                // with the player by coincidence.
+                //
+                // Rotation is deliberately NOT matched to the camera's current facing. This used
+                // to rotate the whole environment to Camera.main's yaw at the moment Simulation
+                // mode switched on, which runs in Start() — before the player has taken a single
+                // step, using whatever transient yaw the (real or simulated) tracking pose
+                // happened to report right then. That silently rotated every modular tunnel/turn
+                // piece by an arbitrary angle relative to the world axes they were grid-placed on,
+                // so a player walking "straight ahead" in their own frame would drift off the
+                // corridor's actual (rotated) footprint entirely — confirmed live: the player got
+                // stuck with no floor and no tunnel collider within 3m at all, i.e. they'd walked
+                // clean off the mesh, not into a wall. Keeping rotation fixed at whatever the
+                // environment was authored with (identity) means its local +Z axis always matches
+                // world +Z exactly as grid-placed, so the corridor is walkable predictably.
                 if (enabled)
                 {
-                    Camera cam = Camera.main;
-                    float facingY = cam != null ? cam.transform.eulerAngles.y : 0f;
-
                     if (playerRig != null)
                     {
                         // Anchor to the rig — this is what CharacterController/collision is actually
                         // centered on, so the environment lines up exactly with where the player can walk.
                         simulationEnvironmentRoot.transform.SetPositionAndRotation(
                             playerRig.position,
-                            Quaternion.Euler(0f, facingY, 0f));
+                            Quaternion.identity);
                     }
-                    else if (cam != null)
+                    else
                     {
-                        Vector3 camPos = cam.transform.position;
-                        float floorY = camPos.y - assumedCameraHeightAboveFloor;
-                        simulationEnvironmentRoot.transform.SetPositionAndRotation(
-                            new Vector3(camPos.x, floorY, camPos.z),
-                            Quaternion.Euler(0f, facingY, 0f));
+                        Camera cam = Camera.main;
+                        if (cam != null)
+                        {
+                            Vector3 camPos = cam.transform.position;
+                            float floorY = camPos.y - assumedCameraHeightAboveFloor;
+                            simulationEnvironmentRoot.transform.SetPositionAndRotation(
+                                new Vector3(camPos.x, floorY, camPos.z),
+                                Quaternion.identity);
+                        }
                     }
                 }
                 simulationEnvironmentRoot.SetActive(enabled);

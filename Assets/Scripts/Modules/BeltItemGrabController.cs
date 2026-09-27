@@ -42,6 +42,11 @@ namespace MiningSafetyAR.Modules
         private HeldItem currentlyHeld = HeldItem.None;
         private Coroutine activeAnimCoroutine;
 
+        /// <summary>True from the moment the worker first grabs the SCSR mask, for the rest of the
+        /// drill — represents the mask being put on, not just currently held for inspection, so it
+        /// stays true after the item is returned to the belt (unlike currentlyHeld).</summary>
+        public bool HasEquippedScsr { get; private set; }
+
         // Cached original belt-local transforms so Release() restores exactly
         private Vector3 detectorBeltPos, detectorBeltEuler, detectorBeltScale;
         private Vector3 scsrBeltPos, scsrBeltEuler, scsrBeltScale;
@@ -196,17 +201,13 @@ namespace MiningSafetyAR.Modules
         {
             screenPosition = Vector2.zero;
 
-            if (Input.GetMouseButtonDown(0))
-            {
-                screenPosition = Input.mousePosition;
-                return true;
-            }
-            if (Input.touchCount > 0 && Input.GetTouch(0).phase == UnityEngine.TouchPhase.Began)
-            {
-                screenPosition = Input.GetTouch(0).position;
-                return true;
-            }
-
+            // The legacy UnityEngine.Input reads (Input.GetMouseButtonDown / Input.GetTouch) used to
+            // sit here first. This project has Active Input Handling set to the new Input System
+            // package only (not "Both"), so those legacy calls throw InvalidOperationException on
+            // every single Update() — before ever reaching the new-Input-System checks below, which
+            // are the ones that actually work here. That silently broke tap-to-grab entirely (both
+            // the detector and the mask), confirmed live via the Console spamming that exception
+            // every frame while grab taps did nothing.
             if (Pointer.current != null && Pointer.current.press.wasPressedThisFrame)
             {
                 screenPosition = Pointer.current.position.ReadValue();
@@ -275,6 +276,7 @@ namespace MiningSafetyAR.Modules
             else if (item == HeldItem.Scsr && scsr != null)
             {
                 activeAnimCoroutine = StartCoroutine(AnimateReparent(scsr, heldItemSlot, heldScsrLocalPosition, heldScsrLocalEuler, heldScsrLocalScale, animationDuration));
+                HasEquippedScsr = true;
                 Debug.Log($"[BELT_GRAB] Grabbed SCSR -> pos={heldScsrLocalPosition}, rot={heldScsrLocalEuler}");
             }
         }
