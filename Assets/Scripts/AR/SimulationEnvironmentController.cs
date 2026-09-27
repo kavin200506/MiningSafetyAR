@@ -26,7 +26,7 @@ namespace MiningSafetyAR.AR
         [SerializeField] private Toggle simulationToggle;
 
         [Tooltip("Assumed height (meters) of the AR camera above the real floor at the moment Simulation mode is switched on. Only used as a fallback when 'playerRig' is not assigned — see its tooltip.")]
-        [SerializeField] private float assumedCameraHeightAboveFloor = 1.70f;
+        [SerializeField] private float assumedCameraHeightAboveFloor = 1.85f;
 
         [Tooltip("The player's walkable rig (XR Origin) — when assigned, the environment is anchored to THIS transform's position instead of the camera's. This matters because CharacterController/collision (ARLocomotionCollisionGuard) is centered on the rig, not the camera; the camera's tracked pose can differ from the rig's position by an arbitrary offset the moment simulation starts (especially with the Editor's XR Device Simulator, which doesn't guarantee starting at the rig's origin), which previously caused the environment to anchor to the wrong point relative to where collision was actually centered — the player could spawn or walk into space the environment never got built at ('outside the cave'). Leave unassigned only for older scenes with no walkable rig, which fall back to the previous camera-relative anchoring.")]
         [SerializeField] private Transform playerRig;
@@ -73,25 +73,26 @@ namespace MiningSafetyAR.AR
                 // world +Z exactly as grid-placed, so the corridor is walkable predictably.
                 if (enabled)
                 {
-                    if (playerRig != null)
+                    Camera cam = Camera.main;
+                    if (cam != null)
                     {
-                        // Anchor to the rig — this is what CharacterController/collision is actually
-                        // centered on, so the environment lines up exactly with where the player can walk.
+                        Vector3 camPos = cam.transform.position;
+                        float floorY = camPos.y - assumedCameraHeightAboveFloor;
+
+                        if (playerRig != null)
+                        {
+                            playerRig.position = new Vector3(camPos.x, floorY, camPos.z);
+                        }
+
+                        simulationEnvironmentRoot.transform.SetPositionAndRotation(
+                            new Vector3(camPos.x, floorY, camPos.z),
+                            Quaternion.identity);
+                    }
+                    else if (playerRig != null)
+                    {
                         simulationEnvironmentRoot.transform.SetPositionAndRotation(
                             playerRig.position,
                             Quaternion.identity);
-                    }
-                    else
-                    {
-                        Camera cam = Camera.main;
-                        if (cam != null)
-                        {
-                            Vector3 camPos = cam.transform.position;
-                            float floorY = camPos.y - assumedCameraHeightAboveFloor;
-                            simulationEnvironmentRoot.transform.SetPositionAndRotation(
-                                new Vector3(camPos.x, floorY, camPos.z),
-                                Quaternion.identity);
-                        }
                     }
                 }
                 simulationEnvironmentRoot.SetActive(enabled);
