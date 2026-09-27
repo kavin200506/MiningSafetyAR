@@ -134,6 +134,9 @@ namespace MiningSafetyAR.AR
                 {
                     RaycastHit hit = slideHitBuffer[h];
                     if (hit.collider == controller) continue;
+                    // Ignore ground/floor surfaces (upward normal > 0.5) so uneven floor mesh doesn't block walking
+                    if (hit.normal.y > 0.5f) continue;
+
                     if (hit.distance < closestDistance)
                     {
                         closestDistance = hit.distance;
@@ -172,12 +175,16 @@ namespace MiningSafetyAR.AR
         /// </summary>
         private Vector3 FindGroundedDescent()
         {
+            if (controller != null && controller.isGrounded) return Vector3.zero;
+
             float halfHeight = Mathf.Max(controller.height * 0.5f - controller.radius, 0f);
             Vector3 feet = transform.TransformPoint(controller.center) + Vector3.down * (halfHeight + controller.radius);
 
             if (Physics.Raycast(feet + Vector3.up * 0.05f, Vector3.down, out RaycastHit hit, groundProbeDistance + 0.05f, ~0, QueryTriggerInteraction.Ignore))
             {
                 float gap = Mathf.Max(hit.distance - 0.05f, 0f);
+                if (gap < 0.02f) return Vector3.zero;
+
                 float descent = Mathf.Min(groundStickSpeedMetersPerSecond * Time.deltaTime, gap);
                 return Vector3.down * descent;
             }

@@ -296,7 +296,8 @@ namespace MiningSafetyAR.UI.Pages
                 AppDataService.Instance.RecordAttemptStarted(moduleId);
             }
 
-            if (moduleId.StartsWith("fire_safety", System.StringComparison.OrdinalIgnoreCase))
+            if (moduleId.StartsWith("fire_safety", System.StringComparison.OrdinalIgnoreCase) ||
+                moduleId.StartsWith("gas_safety", System.StringComparison.OrdinalIgnoreCase))
             {
                 Debug.Log($"[ModuleDetail] Starting location capture screen for module '{moduleId}'...");
                 TrainingLocationCapture.EnsureInstance();

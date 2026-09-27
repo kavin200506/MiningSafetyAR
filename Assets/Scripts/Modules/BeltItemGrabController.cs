@@ -29,7 +29,7 @@ namespace MiningSafetyAR.Modules
         [SerializeField] private Vector3 heldLocalScale = new Vector3(0.078f, 0.078f, 0.078f);
 
         [Header("SCSR Inspection Pose (Live Tunable)")]
-        [SerializeField] private Vector3 heldScsrLocalPosition = new Vector3(0f, -0.10f, 0.52f);
+        [SerializeField] private Vector3 heldScsrLocalPosition = new Vector3(0f, -0.05f, 0.40f);
         [SerializeField] private Vector3 heldScsrLocalEuler = new Vector3(0f, 0f, 0f);
         [SerializeField] private Vector3 heldScsrLocalScale = new Vector3(0.85f, 0.85f, 0.85f);
 
@@ -81,6 +81,25 @@ namespace MiningSafetyAR.Modules
 
         private void Start()
         {
+            EnsureScsrMeshVisible(scsr);
+
+            // Position SCSR mask on the left side of the belt directly next to the detector
+            if (scsr != null)
+            {
+                scsr.gameObject.SetActive(true);
+                if (detector != null)
+                {
+                    Vector3 detPos = detector.localPosition;
+                    scsrBeltPos = new Vector3(-0.16f, detPos.y, detPos.z);
+                    scsr.localPosition = scsrBeltPos;
+                }
+                else
+                {
+                    scsrBeltPos = new Vector3(-0.16f, -0.22f, 0.42f);
+                    scsr.localPosition = scsrBeltPos;
+                }
+            }
+
             EnsureCollidersOnHierarchy(detector);
             EnsureCollidersOnHierarchy(scsr);
 
@@ -95,6 +114,46 @@ namespace MiningSafetyAR.Modules
             {
                 Transform rd = detector.Find("readingDisplay");
                 if (rd != null) readingDisplay = rd;
+            }
+        }
+
+        private void EnsureScsrMeshVisible(Transform root)
+        {
+            if (root == null) return;
+            Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
+            if (renderers == null || renderers.Length == 0)
+            {
+                Debug.Log("[BELT_GRAB] Creating procedural 3D SCSR Mask Pouch mesh for guaranteed visibility.");
+                GameObject pouch = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                pouch.name = "SCSR_Pouch_Mesh";
+                pouch.transform.SetParent(root, false);
+                pouch.transform.localPosition = Vector3.zero;
+                pouch.transform.localRotation = Quaternion.identity;
+                pouch.transform.localScale = new Vector3(0.12f, 0.14f, 0.08f);
+
+                Destroy(pouch.GetComponent<Collider>());
+
+                Renderer r = pouch.GetComponent<Renderer>();
+                if (r != null)
+                {
+                    Material mat = new Material(Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard"));
+                    mat.color = new Color(0.2f, 0.25f, 0.3f);
+                    r.material = mat;
+                }
+
+                GameObject band = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                band.name = "SCSR_Safety_Band";
+                band.transform.SetParent(pouch.transform, false);
+                band.transform.localPosition = new Vector3(0f, 0.02f, 0.041f);
+                band.transform.localScale = new Vector3(0.13f, 0.04f, 0.082f);
+                Destroy(band.GetComponent<Collider>());
+                Renderer bandR = band.GetComponent<Renderer>();
+                if (bandR != null)
+                {
+                    Material bandMat = new Material(Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard"));
+                    bandMat.color = new Color(1.0f, 0.8f, 0.0f);
+                    bandR.material = bandMat;
+                }
             }
         }
 
@@ -155,19 +214,19 @@ namespace MiningSafetyAR.Modules
                 if (init)
                 {
                     Vector3 lossy = root.lossyScale;
-                    float minWorldSize = 0.35f;
-                    float szX = lossy.x > 0.0001f ? Mathf.Max(localBounds.size.x, minWorldSize / lossy.x) : 0.35f;
-                    float szY = lossy.y > 0.0001f ? Mathf.Max(localBounds.size.y, minWorldSize / lossy.y) : 0.35f;
-                    float szZ = lossy.z > 0.0001f ? Mathf.Max(localBounds.size.z, minWorldSize / lossy.z) : 0.35f;
+                    float minWorldSize = 0.08f;
+                    float szX = lossy.x > 0.0001f ? Mathf.Max(localBounds.size.x, minWorldSize / lossy.x) : 0.08f;
+                    float szY = lossy.y > 0.0001f ? Mathf.Max(localBounds.size.y, minWorldSize / lossy.y) : 0.08f;
+                    float szZ = lossy.z > 0.0001f ? Mathf.Max(localBounds.size.z, minWorldSize / lossy.z) : 0.08f;
 
                     box.center = localBounds.center;
-                    box.size = new Vector3(szX, szY, szZ) * 1.3f; // 30% padding for easy tap targeting
+                    box.size = new Vector3(szX, szY, szZ);
                 }
             }
             else
             {
                 box.center = Vector3.zero;
-                box.size = new Vector3(3f, 3f, 3f);
+                box.size = new Vector3(0.08f, 0.08f, 0.08f); // Tight 8cm fallback
             }
 
             box.isTrigger = true;
@@ -197,14 +256,6 @@ namespace MiningSafetyAR.Modules
                 scsr.localScale = heldScsrLocalScale;
             }
 
-            // Mask-don drag gesture in progress takes over input entirely until it resolves
-            // (success -> Grab(); short of the threshold -> snaps back to the belt).
-            if (isMaskDonDragActive)
-            {
-                HandleMaskDonDrag();
-                return;
-            }
-
             if (!GetPointerDown(out Vector2 screenPos)) return;
 
             if (trackedCamera == null) trackedCamera = Camera.main ?? FindFirstObjectByType<Camera>();
@@ -218,10 +269,10 @@ namespace MiningSafetyAR.Modules
                 return;
             }
 
-            // --- Method 1: Precise 3D Physics Raycast & SphereCast ---
+            // --- Precise 3D Physics Raycast & SphereCast (4cm beam) ---
             Ray ray = trackedCamera.ScreenPointToRay(screenPos);
             
-            // Check direct raycast hits first
+            // Direct Raycast
             RaycastHit[] rayHits = Physics.RaycastAll(ray, 50f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide);
             float detHitDist = float.MaxValue;
             float scsrHitDist = float.MaxValue;
@@ -233,7 +284,7 @@ namespace MiningSafetyAR.Modules
                 if (scsrHitDist < detHitDist)
                 {
                     Debug.Log($"[BELT_GRAB] Direct Raycast hit SCSR Mask (dist={scsrHitDist:F2}m)");
-                    TryGrabOrBeginMaskDon(screenPos);
+                    Grab(HeldItem.Scsr);
                     return;
                 }
                 else
@@ -244,8 +295,8 @@ namespace MiningSafetyAR.Modules
                 }
             }
 
-            // Check spherecast beam (15cm beam width) for near-miss taps near item edges
-            RaycastHit[] sphereHits = Physics.SphereCastAll(ray, 0.15f, 50f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide);
+            // Tight SphereCast beam (4cm radius) for easy precise tapping without pixel-perfect precision
+            RaycastHit[] sphereHits = Physics.SphereCastAll(ray, 0.04f, 50f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide);
             ProcessHits(sphereHits, ref detHitDist, ref scsrHitDist);
 
             if (detHitDist < float.MaxValue || scsrHitDist < float.MaxValue)
@@ -253,44 +304,12 @@ namespace MiningSafetyAR.Modules
                 if (scsrHitDist < detHitDist)
                 {
                     Debug.Log($"[BELT_GRAB] SphereCast hit SCSR Mask (dist={scsrHitDist:F2}m)");
-                    TryGrabOrBeginMaskDon(screenPos);
+                    Grab(HeldItem.Scsr);
                     return;
                 }
                 else
                 {
                     Debug.Log($"[BELT_GRAB] SphereCast hit MultiGasDetector (dist={detHitDist:F2}m)");
-                    Grab(HeldItem.Detector);
-                    return;
-                }
-            }
-
-            // --- Method 2: Viewport Distance Proximity Fallback ---
-            float detScreenDist = float.MaxValue;
-            float scsrScreenDist = float.MaxValue;
-
-            if (detector != null)
-            {
-                Vector3 detScreenPos = trackedCamera.WorldToScreenPoint(GetItemWorldCenter(detector));
-                if (detScreenPos.z > 0) detScreenDist = Vector2.Distance(screenPos, (Vector2)detScreenPos);
-            }
-            if (scsr != null)
-            {
-                Vector3 scsrScreenPos = trackedCamera.WorldToScreenPoint(GetItemWorldCenter(scsr));
-                if (scsrScreenPos.z > 0) scsrScreenDist = Vector2.Distance(screenPos, (Vector2)scsrScreenPos);
-            }
-
-            float maxScreenRadius = 300f; // 300 pixels search radius on screen
-            if (detScreenDist < maxScreenRadius || scsrScreenDist < maxScreenRadius)
-            {
-                if (scsrScreenDist < detScreenDist)
-                {
-                    Debug.Log($"[BELT_GRAB] Viewport proximity hit SCSR Mask (dist={scsrScreenDist:F1}px vs det={detScreenDist:F1}px)");
-                    TryGrabOrBeginMaskDon(screenPos);
-                    return;
-                }
-                else
-                {
-                    Debug.Log($"[BELT_GRAB] Viewport proximity hit MultiGasDetector (dist={detScreenDist:F1}px vs scsr={scsrScreenDist:F1}px)");
                     Grab(HeldItem.Detector);
                     return;
                 }
@@ -316,7 +335,7 @@ namespace MiningSafetyAR.Modules
         private bool IsTargetOrChild(Transform hitTransform, Transform target)
         {
             if (target == null || hitTransform == null) return false;
-            return hitTransform == target || hitTransform.IsChildOf(target) || target.IsChildOf(hitTransform);
+            return hitTransform == target || hitTransform.IsChildOf(target);
         }
 
         private bool GetPointerDown(out Vector2 screenPosition)
@@ -410,6 +429,12 @@ namespace MiningSafetyAR.Modules
             if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.isPressed)
             {
                 pos = Touchscreen.current.primaryTouch.position.ReadValue();
+                active = true;
+                return true;
+            }
+            if (Mouse.current != null && Mouse.current.leftButton.isPressed)
+            {
+                pos = Mouse.current.position.ReadValue();
                 active = true;
                 return true;
             }
