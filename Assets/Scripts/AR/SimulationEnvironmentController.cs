@@ -31,9 +31,6 @@ namespace MiningSafetyAR.AR
         [Tooltip("The player's walkable rig (XR Origin) — when assigned, the environment is anchored to THIS transform's position instead of the camera's. This matters because CharacterController/collision (ARLocomotionCollisionGuard) is centered on the rig, not the camera; the camera's tracked pose can differ from the rig's position by an arbitrary offset the moment simulation starts (especially with the Editor's XR Device Simulator, which doesn't guarantee starting at the rig's origin), which previously caused the environment to anchor to the wrong point relative to where collision was actually centered — the player could spawn or walk into space the environment never got built at ('outside the cave'). Leave unassigned only for older scenes with no walkable rig, which fall back to the previous camera-relative anchoring.")]
         [SerializeField] private Transform playerRig;
 
-        [Tooltip("Scale factor applied to the simulation environment root. Default (0.5, 1.0, 0.5) shrinks the horizontal X/Z walking corridor length by 50% for comfortable mobile device navigation while maintaining 100% full vertical height.")]
-        [SerializeField] private Vector3 environmentScale = new Vector3(0.5f, 1.0f, 0.5f);
-
         public bool IsSimulationMode { get; private set; }
 
         private void Start()
@@ -96,7 +93,6 @@ namespace MiningSafetyAR.AR
                                 Quaternion.identity);
                         }
                     }
-                    simulationEnvironmentRoot.transform.localScale = environmentScale;
                 }
                 simulationEnvironmentRoot.SetActive(enabled);
             }
