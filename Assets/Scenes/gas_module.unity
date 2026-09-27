@@ -1494,7 +1494,7 @@ MonoBehaviour:
   cameraBackground: {fileID: 1944206584}
   startInSimulationMode: 1
   simulationToggle: {fileID: 0}
-  assumedCameraHeightAboveFloor: 1.85
+  assumedCameraHeightAboveFloor: 1.5
   playerRig: {fileID: 1680751}
 --- !u!4 &771559624
 Transform:
