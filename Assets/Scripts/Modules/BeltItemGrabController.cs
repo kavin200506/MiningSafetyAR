@@ -36,11 +36,21 @@ namespace MiningSafetyAR.Modules
         [Header("Animation Settings")]
         [SerializeField] private float animationDuration = 0.35f;
 
+        [Header("Mask Don Gesture (Drag Up To Face)")]
+        [Tooltip("Net upward screen-space drag distance (pixels) required before releasing counts as actually putting the SCSR mask on, rather than an accidental tap/slip. Same 'real drag vs accidental tap' idea as the fire module's pin-pull gesture.")]
+        [SerializeField] private float maskDonDragMinUpwardPixels = 150f;
+        [Tooltip("How high (world units) the mask visibly lifts off the belt while dragging, as live drag-progress feedback. The full fly-to-face animation only plays on a successful release (reuses Grab()) — this is just the mid-drag cue.")]
+        [SerializeField] private float maskDonDragLiftHeight = 0.15f;
+
         [Header("UI Fallback")]
         [SerializeField] private bool showOnScreenGuiButton = true;
 
         private HeldItem currentlyHeld = HeldItem.None;
         private Coroutine activeAnimCoroutine;
+        private bool isMaskDonDragActive = false;
+        private Vector2 maskDonDragStartScreenPos;
+        private Vector2 maskDonDragLastScreenPos;
+        private Vector3 maskDonDragRestWorldPos;
 
         /// <summary>True from the moment the worker first grabs the SCSR mask, for the rest of the
         /// drill — represents the mask being put on, not just currently held for inspection, so it
@@ -187,6 +197,14 @@ namespace MiningSafetyAR.Modules
                 scsr.localScale = heldScsrLocalScale;
             }
 
+            // Mask-don drag gesture in progress takes over input entirely until it resolves
+            // (success -> Grab(); short of the threshold -> snaps back to the belt).
+            if (isMaskDonDragActive)
+            {
+                HandleMaskDonDrag();
+                return;
+            }
+
             if (!GetPointerDown(out Vector2 screenPos)) return;
 
             if (trackedCamera == null) trackedCamera = Camera.main ?? FindFirstObjectByType<Camera>();
@@ -215,7 +233,7 @@ namespace MiningSafetyAR.Modules
                 if (scsrHitDist < detHitDist)
                 {
                     Debug.Log($"[BELT_GRAB] Direct Raycast hit SCSR Mask (dist={scsrHitDist:F2}m)");
-                    Grab(HeldItem.Scsr);
+                    TryGrabOrBeginMaskDon(screenPos);
                     return;
                 }
                 else
@@ -235,7 +253,7 @@ namespace MiningSafetyAR.Modules
                 if (scsrHitDist < detHitDist)
                 {
                     Debug.Log($"[BELT_GRAB] SphereCast hit SCSR Mask (dist={scsrHitDist:F2}m)");
-                    Grab(HeldItem.Scsr);
+                    TryGrabOrBeginMaskDon(screenPos);
                     return;
                 }
                 else
@@ -267,7 +285,7 @@ namespace MiningSafetyAR.Modules
                 if (scsrScreenDist < detScreenDist)
                 {
                     Debug.Log($"[BELT_GRAB] Viewport proximity hit SCSR Mask (dist={scsrScreenDist:F1}px vs det={detScreenDist:F1}px)");
-                    Grab(HeldItem.Scsr);
+                    TryGrabOrBeginMaskDon(screenPos);
                     return;
                 }
                 else
@@ -363,6 +381,97 @@ namespace MiningSafetyAR.Modules
         public void GrabDetectorExternal() => Grab(HeldItem.Detector);
         public void GrabScsrExternal() => Grab(HeldItem.Scsr);
         public void ReleaseExternal() => Release();
+
+        /// <summary>
+        /// First-time SCSR donning requires a deliberate drag-upward gesture, not a tap — real-world
+        /// relevance: putting a mask on your face isn't a single tap, same reasoning as the fire
+        /// module's pin-pull drag. Once already equipped, picking it back up (e.g. to re-inspect)
+        /// is a normal instant grab again, same as the detector.
+        /// </summary>
+        private void TryGrabOrBeginMaskDon(Vector2 screenPos)
+        {
+            if (!HasEquippedScsr)
+            {
+                BeginMaskDonDrag(screenPos);
+            }
+            else
+            {
+                Grab(HeldItem.Scsr);
+            }
+        }
+
+        /// <summary>Ongoing press state (position + isPressed), as opposed to GetPointerDown()
+        /// which only reports the frame a press began.</summary>
+        private bool TryReadPointerState(out Vector2 pos, out bool active)
+        {
+            pos = Vector2.zero;
+            active = false;
+
+            if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.isPressed)
+            {
+                pos = Touchscreen.current.primaryTouch.position.ReadValue();
+                active = true;
+                return true;
+            }
+            if (Pointer.current != null && Pointer.current.press.isPressed)
+            {
+                pos = Pointer.current.position.ReadValue();
+                active = true;
+                return true;
+            }
+            return false;
+        }
+
+        private void BeginMaskDonDrag(Vector2 screenPos)
+        {
+            if (scsr == null) return;
+            isMaskDonDragActive = true;
+            maskDonDragStartScreenPos = screenPos;
+            maskDonDragLastScreenPos = screenPos;
+            maskDonDragRestWorldPos = scsr.position;
+            Debug.Log("[BELT_GRAB] Mask don drag started — drag upward toward your face to put it on.");
+        }
+
+        private void HandleMaskDonDrag()
+        {
+            // Once the finger lifts, TryReadPointerState reports isPressed=false with no usable
+            // position — so the release point has to be whatever we last saw WHILE still pressed,
+            // tracked into maskDonDragLastScreenPos below, not read fresh here.
+            if (!TryReadPointerState(out Vector2 currentPos, out bool active) || !active)
+            {
+                EndMaskDonDrag(maskDonDragLastScreenPos);
+                return;
+            }
+
+            maskDonDragLastScreenPos = currentPos;
+            float netUpward = currentPos.y - maskDonDragStartScreenPos.y;
+            float progress = Mathf.Clamp01(netUpward / maskDonDragMinUpwardPixels);
+
+            // Live feedback only — a small lift off the belt as the player drags. The full fly-to-
+            // face animation (AnimateReparent, in Grab()) only plays on a successful release, so we
+            // don't need to solve cross-parent-space interpolation here.
+            if (scsr != null)
+            {
+                scsr.position = maskDonDragRestWorldPos + Vector3.up * (maskDonDragLiftHeight * progress);
+            }
+        }
+
+        private void EndMaskDonDrag(Vector2 releaseScreenPos)
+        {
+            isMaskDonDragActive = false;
+            float netUpward = releaseScreenPos.y - maskDonDragStartScreenPos.y;
+
+            if (netUpward >= maskDonDragMinUpwardPixels)
+            {
+                Debug.Log($"[BELT_GRAB] Mask don drag succeeded ({netUpward:F0}px >= {maskDonDragMinUpwardPixels}px) -> putting SCSR on.");
+                Grab(HeldItem.Scsr);
+            }
+            else
+            {
+                Debug.Log($"[BELT_GRAB] Mask don drag too short ({netUpward:F0}px < {maskDonDragMinUpwardPixels}px) -> snapping back to belt.");
+                if (scsr != null) scsr.position = maskDonDragRestWorldPos;
+            }
+        }
 
         private void Grab(HeldItem item)
         {

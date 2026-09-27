@@ -10,8 +10,13 @@ namespace MiningSafetyAR.Data
     /// 1.0668m = exactly 3.5ft), not an arbitrary number. IMPORTANT CAVEAT: this is accurate,
     /// internally-consistent safety content, not formally certified/reviewed by a qualified mine
     /// safety officer (e.g. DGMS) — that sign-off still needs to happen before treating this as
-    /// production-grade training material. gas_safety content below is still [PLACEHOLDER] — that
-    /// module has no AR scene yet, so there was nothing concrete to write real questions against.
+    /// production-grade training material.
+    ///
+    /// gas_safety content below is now real (2026-09-27), replacing the earlier [PLACEHOLDER] set
+    /// written before that module had an AR drill — grounded in GasLeakModuleManager's actual 4
+    /// steps (initial detector check -> second re-check past TurnR -> don SCSR mask -> evacuate),
+    /// same "match the real mechanic" convention as fire_safety above. Same DGMS-review caveat
+    /// applies.
     /// </summary>
     public static class QuestionBankSeedData
     {
@@ -131,61 +136,54 @@ namespace MiningSafetyAR.Data
                 "The safety pin must be pulled before the handle can be squeezed to discharge the extinguisher.")));
 
             // ---------------- gas_safety / main ----------------
-            seeds.Add(("gas_safety", "main", new QuestionBankItem
-            {
-                id = "gas_q_localization_1",
-                tags = new[] { MistakeTags.WrongHazardLocalization },
-                difficulty = QuestionDifficulty.Medium,
-                stemEN = "[PLACEHOLDER] What is the most reliable way to pinpoint a suspected gas leak source underground?",
-                optionsEN = new[] { "Follow your sense of smell only", "Use a calibrated multi-gas detector", "Guess based on the last known leak location", "Wait for visible symptoms in coworkers" },
-                correctIndex = 1,
-                explanationEN = "[PLACEHOLDER] A calibrated detector gives an objective reading; smell alone is unreliable and some gases are odorless.",
-                stemHI = "", optionsHI = System.Array.Empty<string>(), explanationHI = "",
-                stemSAT = "", optionsSAT = System.Array.Empty<string>(), explanationSAT = "",
-                stemTA = "", optionsTA = System.Array.Empty<string>(), explanationTA = "",
-            }));
+            QuestionBankItem Gas(string id, string tag, QuestionDifficulty diff, string stem, string[] options, int correct, string explanation) =>
+                new QuestionBankItem
+                {
+                    id = id,
+                    tags = string.IsNullOrEmpty(tag) ? System.Array.Empty<string>() : new[] { tag },
+                    difficulty = diff,
+                    stemEN = stem,
+                    optionsEN = options,
+                    correctIndex = correct,
+                    explanationEN = explanation,
+                    stemHI = "", optionsHI = System.Array.Empty<string>(), explanationHI = "",
+                    stemSAT = "", optionsSAT = System.Array.Empty<string>(), explanationSAT = "",
+                    stemTA = "", optionsTA = System.Array.Empty<string>(), explanationTA = "",
+                };
 
-            seeds.Add(("gas_safety", "main", new QuestionBankItem
-            {
-                id = "gas_q_ppe_1",
-                tags = new[] { MistakeTags.MissedPpeCheck },
-                difficulty = QuestionDifficulty.Easy,
-                stemEN = "[PLACEHOLDER] What respiratory protection is required for a toxic, oxygen-deficient confined space?",
-                optionsEN = new[] { "A standard dust mask", "Self-Contained Breathing Apparatus (SCBA)", "No protection if the visit is brief", "A wet cloth over the mouth" },
-                correctIndex = 1,
-                explanationEN = "[PLACEHOLDER] Dust masks don't supply oxygen or filter toxic/asphyxiant gases — only SCBA is adequate here.",
-                stemHI = "", optionsHI = System.Array.Empty<string>(), explanationHI = "",
-                stemSAT = "", optionsSAT = System.Array.Empty<string>(), explanationSAT = "",
-                stemTA = "", optionsTA = System.Array.Empty<string>(), explanationTA = "",
-            }));
+            // Step 1 (Initial Detector Check) — GasLeakModuleManager.FirstCheckStepIndex
+            seeds.Add(("gas_safety", "main", Gas("gas_q_alarm_response_1", null, QuestionDifficulty.Easy,
+                "Your multi-gas detector alarm sounds while you are working underground. What should you do first?",
+                new[] { "Check your gas detector reading immediately", "Continue working until your shift ends", "Remove your mask to get fresh air", "Wait for a supervisor before reacting" }, 0,
+                "The alarm means gas levels may be dangerous — checking your detector immediately tells you what you're actually dealing with before you decide your next move.")));
 
-            seeds.Add(("gas_safety", "main", new QuestionBankItem
-            {
-                id = "gas_q_buddy_1",
-                tags = new[] { MistakeTags.UnsafeZoneEntry },
-                difficulty = QuestionDifficulty.Medium,
-                stemEN = "[PLACEHOLDER] Before entering a confined space, what must be confirmed with your standby buddy?",
-                optionsEN = new[] { "Nothing, entry can proceed independently", "Two-way communication and a check-in plan", "Only that they know your name", "That they are on a lunch break" },
-                correctIndex = 1,
-                explanationEN = "[PLACEHOLDER] Confirmed two-way communication is what lets a buddy actually respond if something goes wrong inside.",
-                stemHI = "", optionsHI = System.Array.Empty<string>(), explanationHI = "",
-                stemSAT = "", optionsSAT = System.Array.Empty<string>(), explanationSAT = "",
-                stemTA = "", optionsTA = System.Array.Empty<string>(), explanationTA = "",
-            }));
+            // Step 2 (Gas Re-assessment past TurnR) — GasLeakModuleManager.SecondCheckStepIndex / GasSecondCheckZone
+            seeds.Add(("gas_safety", "main", Gas("gas_q_recheck_1", null, QuestionDifficulty.Medium,
+                "Why should you re-check your gas detector a second time while moving toward the exit, even after checking it once already?",
+                new[] { "Gas concentrations can change as you move through different areas", "It resets the detector's battery", "It is only a formality with no safety purpose", "A single check is always enough" }, 0,
+                "Gas levels vary by location and time — an early reading doesn't guarantee conditions stay the same for the rest of your route out.")));
 
-            seeds.Add(("gas_safety", "main", new QuestionBankItem
-            {
-                id = "gas_q_baseline_1",
-                tags = System.Array.Empty<string>(),
-                difficulty = QuestionDifficulty.Hard,
-                stemEN = "[PLACEHOLDER] Which gas is commonly associated with confined-space oxygen displacement in mining?",
-                optionsEN = new[] { "Methane", "Helium", "Argon", "Neon" },
-                correctIndex = 0,
-                explanationEN = "[PLACEHOLDER] Methane buildup displaces breathable oxygen and is also flammable/explosive.",
-                stemHI = "", optionsHI = System.Array.Empty<string>(), explanationHI = "",
-                stemSAT = "", optionsSAT = System.Array.Empty<string>(), explanationSAT = "",
-                stemTA = "", optionsTA = System.Array.Empty<string>(), explanationTA = "",
-            }));
+            // Step 3 (Don SCSR Mask) — GasLeakModuleManager.MaskDonStepIndex / GasMaskGate. Note: the real
+            // drill equipment is an SCSR (Self-Contained Self-Rescuer, see BeltItemGrabController/GasMask
+            // model), not SCBA — the old placeholder question had this wrong.
+            seeds.Add(("gas_safety", "main", Gas("gas_q_ppe_1", MistakeTags.MissedPpeCheck, QuestionDifficulty.Easy,
+                "You are moving through a high-gas zone toward the exit. What must you wear before proceeding?",
+                new[] { "A standard dust mask", "An SCSR (Self-Contained Self-Rescuer) mask", "Safety goggles only", "No PPE if you move quickly" }, 1,
+                "A dust mask does not protect against toxic or oxygen-deficient air. The SCSR mask supplies breathable air and is mandatory before entering a high-gas zone.")));
+
+            // General confined-space entry protocol (buddy system) — taxonomy tag defined in
+            // MistakeTags even though no live AR trigger exists for it yet (see MistakeTags.cs notes).
+            seeds.Add(("gas_safety", "main", Gas("gas_q_buddy_1", MistakeTags.UnsafeZoneEntry, QuestionDifficulty.Medium,
+                "Before entering a confined space, what must be confirmed with your standby buddy?",
+                new[] { "Nothing, entry can proceed independently", "Two-way communication and a check-in plan", "Only that they know your name", "That they are on a lunch break" }, 1,
+                "Confirmed two-way communication is what lets a buddy actually respond if something goes wrong inside.")));
+
+            // General hazard-identification knowledge — taxonomy tag defined in MistakeTags even
+            // though no live AR trigger exists for it yet.
+            seeds.Add(("gas_safety", "main", Gas("gas_q_localization_1", MistakeTags.WrongHazardLocalization, QuestionDifficulty.Medium,
+                "What is the most reliable way to pinpoint a suspected gas leak source underground?",
+                new[] { "Follow your sense of smell only", "Use your calibrated multi-gas detector readings", "Guess based on the last known leak location", "Wait for visible symptoms in coworkers" }, 1,
+                "A calibrated detector gives an objective reading — smell alone is unreliable, and some hazardous gases (like carbon monoxide) are odorless.")));
 
             return seeds;
         }

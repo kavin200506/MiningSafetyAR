@@ -109,9 +109,13 @@ namespace MiningSafetyAR.UI.Pages
 
             yield return new WaitForSeconds(0.4f);
 
-            // Navigate to AR Simulation Scene
-            Debug.Log($"[LocationCapturePage] 5s Location verification completed ('{capturedPayload?.locationName}') -> Launching AR Simulation for module '{moduleId}'...");
-            NavigationManager.Instance.NavigateTo("ar_fire_safety", moduleId);
+            // Navigate to AR Simulation Scene — this used to be hardcoded to "ar_fire_safety" for
+            // EVERY module, meaning even a gas_safety selection would launch the fire drill. Route
+            // by module family, same isGasModule convention ARSimulationPageController already uses.
+            bool isGasModule = !string.IsNullOrEmpty(moduleId) && moduleId.StartsWith("gas_safety");
+            string targetScene = isGasModule ? "gas_module" : "ar_fire_safety";
+            Debug.Log($"[LocationCapturePage] 5s Location verification completed ('{capturedPayload?.locationName}') -> Launching AR Simulation ('{targetScene}') for module '{moduleId}'...");
+            NavigationManager.Instance.NavigateTo(targetScene, moduleId);
         }
     }
 }
