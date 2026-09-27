@@ -78,18 +78,46 @@ namespace MiningSafetyAR.Modules
             }
         }
 
+        [Tooltip("How long the worker must remain in the real-world camera feed after exiting before the drill is registered as complete.")]
+        [SerializeField] private float safeStayDurationSeconds = 4f;
+
         private void ExitMine()
         {
+            // Reveal the real-world AR passthrough immediately — this is what tells the worker
+            // they've physically stepped out of the mine. Scoring completion is deferred until
+            // they've actually stayed there (see CompleteAfterSafeStay), not fired in the same
+            // instant as the visual swap.
+            if (simulationEnvironmentController != null)
+                simulationEnvironmentController.SetSimulationMode(false);
+
+            Debug.Log("[MINE_EXIT] Real-world camera feed restored — waiting to confirm worker is safe.");
+
+            // SetSimulationMode(false) just deactivated simulationEnvironmentRoot, and this
+            // GameObject is a child of that root — so it is now inactive too, and a coroutine
+            // cannot be started on an inactive MonoBehaviour. Host the coroutine on
+            // simulationEnvironmentController's GameObject instead: it lives outside the mine
+            // hierarchy specifically so it survives the mine being hidden.
+            MonoBehaviour coroutineHost = simulationEnvironmentController != null
+                ? (MonoBehaviour)simulationEnvironmentController
+                : this;
+            coroutineHost.StartCoroutine(CompleteAfterSafeStay());
+        }
+
+        private System.Collections.IEnumerator CompleteAfterSafeStay()
+        {
+            yield return new WaitForSeconds(safeStayDurationSeconds);
+
             // Notify GasLeakModuleManager for scoring
             var moduleManager = FindFirstObjectByType<GasLeakModuleManager>();
             if (moduleManager != null)
             {
                 moduleManager.NotifyExitReached();
-                Debug.Log("[MINE_EXIT] Notified GasLeakModuleManager of exit reached");
+                Debug.Log("[MINE_EXIT] Worker confirmed safe after " + safeStayDurationSeconds + "s in real-world view — notified GasLeakModuleManager of exit reached.");
             }
-
-            if (simulationEnvironmentController != null) 
-                simulationEnvironmentController.SetSimulationMode(false);
+            else
+            {
+                Debug.LogWarning("[MINE_EXIT] Worker confirmed safe, but no GasLeakModuleManager found in scene to notify.");
+            }
         }
     }
 }
