@@ -107,11 +107,31 @@ namespace MiningSafetyAR.Modules
             totalSteps = 4;
 
             Debug.Log("[GAS_SCORING] [GasLeakModuleManager] Awake — Instance set, totalSteps=4.");
+
+            // Same fix FireSafetyModuleManager already has (see its own Awake()) — Unity doesn't
+            // guarantee Awake() order between GameObjects, so ARSimulationPageController's own
+            // SubscribeToEvents() attempt may have already run and found Instance still null here.
+            MiningSafetyAR.UI.Pages.ARSimulationPageController.Instance?.NotifyGasLeakModuleManagerReady();
         }
 
         private void OnEnable()
         {
             Debug.Log("[GAS_SCORING] [GasLeakModuleManager] OnEnable");
+        }
+
+        private void Start()
+        {
+            // Auto-start rather than waiting for ARSimulationPageController's "Start Mission"
+            // button tap (OnStartMissionClicked) to call StartModule() — that manual step was
+            // being missed in practice, leaving isModuleActive permanently false and silently
+            // no-opping every Notify*() call including the exit's FinishModule(), regardless of
+            // what the worker actually did. The intended flow has no separate "tap to begin"
+            // gesture: the drill begins the moment the worker spawns in the mine, right as the
+            // 7s alarm countdown starts. Calling StartModule() again later (if the button IS
+            // tapped) is harmless — same as FireSafetyModuleManager.RetryModule(), it just resets
+            // and restarts the drill.
+            Debug.Log("[GAS_SCORING] [GasLeakModuleManager] Start() — auto-starting drill.");
+            StartModule();
         }
 
         private void OnDisable()
@@ -207,32 +227,66 @@ namespace MiningSafetyAR.Modules
             }
         }
 
-        /// <summary>Called when worker re-checks detector en route (second check).</summary>
+        /// <summary>
+        /// Called when worker re-checks detector en route (second check). Sets the scoring flag
+        /// unconditionally (not gated on currentStepIndex) — in a real mine, doing this "out of
+        /// order" (e.g. after skipping ahead) should still count toward the score. Only the UI
+        /// step-banner advance is conditional, since that's purely cosmetic.
+        /// </summary>
         public void NotifySecondDetectorCheck()
         {
-            if (currentStepIndex != SecondCheckStepIndex || !isModuleActive) return;
+            if (!isModuleActive || secondCheckDone) return;
 
             secondCheckDone = true;
             Debug.Log("[GAS_SCORING] Second detector check completed.");
-            CompleteCurrentStep();
+
+            if (currentStepIndex == SecondCheckStepIndex) CompleteCurrentStep();
         }
 
-        /// <summary>Called when worker dons SCSR mask (via BeltItemGrabController).</summary>
+        /// <summary>
+        /// Called when worker dons SCSR mask (via BeltItemGrabController). Same reasoning as
+        /// NotifySecondDetectorCheck — the scoring flag is unconditional.
+        /// </summary>
         public void NotifyMaskDonned()
         {
-            if (currentStepIndex != MaskDonStepIndex || !isModuleActive) return;
+            if (!isModuleActive || maskDonned) return;
 
             maskDonned = true;
             Debug.Log("[GAS_SCORING] SCSR mask donned.");
-            CompleteCurrentStep();
+
+            if (currentStepIndex == MaskDonStepIndex) CompleteCurrentStep();
         }
 
-        /// <summary>Called by MineExitTrigger when worker reaches exit.</summary>
+        /// <summary>
+        /// Called by MineExitTrigger when worker reaches exit. Reaching the exit ALWAYS ends the
+        /// drill — exactly like a real mine, nothing physically stops a worker from walking out
+        /// regardless of which safety checks they did or skipped. Skipping a check only costs
+        /// points via the competency formulas below (ComputeHazardRecognitionScore /
+        /// ComputePpeSelectionScore), it never blocks this. Any step the worker never reached gets
+        /// force-recorded here (RecordStepMetric treats a never-started step as a 0, see below) so
+        /// stepMetrics always has exactly totalSteps entries in order, which every Compute*Score()
+        /// formula assumes.
+        /// </summary>
         public void NotifyExitReached()
         {
-            if (currentStepIndex != EvacuationStepIndex || !isModuleActive) return;
+            if (!isModuleActive) return;
+
             exitTime = Time.time;
-            CompleteCurrentStep();
+
+            // Reaching the exit IS the evacuation step completing — make sure RecordStepMetric
+            // always treats it as "reached" even if the worker skipped straight here without any
+            // earlier step ever formally starting (OnStepStart(EvacuationStepIndex) may never have
+            // run naturally in that case, which would otherwise score it 0 despite them having just
+            // evacuated).
+            if (stepStartTimes[EvacuationStepIndex] <= 0f) stepStartTimes[EvacuationStepIndex] = Time.time;
+
+            while (currentStepIndex < totalSteps)
+            {
+                RecordStepMetric(currentStepIndex);
+                currentStepIndex++;
+            }
+
+            FinishModule();
         }
 
         public override void RegisterMistake(string feedbackMessage) => RegisterMistake(feedbackMessage, MistakeSeverity.Standard);
@@ -267,18 +321,12 @@ namespace MiningSafetyAR.Modules
             int timeManagementPct = ComputeTimeScore(timeTaken);
             int evacuationPct = ComputeEvacuationScore();
 
-            // Save to Firebase via AppDataService
-            if (Data.AppDataService.Instance != null && Data.AppDataService.Instance.CurrentWorker != null)
-            {
-                Data.AppDataService.Instance.UpdateModuleCompetencyScoresFromDrill(
-                    "gas_safety",
-                    hazardRecognitionPct,
-                    ppeSelectionPct,
-                    timeManagementPct,
-                    evacuationPct,
-                    0
-                );
-            }
+            // The real, unified save (local JSON cache + offline-queue-aware Firestore push) happens
+            // once, after the quiz, in AdaptiveQuizPageController via AppDataService.SaveAttempt +
+            // UpdateModuleCompetencyScoresFromDrill — same pattern FireSafetyModuleManager uses.
+            // A direct write here used to fire early with quizScorePct hardcoded to 0 and against
+            // the parent "gas_safety" id instead of the real progressModuleId (e.g. "gas_safety_sub1"),
+            // writing a stray/duplicate progress doc instead of the one actually read later.
 
             lastDrillResult = new DrillResultPayload
             {
@@ -301,25 +349,33 @@ namespace MiningSafetyAR.Modules
         private void RecordStepMetric(int stepIndex)
         {
             if (stepIndex >= totalSteps) return;
-            if (stepIndex < stepStartTimes.Length && stepStartTimes[stepIndex] > 0f)
+
+            // A step the worker exited before ever reaching (OnStepStart never ran for it, so it
+            // has no start time) always scores 0 here — it never blocks the exit (NotifyExitReached
+            // force-records every remaining step so stepMetrics always has totalSteps entries), it
+            // just doesn't get credit. A step that WAS reached uses the normal formula below, same
+            // as before.
+            bool wasStarted = stepIndex < stepStartTimes.Length && stepStartTimes[stepIndex] > 0f;
+            float duration = wasStarted ? Time.time - stepStartTimes[stepIndex] : 0f;
+            int errors = stepIndex < stepErrorCounts.Length ? stepErrorCounts[stepIndex] : 0;
+            int penalty = stepIndex < stepPenaltyPoints.Length ? stepPenaltyPoints[stepIndex] : 0;
+
+            int stepScore;
+            if (stepIndex < stepScoreOverride.Length && stepScoreOverride[stepIndex].HasValue)
+                stepScore = stepScoreOverride[stepIndex].Value;
+            else if (!wasStarted)
+                stepScore = 0;
+            else
+                stepScore = Mathf.Clamp(pointsPerStep - penalty, 0, pointsPerStep);
+
+            StepMetric metric = new StepMetric
             {
-                float duration = Time.time - stepStartTimes[stepIndex];
-                int errors = stepIndex < stepErrorCounts.Length ? stepErrorCounts[stepIndex] : 0;
-                int penalty = stepIndex < stepPenaltyPoints.Length ? stepPenaltyPoints[stepIndex] : 0;
-
-                int stepScore = (stepIndex < stepScoreOverride.Length && stepScoreOverride[stepIndex].HasValue)
-                    ? stepScoreOverride[stepIndex].Value
-                    : Mathf.Clamp(pointsPerStep - penalty, 0, pointsPerStep);
-
-                StepMetric metric = new StepMetric
-                {
-                    stepName = StepNames[stepIndex],
-                    errorCount = errors,
-                    durationSeconds = duration,
-                    score = stepScore
-                };
-                stepMetrics.Add(metric);
-            }
+                stepName = StepNames[stepIndex],
+                errorCount = errors,
+                durationSeconds = duration,
+                score = stepScore
+            };
+            stepMetrics.Add(metric);
         }
 
         public List<StepMetric> GetStepMetrics() => new List<StepMetric>(stepMetrics);

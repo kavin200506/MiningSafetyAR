@@ -114,6 +114,15 @@ namespace MiningSafetyAR.UI.Pages
             SubscribeToEvents();
         }
 
+        /// <summary>Same reasoning as NotifyFireSafetyModuleManagerReady() — GasLeakModuleManager
+        /// calls this from its own Awake() in case that runs after this page's own subscribe
+        /// attempt already found Instance null.</summary>
+        public void NotifyGasLeakModuleManagerReady()
+        {
+            Debug.Log("[GAS_SCORING] [ARSimulationPageController] NotifyGasLeakModuleManagerReady() — re-subscribing now.");
+            SubscribeToEvents();
+        }
+
         protected override void BindUI()
         {
             btnExit = root.Q<Button>("btn-exit");
@@ -216,7 +225,15 @@ namespace MiningSafetyAR.UI.Pages
             currentTipIndex = 0;
             awaitingQuizConfirm = false;
 
-            if (string.IsNullOrEmpty(moduleId)) moduleId = "fire_safety";
+            if (string.IsNullOrEmpty(moduleId))
+            {
+                // No nav param (e.g. this scene was opened directly in the Editor rather than
+                // reached through Dashboard -> ModuleDetail -> SetNavigationParameter). Fall back
+                // to a scene-name guess instead of always defaulting to "fire_safety", so
+                // GasLeakModuleManager still actually starts when gas_module.unity is played standalone.
+                string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+                moduleId = sceneName.ToLowerInvariant().Contains("gas") ? "gas_safety" : "fire_safety";
+            }
 
             Debug.Log($"[ARSimulationPageController] OnPageEnter() — moduleId={moduleId}, scene={UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}");
 
@@ -833,10 +850,16 @@ namespace MiningSafetyAR.UI.Pages
             HideMissionModal();
             StartTimer();
 
-            Debug.Log($"[SCORING_DIAG] [ARSimulationPageController] OnStartMissionClicked() — FireSafetyModuleManager.Instance {(FireSafetyModuleManager.Instance != null ? "FOUND" : "NOT FOUND (null)")}.");
-            if (FireSafetyModuleManager.Instance != null)
+            bool isGasModule = !string.IsNullOrEmpty(moduleId) && moduleId.StartsWith("gas_safety");
+            Debug.Log($"[SCORING_DIAG] [ARSimulationPageController] OnStartMissionClicked() — moduleId={moduleId}, isGasModule={isGasModule}, FireSafetyModuleManager.Instance {(FireSafetyModuleManager.Instance != null ? "FOUND" : "NOT FOUND (null)")}, GasLeakModuleManager.Instance {(GasLeakModuleManager.Instance != null ? "FOUND" : "NOT FOUND (null)")}.");
+
+            if (isGasModule)
             {
-                FireSafetyModuleManager.Instance.StartModule();
+                GasLeakModuleManager.Instance?.StartModule();
+            }
+            else
+            {
+                FireSafetyModuleManager.Instance?.StartModule();
             }
         }
 

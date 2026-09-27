@@ -51,6 +51,16 @@ namespace MiningSafetyAR.Modules
                     moduleManager.RegisterMistake("Entered high gas zone without SCSR mask!", GasLeakModuleManager.MistakeSeverity.Critical);
                     Firebase.FirestoreService.Instance?.LogMistakeEvent(
                         "gas_safety", "main", MistakeTags.MissedPpeCheck, MistakeTags.MissedPpeCheckSeverity);
+
+                    // RegisterMistake() only logs the penalty — it does NOT advance the step the way
+                    // NotifyMaskDonned() does in the "equipped" branch above. Without this call,
+                    // missing the mask left the drill permanently stuck on Step 2 (currentStepIndex
+                    // never reaches EvacuationStepIndex), which silently breaks
+                    // GasLeakModuleManager.NotifyExitReached()'s step-index guard later — the worker
+                    // can still walk all the way to the exit and sit through the 4s safe-stay, but
+                    // FinishModule() (and the scorecard) never fires. maskDonned stays false either
+                    // way, so ComputePpeSelectionScore() still correctly scores 0 for PPE.
+                    moduleManager.CompleteCurrentStep();
                 }
             }
         }
