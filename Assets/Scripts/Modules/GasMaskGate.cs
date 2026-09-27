@@ -4,10 +4,9 @@ using MiningSafetyAR.Data;
 namespace MiningSafetyAR.Modules
 {
     /// <summary>
-    /// Checkpoint zone in Tunnel 2 just before the exit turn. Never physically blocks player
-    /// movement (isTrigger = true). Evaluates whether the worker equipped their SCSR mask:
-    /// - If mask equipped: awards PPE safety points.
-    /// - If mask missed: penalizes score and logs a mistake, but allows free movement out of the mine.
+    /// Checkpoint zone before the exit turn. Evaluates whether the worker equipped their SCSR mask:
+    /// - If mask equipped: calls NotifyMaskDonned for scoring.
+    /// - If mask missed: logs mistake but allows free movement.
     /// </summary>
     [RequireComponent(typeof(BoxCollider))]
     public class GasMaskGate : MonoBehaviour
@@ -42,17 +41,14 @@ namespace MiningSafetyAR.Modules
             if (equipped)
             {
                 Debug.Log("[GAS_MASK_GATE] Worker passed checkpoint with SCSR mask equipped — Full score awarded.");
-                if (moduleManager != null) moduleManager.OnPPESelected(true);
+                if (moduleManager != null) moduleManager.NotifyMaskDonned();
             }
             else
             {
                 Debug.LogWarning("[GAS_MASK_GATE] Worker passed checkpoint WITHOUT SCSR mask — Score penalty registered.");
                 if (moduleManager != null)
                 {
-                    moduleManager.OnPPESelected(false);
-                }
-                else
-                {
+                    moduleManager.RegisterMistake("Entered high gas zone without SCSR mask!", GasLeakModuleManager.MistakeSeverity.Critical);
                     Firebase.FirestoreService.Instance?.LogMistakeEvent(
                         "gas_safety", "main", MistakeTags.MissedPpeCheck, MistakeTags.MissedPpeCheckSeverity);
                 }

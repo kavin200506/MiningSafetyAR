@@ -218,6 +218,8 @@ namespace MiningSafetyAR.UI.Pages
 
             if (string.IsNullOrEmpty(moduleId)) moduleId = "fire_safety";
 
+            Debug.Log($"[ARSimulationPageController] OnPageEnter() — moduleId={moduleId}, scene={UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}");
+
             if (scoreValue != null) scoreValue.text = currentScore.ToString();
             if (timerValue != null) timerValue.text = "00:00";
             HideAllBanners();
@@ -260,6 +262,19 @@ namespace MiningSafetyAR.UI.Pages
                 Debug.LogWarning("[SCORING_DIAG] [ARSimulationPageController] SubscribeToEvents() — FireSafetyModuleManager.Instance was NULL, subscription SKIPPED entirely.");
             }
 
+            // Subscribe to GasLeakModuleManager events
+            if (GasLeakModuleManager.Instance != null)
+            {
+                GasLeakModuleManager.Instance.OnStepChanged += OnStepChanged;
+                GasLeakModuleManager.Instance.OnMistakeMade += OnMistakeMade;
+                GasLeakModuleManager.Instance.OnModuleCompletedWithMetrics += OnGasModuleCompleted;
+                Debug.Log($"[GAS_SCORING] [ARSimulationPageController] SubscribeToEvents() — subscribed to GasLeakModuleManager.InstanceID={GasLeakModuleManager.Instance.GetInstanceID()}.");
+            }
+            else
+            {
+                Debug.LogWarning($"[GAS_SCORING] [ARSimulationPageController] SubscribeToEvents() — GasLeakModuleManager.Instance was NULL, subscription SKIPPED entirely. moduleId={moduleId}");
+            }
+
             if (AR.ARProximitySafetyValidator.Instance != null)
             {
                 AR.ARProximitySafetyValidator.Instance.OnProximityBreached += OnProximityBreached;
@@ -296,6 +311,13 @@ namespace MiningSafetyAR.UI.Pages
                 FireSafetyModuleManager.Instance.OnMistakeMade -= OnMistakeMade;
                 FireSafetyModuleManager.Instance.OnFailureEscalated -= OnFailureEscalated;
                 FireSafetyModuleManager.Instance.OnModuleCompletedWithMetrics -= OnModuleCompleted;
+            }
+
+            if (GasLeakModuleManager.Instance != null)
+            {
+                GasLeakModuleManager.Instance.OnStepChanged -= OnStepChanged;
+                GasLeakModuleManager.Instance.OnMistakeMade -= OnMistakeMade;
+                GasLeakModuleManager.Instance.OnModuleCompletedWithMetrics -= OnGasModuleCompleted;
             }
 
             if (AR.ARProximitySafetyValidator.Instance != null)
@@ -889,6 +911,49 @@ namespace MiningSafetyAR.UI.Pages
             awaitingQuizConfirm = true;
         }
 
+        private void OnGasModuleCompleted(List<StepMetric> metrics)
+        {
+            Debug.Log($"[GAS_SCORING] [ARSimulationPageController] OnGasModuleCompleted() received — moduleId={moduleId}, metricsCount={metrics?.Count ?? 0}");
+            timerRunning = false;
+            if (bannerWarning != null) bannerWarning.style.display = DisplayStyle.None;
+
+            // Show the real breakdown for gas module
+            var payload = GasLeakModuleManager.Instance?.LastDrillResult;
+            Debug.Log($"[GAS_SCORING] Payload: {(payload != null ? $"score={payload.drillScorePercentage:F1}%" : "NULL")}");
+            if (missionModal != null)
+            {
+                if (missionText != null) missionText.text = BuildGasDrillBreakdownText(payload);
+                missionModal.style.display = DisplayStyle.Flex;
+                Debug.Log("[GAS_SCORING] missionModal displayed");
+                if (btnStartMission != null)
+                {
+                    btnStartMission.style.display = DisplayStyle.Flex;
+                    btnStartMission.text = "Go to Quiz";
+                }
+            }
+            else
+            {
+                Debug.LogError("[GAS_SCORING] missionModal is NULL!");
+            }
+            awaitingQuizConfirm = true;
+        }
+
+        private string BuildGasDrillBreakdownText(DrillResultPayload payload)
+        {
+            if (payload == null)
+            {
+                return "🎉 LEVEL COMPLETED!\n\nYou have successfully handled the gas leak emergency! Get ready for your assessment quiz.";
+            }
+            return "🎉 LEVEL COMPLETED!\n\n"
+                + $"Drill Score: {payload.drillScorePercentage:F0}%\n"
+                + $"Mistakes: {payload.mistakesCount}   Time: {payload.completionTimeSeconds:F0}s\n\n"
+                + $"Hazard Recognition: {payload.hazardRecognitionPct}%\n"
+                + $"PPE Selection: {payload.extinguisherUsePct}%\n"
+                + $"Time Management: {payload.timeManagementPct}%\n"
+                + $"Evacuation: {payload.evacuationPct}%\n\n"
+                + "Get ready for your assessment quiz!";
+        }
+
         private string BuildDrillBreakdownText(DrillResultPayload payload)
         {
             if (payload == null)
@@ -927,10 +992,15 @@ namespace MiningSafetyAR.UI.Pages
             // "fire_safety_sub1") — only the quiz/mistake lookup needs the parent category.
             string quizCategoryId = targetModule.Contains("_sub") ? targetModule.Substring(0, targetModule.IndexOf("_sub")) : targetModule;
 
+            // Determine which module's payload to use
+            bool isGasModule = targetModule.StartsWith("gas_safety");
+            DrillResultPayload payload = isGasModule 
+                ? GasLeakModuleManager.Instance?.LastDrillResult 
+                : FireSafetyModuleManager.Instance?.LastDrillResult;
+
             // Hand off the REAL drill performance instead of just the module id — this is what
             // stops the quiz page from falling back to its hardcoded simulationScore=80 default.
             // See documents/technical_scoring_explained.md §4.1.
-            var payload = FireSafetyModuleManager.Instance?.LastDrillResult;
             var navParam = new Dictionary<string, object>
             {
                 { "moduleId", quizCategoryId },       // used for QuizSelectionService (mistakes + question bank)
@@ -940,7 +1010,7 @@ namespace MiningSafetyAR.UI.Pages
                 { "drillMistakesCount", payload?.mistakesCount ?? 0 },
                 { "drillTimeSeconds", payload?.completionTimeSeconds ?? 0f },
                 { "hazardRecognitionPct", payload?.hazardRecognitionPct ?? 0 },
-                { "extinguisherUsePct", payload?.extinguisherUsePct ?? 0 },
+                { "extinguisherUsePct", payload?.extinguisherUsePct ?? 0 }, // For gas: PPE Selection
                 { "timeManagementPct", payload?.timeManagementPct ?? 0 },
                 { "evacuationPct", payload?.evacuationPct ?? 0 }
             };

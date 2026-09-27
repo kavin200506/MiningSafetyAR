@@ -37,6 +37,7 @@ namespace MiningSafetyAR.Modules
         /// (pass the grab animation's own duration so the two stay in sync).</summary>
         public void ShowNextReading(float delay)
         {
+            if (!isActiveAndEnabled) return;
             if (readings == null || readings.Length == 0 || readingImage == null || overlayRoot == null) return;
 
             if (activeCoroutine != null) StopCoroutine(activeCoroutine);
@@ -45,6 +46,7 @@ namespace MiningSafetyAR.Modules
 
         public void Hide()
         {
+            if (!isActiveAndEnabled) return;
             if (activeCoroutine != null) StopCoroutine(activeCoroutine);
             if (overlayRoot == null) return;
 

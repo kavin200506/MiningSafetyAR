@@ -36,6 +36,8 @@ namespace MiningSafetyAR.Modules
         public bool IsCheckingDetector => isCheckingDetector;
         /// <summary>True from the first moment the sustained check ever completes, for the rest of the drill.</summary>
         public bool HasCheckedOnce => hasCheckedOnce;
+        /// <summary>True while the worker is holding the detector (grabbed from belt).</summary>
+        public bool IsHeld => isHeld;
 
         private void Awake()
         {
