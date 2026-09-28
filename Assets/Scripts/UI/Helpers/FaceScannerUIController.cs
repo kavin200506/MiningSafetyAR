@@ -198,17 +198,26 @@ namespace MiningSafetyAR.UI.Helpers
         {
             if (statusIcon == null) return;
 
+            var checkmarkShape = statusIcon.Q("scanner-checkmark-shape");
+            var crossShape = statusIcon.Q("scanner-cross-shape");
+
             switch (state)
             {
                 case ScannerState.Success:
+                    if (checkmarkShape != null) checkmarkShape.style.display = DisplayStyle.Flex;
+                    if (crossShape != null) crossShape.style.display = DisplayStyle.None;
                     if (statusIconLabel != null) statusIconLabel.text = CheckmarkGlyph;
                     statusIcon.AddToClassList(IconVisibleClass);
                     break;
                 case ScannerState.Failure:
+                    if (checkmarkShape != null) checkmarkShape.style.display = DisplayStyle.None;
+                    if (crossShape != null) crossShape.style.display = DisplayStyle.Flex;
                     if (statusIconLabel != null) statusIconLabel.text = CrossGlyph;
                     statusIcon.AddToClassList(IconVisibleClass);
                     break;
                 default: // Idle, Scanning — icon hidden per requirements
+                    if (checkmarkShape != null) checkmarkShape.style.display = DisplayStyle.None;
+                    if (crossShape != null) crossShape.style.display = DisplayStyle.None;
                     statusIcon.RemoveFromClassList(IconVisibleClass);
                     if (statusIconLabel != null) statusIconLabel.text = "";
                     break;

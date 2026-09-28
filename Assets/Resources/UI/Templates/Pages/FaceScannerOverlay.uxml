@@ -23,6 +23,14 @@
                      is set; set scanner-status-icon-label's text and add the
                      "visible" modifier class below to pop it in. -->
                 <ui:VisualElement name="scanner-status-icon" class="scanner-status-icon" picking-mode="Ignore">
+                    <ui:VisualElement name="scanner-checkmark-shape" class="scanner-checkmark-shape" style="display: none;">
+                        <ui:VisualElement class="checkmark-stem-short" />
+                        <ui:VisualElement class="checkmark-stem-long" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="scanner-cross-shape" class="scanner-cross-shape" style="display: none;">
+                        <ui:VisualElement class="cross-line-1" />
+                        <ui:VisualElement class="cross-line-2" />
+                    </ui:VisualElement>
                     <ui:Label name="scanner-status-icon-label" text="" class="scanner-status-icon-label" />
                 </ui:VisualElement>
 

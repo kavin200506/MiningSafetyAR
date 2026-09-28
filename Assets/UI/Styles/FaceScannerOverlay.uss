@@ -101,7 +101,8 @@
     border-radius: 130px;
     justify-content: center;
     align-items: center;
-    background-color: rgba(0, 0, 0, 0.35);
+    background-color: rgba(0, 0, 0, 0.45);
+    transform-origin: center;
     scale: 0;
     opacity: 0;
     transition-property: scale, opacity;
@@ -114,19 +115,72 @@
     opacity: 1;
 }
 
+/* Vector Checkmark Shape */
+.scanner-checkmark-shape {
+    width: 80px;
+    height: 80px;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.checkmark-stem-short {
+    position: absolute;
+    width: 24px;
+    height: 7px;
+    background-color: #22C55E;
+    border-radius: 4px;
+    rotate: 45deg;
+    translate: -14px 8px;
+    transform-origin: center;
+}
+
+.checkmark-stem-long {
+    position: absolute;
+    width: 48px;
+    height: 7px;
+    background-color: #22C55E;
+    border-radius: 4px;
+    rotate: -45deg;
+    translate: 8px -3px;
+    transform-origin: center;
+}
+
+/* Vector Cross Shape */
+.scanner-cross-shape {
+    width: 80px;
+    height: 80px;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.cross-line-1 {
+    position: absolute;
+    width: 52px;
+    height: 7px;
+    background-color: #EF4444;
+    border-radius: 4px;
+    rotate: 45deg;
+    transform-origin: center;
+}
+
+.cross-line-2 {
+    position: absolute;
+    width: 52px;
+    height: 7px;
+    background-color: #EF4444;
+    border-radius: 4px;
+    rotate: -45deg;
+    transform-origin: center;
+}
+
 .scanner-status-icon-label {
     font-size: 72px;
     -unity-font-style: bold;
     -unity-text-align: middle-center;
     color: #FFFFFF;
-}
-
-.scanner-state-success .scanner-status-icon-label {
-    color: #22C55E;
-}
-
-.scanner-state-failure .scanner-status-icon-label {
-    color: #EF4444;
+    display: none;
 }
 
 /* ─── Status label ─── */
