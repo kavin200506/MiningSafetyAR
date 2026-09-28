@@ -3459,7 +3459,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Texture: {fileID: 2800000, guid: b9b08deac14be2e43a2e193937d3cce4, type: 3}
+  m_Texture: {fileID: 2800000, guid: f81b6ed5bb784c842a4d73f761476805, type: 3}
   m_UVRect:
     serializedVersion: 2
     x: 0
@@ -5021,8 +5021,8 @@ MonoBehaviour:
   overlayCanvasGroup: {fileID: 1480131827}
   readingImage: {fileID: 1562217036}
   readings:
-  - {fileID: 2800000, guid: b9b08deac14be2e43a2e193937d3cce4, type: 3}
-  - {fileID: 2800000, guid: 6a528952f1afdea429fe30f3cef6cb87, type: 3}
+  - {fileID: 2800000, guid: f81b6ed5bb784c842a4d73f761476805, type: 3}
+  - {fileID: 2800000, guid: 48c5e143c8302f949a9dad6d2d81bd70, type: 3}
   fadeInDuration: 0.25
   fadeOutDuration: 0.15
   focusStartScale: 0.92

@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.UIElements;
+using MiningSafetyAR.Modules;
 
 namespace MiningSafetyAR.AR
 {
@@ -20,23 +21,42 @@ namespace MiningSafetyAR.AR
 
         [Header("Hint Configuration")]
 
-        private string[] tutorialTips = new string[]
+        private string[] fireTutorialTips = new string[]
         {
             "Need help to progress? Just tap this light bulb icon then follow the blue arrow.",
             "Point your camera at the floor to detect surfaces for placing the fire hazard.",
             "Walk around the room to find the fire extinguisher after the fire starts."
         };
 
-        // Re-indexed to match FireSafetyModuleManager's 4 real steps (Sound Alarm / Select
-        // Extinguisher are no longer separately tracked steps — see documents/
-        // technical_scoring_explained.md §3.2 and §6.2).
-        private string[] contextualHints = new string[]
+        private string[] gasTutorialTips = new string[]
+        {
+            "Need help to progress? Just tap this light bulb icon then follow the blue arrow.",
+            "Grab your multi-gas detector to inspect O₂, CH₄, and CO levels in the mine.",
+            "Don your SCSR breathing mask when entering hazardous gas zones and evacuate safely."
+        };
+
+        private string[] fireContextualHints = new string[]
         {
             "Pull the safety pin on the extinguisher handle to unlock mechanism.",
             "Aim the nozzle at the base of the fire and test spray.",
             "Squeeze handle firmly and sweep nozzle side-to-side across base of flames.",
             "Move to the safe distance shown by the arrow to complete evacuation."
         };
+
+        private string[] gasContextualHints = new string[]
+        {
+            "Step 1: Check your multi-gas detector to confirm gas concentration levels.",
+            "Step 2: Move toward fresh air and re-assess gas levels.",
+            "Step 3: Don your SCSR breathing mask from your belt before proceeding.",
+            "Step 4: Follow evacuation arrows to safely exit the mine area."
+        };
+
+        private bool IsGasModule()
+        {
+            return GasLeakModuleManager.Instance != null || UnityEngine.SceneManagement.SceneManager.GetActiveScene().name.ToLowerInvariant().Contains("gas");
+        }
+
+        private string[] GetTutorialTips() => IsGasModule() ? gasTutorialTips : fireTutorialTips;
 
         private int currentTipIndex = 0;
         private bool tutorialCompleted = false;
@@ -113,9 +133,10 @@ namespace MiningSafetyAR.AR
         /// </summary>
         public string GetContextualHint(int stepIndex)
         {
-            if (stepIndex >= 0 && stepIndex < contextualHints.Length)
+            string[] hints = IsGasModule() ? gasContextualHints : fireContextualHints;
+            if (stepIndex >= 0 && stepIndex < hints.Length)
             {
-                return contextualHints[stepIndex];
+                return hints[stepIndex];
             }
             return "Follow emergency evacuation arrows to safe assembly zone.";
         }
@@ -157,7 +178,8 @@ namespace MiningSafetyAR.AR
 
         private void ShowTip(int index)
         {
-            if (index >= tutorialTips.Length)
+            string[] tips = GetTutorialTips();
+            if (index >= tips.Length)
             {
                 CompleteTutorial();
                 return;
@@ -169,25 +191,26 @@ namespace MiningSafetyAR.AR
             }
             if (tipLabel != null)
             {
-                tipLabel.text = $"TIP {index + 1}/{tutorialTips.Length}";
+                tipLabel.text = $"TIP {index + 1}/{tips.Length}";
             }
             if (tipText != null)
             {
-                tipText.text = tutorialTips[index];
+                tipText.text = tips[index];
             }
         }
 
         private void ShowNextTip()
         {
             currentTipIndex++;
-            if (currentTipIndex >= tutorialTips.Length)
+            string[] tips = GetTutorialTips();
+            if (currentTipIndex >= tips.Length)
             {
                 CompleteTutorial();
             }
             else
             {
                 ShowTip(currentTipIndex);
-                Debug.Log($"[ARGuidanceController] Tutorial TIP {currentTipIndex + 1}/{tutorialTips.Length}");
+                Debug.Log($"[ARGuidanceController] Tutorial TIP {currentTipIndex + 1}/{tips.Length}");
             }
         }
 
@@ -215,7 +238,9 @@ namespace MiningSafetyAR.AR
             }
             if (missionText != null)
             {
-                missionText.text = "A fire just started in a trash can! What should you do?";
+                missionText.text = IsGasModule()
+                    ? "A hazardous gas leak has been detected in the mine! Check gas levels with your detector, don your SCSR mask, and evacuate safely."
+                    : "A fire just started in a trash can! What should you do?";
             }
             missionShown = true;
             Debug.Log("[ARGuidanceController] Mission briefing displayed.");
