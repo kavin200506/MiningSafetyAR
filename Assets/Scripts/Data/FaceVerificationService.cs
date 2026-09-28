@@ -93,6 +93,13 @@ namespace MiningSafetyAR.Data
     {
         public static FaceVerificationService Instance { get; private set; }
 
+        /// <summary>
+        /// Optional external WebCamTexture (e.g. from WebCamPreviewController). When set and playing,
+        /// FaceVerificationService reuses this stream directly instead of attempting to open a second
+        /// hardware camera session. This prevents native camera driver crashes and video lockups.
+        /// </summary>
+        public WebCamTexture ExternalWebCamTexture { get; set; }
+
         // Bump this string (and re-export a new MobileFaceNet model) any time the embedding model
         // changes — VerifyFace() refuses to compare across mismatched versions (see VerifyFaceRoutine).
         public const string EMBEDDING_MODEL_VERSION = "MobileFaceNet_QAIHub_v0.62.1_128d";
@@ -513,8 +520,17 @@ namespace MiningSafetyAR.Data
                 Debug.LogWarning("[WARN] FaceVerificationService enableBlinkLiveness is on but no blink signal is implemented — ignoring.");
             }
 
-            yield return EnsureCamera();
-            if (webCamTexture == null || webCamTexture.width <= 16)
+            WebCamTexture activeCam = (ExternalWebCamTexture != null && ExternalWebCamTexture.isPlaying && ExternalWebCamTexture.width > 16)
+                ? ExternalWebCamTexture
+                : null;
+
+            if (activeCam == null)
+            {
+                yield return EnsureCamera();
+                activeCam = webCamTexture;
+            }
+
+            if (activeCam == null || activeCam.width <= 16)
             {
                 callback(new CaptureResult { error = "camera_unavailable" });
                 yield break;
@@ -532,7 +548,7 @@ namespace MiningSafetyAR.Data
             {
                 yield return new WaitForSeconds(interval);
 
-                frameBuffer = SnapshotFrame(frameBuffer);
+                frameBuffer = SnapshotFrame(frameBuffer, activeCam);
                 var detections = RunFaceDetection(frameBuffer);
 
                 if (detections.Count == 0)
@@ -608,14 +624,15 @@ namespace MiningSafetyAR.Data
                 Debug.Log($"[DIAG] FaceVerificationService Camera ready ({webCamTexture.width}x{webCamTexture.height}).");
         }
 
-        Texture2D SnapshotFrame(Texture2D reuse)
+        Texture2D SnapshotFrame(Texture2D reuse, WebCamTexture cam)
         {
-            if (reuse == null || reuse.width != webCamTexture.width || reuse.height != webCamTexture.height)
+            if (cam == null) return reuse;
+            if (reuse == null || reuse.width != cam.width || reuse.height != cam.height)
             {
                 if (reuse != null) Destroy(reuse);
-                reuse = new Texture2D(webCamTexture.width, webCamTexture.height, TextureFormat.RGB24, false);
+                reuse = new Texture2D(cam.width, cam.height, TextureFormat.RGB24, false);
             }
-            reuse.SetPixels32(webCamTexture.GetPixels32());
+            reuse.SetPixels32(cam.GetPixels32());
             reuse.Apply(false);
             return reuse;
         }

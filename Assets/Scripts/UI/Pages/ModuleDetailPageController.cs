@@ -245,6 +245,12 @@ namespace MiningSafetyAR.UI.Pages
             StartCoroutine(VerifyThenProceed(uid));
         }
 
+        VisualTreeAsset scannerOverlayTemplate;
+        VisualElement scannerOverlayRoot;
+        WebCamPreviewController webCamPreview;
+        FaceScannerUIController scannerUI;
+        FaceVerificationBridge verificationBridge;
+
         IEnumerator VerifyThenProceed(string uid)
         {
             bool enrollmentChecked = false;
@@ -260,33 +266,88 @@ namespace MiningSafetyAR.UI.Pages
                 yield break;
             }
 
-            if (actionBtn != null) { actionBtn.SetEnabled(false); actionBtn.text = "VERIFYING FACE..."; }
+            ShowScannerOverlay();
 
-            bool verifyDone = false;
-            FaceVerificationService.FaceVerificationResult result = null;
-            FaceVerificationService.Instance.VerifyFace(uid, r => { result = r; verifyDone = true; });
-            yield return new WaitUntil(() => verifyDone);
-
-            if (actionBtn != null) actionBtn.SetEnabled(true);
-            ConfigureActionButton(); // restore correct label (START/CONTINUE/RETAKE)
-
-            if (result != null && result.failureReason == "model_version_mismatch_reenrollment_required")
+            verificationBridge.StartVerification(uid, (ok, reason) =>
             {
-                Debug.Log($"[INFO] ModuleDetailPageController Embedding model version mismatch for worker {uid} — routing to re-enrollment.");
-                (string, object) dest = ("UI_ModuleDetail", moduleId);
-                NavigationManager.Instance.NavigateTo("UI_FaceConsent", dest);
-                yield break;
+                CloseScannerOverlay();
+                ConfigureActionButton();
+
+                if (ok)
+                {
+                    Debug.Log($"[INFO] ModuleDetailPageController Face verification succeeded for worker {uid} — launching training.");
+                    ProceedToTraining();
+                }
+                else if (reason == "model_version_mismatch_reenrollment_required")
+                {
+                    Debug.Log($"[INFO] ModuleDetailPageController Embedding model version mismatch for worker {uid} — routing to re-enrollment.");
+                    (string, object) dest = ("UI_ModuleDetail", moduleId);
+                    NavigationManager.Instance.NavigateTo("UI_FaceConsent", dest);
+                }
+                else
+                {
+                    Debug.LogWarning($"[WARN] ModuleDetailPageController Face verification failed for worker {uid}: reason={reason}");
+                    ShowFailure(reason);
+                }
+            });
+        }
+
+        void ShowScannerOverlay()
+        {
+            if (scannerOverlayRoot != null) return;
+
+            if (scannerOverlayTemplate == null)
+                scannerOverlayTemplate = Resources.Load<VisualTreeAsset>("UI/Templates/Pages/FaceScannerOverlay");
+            if (scannerOverlayTemplate == null)
+            {
+                Debug.LogError("[ERROR] ModuleDetailPageController FaceScannerOverlay template not found at Resources/UI/Templates/Pages/FaceScannerOverlay — cannot show scanner UI.");
+                return;
             }
 
-            if (result != null && result.passed)
+            scannerOverlayRoot = scannerOverlayTemplate.CloneTree();
+            scannerOverlayRoot.style.position = Position.Absolute;
+            scannerOverlayRoot.style.left = 0; scannerOverlayRoot.style.right = 0;
+            scannerOverlayRoot.style.top = 0; scannerOverlayRoot.style.bottom = 0;
+            root.Add(scannerOverlayRoot);
+
+            if (webCamPreview == null) webCamPreview = gameObject.AddComponent<WebCamPreviewController>();
+            if (verificationBridge == null) verificationBridge = gameObject.AddComponent<FaceVerificationBridge>();
+
+            scannerUI = new FaceScannerUIController(scannerOverlayRoot);
+            scannerUI.OnCancelClicked += OnScannerCancelled;
+            verificationBridge.Configure(webCamPreview, scannerUI);
+
+            webCamPreview.PlayCamera();
+            webCamPreview.AttachToElement(scannerOverlayRoot.Q("scanner-viewport"));
+        }
+
+        void CloseScannerOverlay()
+        {
+            webCamPreview?.StopCamera();
+            scannerUI?.Dispose();
+            scannerUI = null;
+            if (scannerOverlayRoot != null)
             {
-                ProceedToTraining();
+                root?.Remove(scannerOverlayRoot);
+                scannerOverlayRoot = null;
             }
-            else
-            {
-                Debug.LogWarning($"[WARN] ModuleDetailPageController Face verification failed for worker {uid}: reason={result?.failureReason}, similarity={result?.similarityScore:F3}");
-                ShowFailure(result?.failureReason);
-            }
+        }
+
+        void OnScannerCancelled()
+        {
+            Debug.Log("[INFO] ModuleDetailPageController Worker cancelled face scan.");
+            CloseScannerOverlay();
+            ConfigureActionButton();
+        }
+
+        public override void OnPageExit()
+        {
+            CloseScannerOverlay();
+        }
+
+        void OnDisable()
+        {
+            CloseScannerOverlay();
         }
 
         void ProceedToTraining()

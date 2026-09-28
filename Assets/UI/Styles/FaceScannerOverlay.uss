@@ -1,0 +1,175 @@
+/* ═══════════════════════════════════════════════════════════════════
+   FaceScannerOverlay.uss
+   Circular face-recognition scanner overlay.
+   Used by: FaceScannerOverlay.uxml
+   States (toggle one on #scanner-circle-wrap from C#):
+     scanner-state-scanning  — glowing cyan ring, scanning in progress
+     scanner-state-success   — neon green ring + scale pop, verified
+     scanner-state-failure   — warning red ring, failed / retry
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+    --scanner-cyan: #06B6D4;
+    --scanner-green: #22C55E;
+    --scanner-red: #EF4444;
+}
+
+/* ─── Backdrop ─── */
+.scanner-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    justify-content: center;
+    align-items: center;
+}
+
+.scanner-content {
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+/* ─── Circle wrap (positioning context for viewport / ring / icon) ─── */
+.scanner-circle-wrap {
+    position: relative;
+    width: 268px;
+    height: 268px;
+    align-self: center;
+}
+
+/* ─── Circular camera viewport (260x260, centered inside the wrap) ─── */
+.scanner-viewport {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 260px;
+    height: 260px;
+    border-radius: 130px;
+    overflow: hidden;
+    background-color: #0D0D0D;
+}
+
+/* ─── Animated border ring, sits directly around the circle ─── */
+.scanner-border-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 268px;
+    height: 268px;
+    border-radius: 134px;
+    border-width: 5px;
+    background-color: transparent;
+    scale: 1;
+    transition-property: border-color, scale;
+    transition-duration: 0.3s, 0.2s;
+    transition-timing-function: ease-out, ease-out;
+}
+
+/* Scanning (default) */
+.scanner-state-scanning .scanner-border-ring {
+    border-color: #06B6D4;
+}
+
+/* Success */
+.scanner-state-success .scanner-border-ring {
+    border-color: #22C55E;
+    scale: 1.05;
+}
+
+/* Failure */
+.scanner-state-failure .scanner-border-ring {
+    border-color: #EF4444;
+}
+
+/* Breathing pulse effect for scanning state */
+.scanner-pulse .scanner-border-ring {
+    scale: 1.03;
+    border-color: #38BDF8;
+}
+
+/* ─── Status icon (checkmark / cross), pop-in via scale + opacity ─── */
+.scanner-status-icon {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 260px;
+    height: 260px;
+    border-radius: 130px;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.35);
+    scale: 0;
+    opacity: 0;
+    transition-property: scale, opacity;
+    transition-duration: 0.25s, 0.2s;
+    transition-timing-function: ease-out, ease-out;
+}
+
+.scanner-status-icon--visible {
+    scale: 1;
+    opacity: 1;
+}
+
+.scanner-status-icon-label {
+    font-size: 72px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    color: #FFFFFF;
+}
+
+.scanner-state-success .scanner-status-icon-label {
+    color: #22C55E;
+}
+
+.scanner-state-failure .scanner-status-icon-label {
+    color: #EF4444;
+}
+
+/* ─── Status label ─── */
+.scanner-status-text {
+    margin-top: 24px;
+    max-width: 280px;
+    font-size: 16px;
+    -unity-font-style: bold;
+    color: #FFFFFF;
+    -unity-text-align: middle-center;
+    white-space: normal;
+}
+
+/* ─── Actions ─── */
+.scanner-actions {
+    margin-top: 32px;
+    width: 260px;
+    align-items: center;
+}
+
+.scanner-btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: 16px;
+    border-width: 0;
+    font-size: 15px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    margin-bottom: 12px;
+    transition-property: background-color, scale;
+    transition-duration: 0.2s, 0.15s;
+}
+
+.scanner-btn:active {
+    scale: 0.97;
+}
+
+.scanner-btn-primary {
+    background-color: #FF6D00;
+    color: #FFFFFF;
+}
+
+.scanner-btn-secondary {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #FFFFFF;
+}

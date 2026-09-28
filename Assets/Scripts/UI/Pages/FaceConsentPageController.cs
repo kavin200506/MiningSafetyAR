@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using MiningSafetyAR.UI;
 using MiningSafetyAR.UI.Navigation;
+using MiningSafetyAR.UI.Helpers;
 using MiningSafetyAR.Data;
 using MiningSafetyAR.Localization;
 
@@ -26,6 +27,18 @@ namespace MiningSafetyAR.UI.Pages
         // either a plain scene-name string (no parameter needed on arrival) or a (scene, param) tuple.
         string onAcceptScene = "UI_Dashboard";
         object onAcceptParam;
+
+        // Circular face-scanner overlay (FaceScannerOverlay.uxml), shown only for the actual camera
+        // capture step of enrollment — the earlier "recording your consent" step is a plain Firestore
+        // write with no camera involved and still uses the simple captureStatusLabel/feedbackBanner UI
+        // above. webCamPreview/verificationBridge are MonoBehaviours added once to this same GameObject
+        // and reused across opens; scannerUI is a plain class rebuilt against each fresh clone of the
+        // overlay template.
+        VisualTreeAsset scannerOverlayTemplate;
+        VisualElement scannerOverlayRoot;
+        WebCamPreviewController webCamPreview;
+        FaceScannerUIController scannerUI;
+        FaceVerificationBridge verificationBridge;
 
         protected override void BindUI()
         {
@@ -138,25 +151,97 @@ namespace MiningSafetyAR.UI.Pages
 
         void StartEnrollment(string uid)
         {
-            ShowCaptureStatus(Localized(
-                "Look directly at the camera to register your face...",
-                "अपना चेहरा दर्ज करने के लिए सीधे कैमरे की ओर देखें...",
-                "ᱟᱢᱟᱜ ᱚᱛᱚᱨ ᱨᱤᱡᱤᱥᱴᱚᱨ ᱞᱟᱹᱜᱤᱛ ᱠᱮᱢᱨᱟ ᱥᱮᱛᱮᱨ ᱫᱟᱲᱮᱠᱟᱛᱮ ᱧᱮᱞᱢᱮ...",
-                "உங்கள் முகத்தை பதிவு செய்ய நேரடியாக கேமராவைப் பாருங்கள்..."));
+            if (acceptBtn != null) acceptBtn.style.display = DisplayStyle.None;
+            if (captureStatusLabel != null) captureStatusLabel.style.display = DisplayStyle.None;
+            if (feedbackBanner != null) feedbackBanner.style.display = DisplayStyle.None;
 
-            FaceVerificationService.Instance.EnrollFace(uid, (ok, resp) =>
+            ShowScannerOverlay();
+
+            verificationBridge.StartEnrollment(uid, (ok, reason) =>
             {
                 if (ok)
                 {
                     Debug.Log("[INFO] FaceConsentPageController Enrollment succeeded, proceeding.");
+                    CloseScannerOverlay();
                     NavigationManager.Instance.NavigateTo(onAcceptScene, onAcceptParam);
                 }
                 else
                 {
-                    Debug.LogWarning($"[WARN] FaceConsentPageController Enrollment failed: {resp}");
-                    ShowFailure(resp);
+                    // The overlay's own Failure state + "Retry Scan" button (wired inside
+                    // FaceVerificationBridge) already handle a retry — nothing further to do here
+                    // unless the worker taps Cancel, which OnScannerCancelled() handles.
+                    Debug.LogWarning($"[WARN] FaceConsentPageController Enrollment attempt failed: {reason}");
                 }
             });
+        }
+
+        // ================================================================
+        // SCANNER OVERLAY (camera capture step only)
+        // ================================================================
+
+        void ShowScannerOverlay()
+        {
+            if (scannerOverlayRoot != null) return; // already showing
+
+            if (scannerOverlayTemplate == null)
+                scannerOverlayTemplate = Resources.Load<VisualTreeAsset>("UI/Templates/Pages/FaceScannerOverlay");
+            if (scannerOverlayTemplate == null)
+            {
+                Debug.LogError("[ERROR] FaceConsentPageController FaceScannerOverlay template not found at Resources/UI/Templates/Pages/FaceScannerOverlay — cannot show scanner UI.");
+                return;
+            }
+
+            scannerOverlayRoot = scannerOverlayTemplate.CloneTree();
+            scannerOverlayRoot.style.position = Position.Absolute;
+            scannerOverlayRoot.style.left = 0; scannerOverlayRoot.style.right = 0;
+            scannerOverlayRoot.style.top = 0; scannerOverlayRoot.style.bottom = 0;
+            root.Add(scannerOverlayRoot);
+
+            if (webCamPreview == null) webCamPreview = gameObject.AddComponent<WebCamPreviewController>();
+            if (verificationBridge == null) verificationBridge = gameObject.AddComponent<FaceVerificationBridge>();
+
+            scannerUI = new FaceScannerUIController(scannerOverlayRoot);
+            scannerUI.OnCancelClicked += OnScannerCancelled;
+            verificationBridge.Configure(webCamPreview, scannerUI);
+
+            webCamPreview.PlayCamera();
+            webCamPreview.AttachToElement(scannerOverlayRoot.Q("scanner-viewport"));
+        }
+
+        void CloseScannerOverlay()
+        {
+            webCamPreview?.StopCamera();
+            scannerUI?.Dispose();
+            scannerUI = null;
+            if (scannerOverlayRoot != null)
+            {
+                root?.Remove(scannerOverlayRoot);
+                scannerOverlayRoot = null;
+            }
+        }
+
+        void OnScannerCancelled()
+        {
+            Debug.Log("[INFO] FaceConsentPageController Worker cancelled face capture.");
+            CloseScannerOverlay();
+            ResetToInitialState();
+        }
+
+        public override void OnPageExit()
+        {
+            // Explicit release on navigation away, on top of the automatic cleanup WebCamPreviewController
+            // already does in its own OnDisable()/OnDestroy() when this scene's GameObjects are torn down,
+            // and on top of this page's own OnDisable() below.
+            CloseScannerOverlay();
+        }
+
+        void OnDisable()
+        {
+            // Reliable release even though NavigationManager does not currently invoke OnPageExit()
+            // above (see that override's comment) — OnDisable() always runs when this scene's
+            // GameObjects are torn down, so this is the safety net that actually fires on ordinary
+            // navigation.
+            CloseScannerOverlay();
         }
 
         void OnRetryEnrollment()

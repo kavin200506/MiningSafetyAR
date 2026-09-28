@@ -1,0 +1,40 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Styles/Theme.uss" />
+    <Style src="project://database/Assets/UI/Styles/Reset.uss" />
+    <Style src="project://database/Assets/UI/Styles/Components.uss" />
+    <Style src="project://database/Assets/UI/Styles/FaceScannerOverlay.uss" />
+
+    <!-- Full-screen dark backdrop. Toggle #scanner-circle-wrap's state class
+         (scanner-state-scanning / scanner-state-success / scanner-state-failure)
+         from C# to drive the ring color/glow and status-icon color. -->
+    <ui:VisualElement name="face-scanner-backdrop" class="scanner-backdrop">
+        <ui:VisualElement name="scanner-content" class="scanner-content">
+
+            <ui:VisualElement name="scanner-circle-wrap" class="scanner-circle-wrap scanner-state-scanning">
+
+                <!-- Live camera feed is presented here at runtime (e.g. a RenderTexture
+                     assigned to this element's style.backgroundImage via C#). -->
+                <ui:VisualElement name="scanner-viewport" class="scanner-viewport" />
+
+                <!-- Animated circular ring; color/glow driven by the wrap's state class. -->
+                <ui:VisualElement name="scanner-border-ring" class="scanner-border-ring" picking-mode="Ignore" />
+
+                <!-- Centered result icon (checkmark / cross). Hidden until a result state
+                     is set; set scanner-status-icon-label's text and add the
+                     "visible" modifier class below to pop it in. -->
+                <ui:VisualElement name="scanner-status-icon" class="scanner-status-icon" picking-mode="Ignore">
+                    <ui:Label name="scanner-status-icon-label" text="" class="scanner-status-icon-label" />
+                </ui:VisualElement>
+
+            </ui:VisualElement>
+
+            <ui:Label name="scanner-status-text" text="Align your face inside the circle" class="scanner-status-text" />
+
+            <ui:VisualElement name="scanner-actions" class="scanner-actions">
+                <ui:Button name="scanner-retry-btn" text="RETRY SCAN" class="scanner-btn scanner-btn-primary" style="display: none;" />
+                <ui:Button name="scanner-cancel-btn" text="CANCEL" class="scanner-btn scanner-btn-secondary" />
+            </ui:VisualElement>
+
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
