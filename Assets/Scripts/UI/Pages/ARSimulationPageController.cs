@@ -19,7 +19,6 @@ namespace MiningSafetyAR.UI.Pages
     public class ARSimulationPageController : PageController
     {
         public static ARSimulationPageController Instance { get; private set; }
-
         private string moduleId;
         private int currentScore = 100;
         private float elapsedTime = 0f;
@@ -90,12 +89,31 @@ namespace MiningSafetyAR.UI.Pages
         private bool modalOpen = false;
         private int currentTipIndex = 0;
 
-        private readonly string[] tutorialTips = new string[]
+        private readonly string[] fireTutorialTips = new string[]
         {
             "Need help to progress? Just tap this light bulb icon then follow the blue arrow.",
             "Point your camera at the floor to detect surfaces for placing the fire hazard.",
             "Walk 5-15 steps to discover the fire extinguisher on a wall or stand."
         };
+
+        private readonly string[] gasTutorialTips = new string[]
+        {
+            "Need help to progress? Just tap this light bulb icon then follow the blue arrow.",
+            "Grab your multi-gas detector to inspect O₂, CH₄, and CO levels in the mine.",
+            "Don your SCSR breathing mask when entering hazardous gas zones and evacuate safely."
+        };
+
+        private bool IsGasModule()
+        {
+            return (!string.IsNullOrEmpty(moduleId) && moduleId.StartsWith("gas_safety"))
+                   || GasLeakModuleManager.Instance != null
+                   || UnityEngine.SceneManagement.SceneManager.GetActiveScene().name.ToLowerInvariant().Contains("gas");
+        }
+
+        private string[] GetTutorialTips()
+        {
+            return IsGasModule() ? gasTutorialTips : fireTutorialTips;
+        }
 
         private void Awake()
         {
@@ -707,15 +725,16 @@ namespace MiningSafetyAR.UI.Pages
 
         private void ShowTip(int index)
         {
-            if (index >= tutorialTips.Length)
+            string[] tips = GetTutorialTips();
+            if (index >= tips.Length)
             {
                 HideTutorial();
                 ShowMissionBriefing();
                 return;
             }
             if (tutorialCallout != null) tutorialCallout.style.display = DisplayStyle.Flex;
-            if (tipLabel != null) tipLabel.text = $"TIP {index + 1}/{tutorialTips.Length}";
-            if (tipText != null) tipText.text = tutorialTips[index];
+            if (tipLabel != null) tipLabel.text = $"TIP {index + 1}/{tips.Length}";
+            if (tipText != null) tipText.text = tips[index];
         }
 
         private void HideTutorial()
@@ -726,6 +745,12 @@ namespace MiningSafetyAR.UI.Pages
 
         private void ShowMissionBriefing()
         {
+            if (missionText != null)
+            {
+                missionText.text = IsGasModule()
+                    ? "A hazardous gas leak has been detected in the mine! Check gas levels with your detector, don your SCSR mask, and evacuate safely."
+                    : "A fire just started in a trash can! What should you do?";
+            }
             if (missionModal != null) missionModal.style.display = DisplayStyle.Flex;
         }
 
@@ -774,7 +799,14 @@ namespace MiningSafetyAR.UI.Pages
 
         private void OnHintClicked(ClickEvent evt)
         {
-            if (FireSafetyModuleManager.Instance != null)
+            if (GasLeakModuleManager.Instance != null && IsGasModule())
+            {
+                int step = GasLeakModuleManager.Instance.CurrentStepIndex;
+                string hint = GasLeakModuleManager.Instance.GetStepInstruction(step);
+                AR.ARSimulationLogger.LogButton("btn-hint", $"Requested Context Hint for Gas Step {step}: '{hint}'");
+                ShowTier1Info($"💡 {hint}");
+            }
+            else if (FireSafetyModuleManager.Instance != null)
             {
                 int step = FireSafetyModuleManager.Instance.CurrentStepIndex;
                 string hint = FireSafetyModuleManager.Instance.GetStepInstruction(step);
@@ -792,7 +824,12 @@ namespace MiningSafetyAR.UI.Pages
                 return;
             }
 
-            if (FireSafetyModuleManager.Instance != null)
+            if (GasLeakModuleManager.Instance != null && IsGasModule())
+            {
+                List<StepMetric> metrics = GasLeakModuleManager.Instance.GetStepMetrics();
+                ShowScoreModal(metrics);
+            }
+            else if (FireSafetyModuleManager.Instance != null)
             {
                 List<StepMetric> metrics = FireSafetyModuleManager.Instance.GetStepMetrics();
                 ShowScoreModal(metrics);
@@ -809,7 +846,11 @@ namespace MiningSafetyAR.UI.Pages
             if (timerValue != null) timerValue.text = "00:00";
             StartTimer();
 
-            if (FireSafetyModuleManager.Instance != null)
+            if (GasLeakModuleManager.Instance != null && IsGasModule())
+            {
+                GasLeakModuleManager.Instance.StartModule();
+            }
+            else if (FireSafetyModuleManager.Instance != null)
             {
                 FireSafetyModuleManager.Instance.RetryModule();
             }
