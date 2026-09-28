@@ -51,8 +51,12 @@ namespace MiningSafetyAR.UI.Helpers
 
         [Header("Rendering")]
         [SerializeField] BackgroundFitMode fitMode = BackgroundFitMode.Cover;
-        [Tooltip("WebCamTexture.videoRotationAngle's sign relative to UI Toolkit's clockwise-positive Rotate has not been verified against physical hardware in this codebase. Leave off and flip on-device if the preview appears rotated the wrong way.")]
+        [Tooltip("WebCamTexture.videoRotationAngle's sign relative to UI Toolkit's clockwise-positive Rotate.")]
         [SerializeField] bool invertRotationDirection = false;
+        [Tooltip("Mirror feed horizontally (scaleX = -1) so front camera acts like a selfie mirror.")]
+        [SerializeField] bool mirrorHorizontally = true;
+        [Tooltip("Invert feed vertically (scaleY = -1) if preview appears upside down.")]
+        [SerializeField] bool invertVertically = false;
 
         WebCamTexture webCamTexture;
         RenderTexture previewRenderTexture;
@@ -440,19 +444,37 @@ namespace MiningSafetyAR.UI.Helpers
         /// <summary>
         /// Rotates/flips the attached element so the feed reads upright despite the sensor's native
         /// orientation. videoRotationAngle is the degrees the raw frame needs rotating to appear
-        /// upright; videoVerticallyMirrored means the platform driver already flipped the frame
-        /// top-to-bottom, which is un-done here via a vertical scale flip. See invertRotationDirection's
-        /// tooltip — this hasn't been confirmed against physical hardware in this codebase.
+        /// upright. On Android device builds, Graphics.Blit into RenderTexture handles native GLES Y-flip,
+        /// so scaleY is normalized upright without double-inverting.
         /// </summary>
         void ApplyOrientationCorrection(VisualElement element)
         {
             if (element == null || webCamTexture == null) return;
 
-            float sign = invertRotationDirection ? 1f : -1f;
-            element.style.rotate = new StyleRotate(new Rotate(new Angle(sign * webCamTexture.videoRotationAngle, AngleUnit.Degree)));
+            // Ensure transform origin is center (50%, 50%) so scale and rotation pivot in the middle
+            element.style.transformOrigin = new StyleTransformOrigin(new TransformOrigin(Length.Percent(50), Length.Percent(50)));
 
-            float scaleY = webCamTexture.videoVerticallyMirrored ? -1f : 1f;
-            element.style.scale = new StyleScale(new Scale(new Vector3(1f, scaleY, 1f)));
+            // Rotate based on videoRotationAngle
+            float sign = invertRotationDirection ? 1f : -1f;
+            float angle = sign * webCamTexture.videoRotationAngle;
+            element.style.rotate = new StyleRotate(new Rotate(new Angle(angle, AngleUnit.Degree)));
+
+            // Scale calculations:
+            // 1. Horizontal mirror: front camera previews should mirror horizontally (scaleX = -1)
+            float scaleX = mirrorHorizontally ? -1f : 1f;
+
+            // 2. Vertical flip:
+            // On Android device builds, Graphics.Blit from native camera texture to RenderTexture
+            // already flips the Y axis due to GLES/Vulkan texture coordinate differences.
+            // Applying webCamTexture.videoVerticallyMirrored ? -1 : 1 results in a double-flip (upside down).
+#if UNITY_ANDROID && !UNITY_EDITOR
+            float scaleY = invertVertically ? -1f : 1f;
+#else
+            bool defaultFlipY = webCamTexture.videoVerticallyMirrored;
+            float scaleY = (defaultFlipY ^ invertVertically) ? -1f : 1f;
+#endif
+
+            element.style.scale = new StyleScale(new Scale(new Vector3(scaleX, scaleY, 1f)));
         }
     }
 }
